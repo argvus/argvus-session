@@ -1,0 +1,140 @@
+#!/usr/bin/env sh
+# Launch an Argvus (Hyprland) session from a bare TTY.
+
+set -eu
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/argvus"
+LOG_DIR="$STATE_DIR"
+LOG="$LOG_DIR/tty.log"
+DBUS_SESSION_BUS_ADDRESS_FILE="$STATE_DIR/.dbus-address"
+SESSION_ID_FILE="$STATE_DIR/.logind-session"
+
+log() {
+  printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
+}
+
+die() {
+  printf 'argvus-tty: %s\n' "$*" >&2
+  exit 1
+}
+
+if [ "${1:-}" = "--status" ]; then
+  printf 'DISPLAY=%s\n' "${DISPLAY:-<unset>}"
+  printf 'WAYLAND_DISPLAY=%s\n' "${WAYLAND_DISPLAY:-<unset>}"
+  printf 'XDG_VTNR=%s\n' "${XDG_VTNR:-<unset>}"
+  printf 'XDG_SESSION_TYPE=%s\n' "${XDG_SESSION_TYPE:-<unset>}"
+  printf 'XDG_CURRENT_DESKTOP=%s\n' "${XDG_CURRENT_DESKTOP:-<unset>}"
+  printf 'DBUS_SESSION_BUS_ADDRESS=%s\n' "${DBUS_SESSION_BUS_ADDRESS:-<unset>}"
+  if [ -f "$SESSION_ID_FILE" ]; then
+    printf 'logind-session=%s\n' "$(cat "$SESSION_ID_FILE")"
+  else
+    printf 'logind-session=<not registered>\n'
+  fi
+  exit 0
+fi
+
+mkdir -p "$LOG_DIR"
+log "starting argvus-tty"
+
+if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
+  die "already in a graphical session (WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-} DISPLAY=${DISPLAY:-})"
+fi
+
+VT="${XDG_VTNR:-}"
+if [ -z "$VT" ]; then
+  if [ -t 0 ] && [ -r /dev/tty ]; then
+    VT="$(cat /dev/tty 2>/dev/null | sed -n 's/.*tty\([0-9]*\).*/\1/p')"
+  fi
+fi
+if [ -z "$VT" ]; then
+  log "warning: cannot determine VT number; proceeding anyway"
+fi
+
+SESSION_ID=""
+REGISTERED_VIA_LOGINCTL=false
+
+if command -v loginctl >/dev/null 2>&1; then
+  SESSION_ID="$(loginctl open-session 2>/dev/null)" || SESSION_ID=""
+  if [ -n "$SESSION_ID" ]; then
+    REGISTERED_VIA_LOGINCTL=true
+    printf '%s' "$SESSION_ID" > "$SESSION_ID_FILE"
+    log "registered logind session: $SESSION_ID"
+    if [ -n "$VT" ]; then
+      loginctl attach "$SESSION_ID" "/dev/tty${VT}" 2>/dev/null || true
+    fi
+    loginctl set-session-type "$SESSION_ID" wayland 2>/dev/null || true
+    loginctl set-metadata "$SESSION_ID" "type" "wayland" 2>/dev/null || true
+  fi
+fi
+
+if [ "$REGISTERED_VIA_LOGINCTL" = false ]; then
+  log "loginctl not available or open-session failed; proceeding without logind session"
+fi
+
+DBUS_STARTED=false
+
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+  if command -v dbus-launch >/dev/null 2>&1; then
+    eval "$(dbus-launch --sh-syntax)"
+    DBUS_STARTED=true
+    if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+      printf '%s' "$DBUS_SESSION_BUS_ADDRESS" > "$DBUS_SESSION_BUS_ADDRESS_FILE"
+      log "started D-Bus session bus: $DBUS_SESSION_BUS_ADDRESS"
+    fi
+  elif command -v dbus-daemon >/dev/null 2>&1; then
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+    export DBUS_SESSION_BUS_ADDRESS
+    if [ ! -e "${DBUS_SESSION_BUS_ADDRESS#unix:path=}" ]; then
+      dbus-daemon --session --address="$DBUS_SESSION_BUS_ADDRESS" --nofork --nopidfile --syslog-only &
+      DBUS_PID=$!
+      DBUS_STARTED=true
+      log "started D-Bus session bus (manual): $DBUS_SESSION_BUS_ADDRESS (pid=$DBUS_PID)"
+    else
+      log "D-Bus socket already exists at $DBUS_SESSION_BUS_ADDRESS"
+    fi
+    printf '%s' "$DBUS_SESSION_BUS_ADDRESS" > "$DBUS_SESSION_BUS_ADDRESS_FILE"
+  else
+    log "warning: no D-Bus session launcher found; some apps may not work"
+  fi
+else
+  log "D-Bus session bus already running: $DBUS_SESSION_BUS_ADDRESS"
+fi
+
+export XDG_SESSION_TYPE="wayland"
+export XDG_CURRENT_DESKTOP="Hyprland"
+export XDG_SESSION_DESKTOP="Hyprland"
+export DESKTOP_SESSION="argvus"
+export GDMSESSION="argvus"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export ARGVUS_SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
+case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
+  *":$ARGVUS_SYSTEM_CONFIG:") ;;
+  *) export XDG_CONFIG_DIRS="$ARGVUS_SYSTEM_CONFIG:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
+esac
+
+if [ -n "$VT" ]; then
+  export XDG_VTNR="$VT"
+fi
+
+cleanup() {
+  log "session ended, cleaning up"
+  if [ "$DBUS_STARTED" = true ] && [ -n "${DBUS_PID:-}" ]; then
+    kill "$DBUS_PID" 2>/dev/null || true
+    wait "$DBUS_PID" 2>/dev/null || true
+    log "stopped D-Bus session bus (pid=$DBUS_PID)"
+  fi
+  if [ "$REGISTERED_VIA_LOGINCTL" = true ] && [ -n "$SESSION_ID" ]; then
+    loginctl close-session "$SESSION_ID" 2>/dev/null || true
+    rm -f "$SESSION_ID_FILE"
+    log "closed logind session: $SESSION_ID"
+  fi
+  rm -f "$DBUS_SESSION_BUS_ADDRESS_FILE"
+}
+
+trap cleanup EXIT INT TERM HUP
+
+log "launching argvus-session (VT=${VT:-?})"
+exec argvus-session

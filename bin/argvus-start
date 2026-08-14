@@ -1,0 +1,151 @@
+#!/usr/bin/env sh
+# Start Hyprland for Argvus through the official Hyprland launcher.
+
+set -eu
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/argvus"
+LOG="$STATE_DIR/session.log"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+USER_HYPRLAND_LUA="$CONFIG_HOME/hypr/hyprland.lua"
+SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
+SYSTEM_HYPRLAND_LUA="$SYSTEM_CONFIG/hypr/hyprland.lua"
+
+mkdir -p "$STATE_DIR"
+
+log() {
+  printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
+}
+
+hyprland_bin() {
+  if command -v Hyprland >/dev/null 2>&1; then
+    command -v Hyprland
+    return 0
+  fi
+  if command -v hyprland >/dev/null 2>&1; then
+    command -v hyprland
+    return 0
+  fi
+  return 1
+}
+
+verify_config() {
+  config="$1"
+  bin="$(hyprland_bin)" || return 127
+  "$bin" --verify-config --config "$config" >> "$LOG" 2>&1
+}
+
+detect_virtualization() {
+  if command -v systemd-detect-virt >/dev/null 2>&1; then
+    systemd-detect-virt --vm 2>/dev/null || true
+    return
+  fi
+
+  for dmi_file in /sys/class/dmi/id/product_name /sys/class/dmi/id/sys_vendor; do
+    [ -r "$dmi_file" ] || continue
+    case "$(sed -n '1p' "$dmi_file")" in
+      *VirtualBox*) printf '%s\n' oracle; return ;;
+      *KVM*|*QEMU*) printf '%s\n' kvm; return ;;
+      *VMware*) printf '%s\n' vmware; return ;;
+    esac
+  done
+
+  printf '%s\n' none
+}
+
+configure_virtual_machine() {
+  virtualization="$1"
+  case "$virtualization" in
+    none|'') return ;;
+  esac
+
+  unset WLR_RENDERER GBM_BACKEND LIBVA_DRIVER_NAME __GLX_VENDOR_LIBRARY_NAME
+  unset MESA_LOADER_DRIVER_OVERRIDE GALLIUM_DRIVER
+
+  export WLR_RENDERER_ALLOW_SOFTWARE=1
+  export WLR_NO_HARDWARE_CURSORS=1
+  export AQ_NO_MODIFIERS=1
+  export ARGVUS_DEBUG=1
+}
+
+export XDG_CURRENT_DESKTOP="Hyprland"
+export XDG_SESSION_DESKTOP="Hyprland"
+export XDG_SESSION_TYPE="wayland"
+export DESKTOP_SESSION="argvus"
+export GDMSESSION="argvus"
+export ARGVUS_CONFIG_HOME="$CONFIG_HOME"
+export ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG"
+export XDG_CONFIG_HOME="$CONFIG_HOME"
+case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
+  *":$SYSTEM_CONFIG:") ;;
+  *) export XDG_CONFIG_DIRS="$SYSTEM_CONFIG:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
+esac
+unset GREETD_SOCK
+
+log "starting Argvus session"
+log "GDMSESSION=${GDMSESSION:-} DESKTOP_SESSION=${DESKTOP_SESSION:-} XDG_SESSION_CLASS=${XDG_SESSION_CLASS:-}"
+VIRTUALIZATION="$(detect_virtualization)"
+configure_virtual_machine "$VIRTUALIZATION"
+log "virtualization=${VIRTUALIZATION} WLR_RENDERER_ALLOW_SOFTWARE=${WLR_RENDERER_ALLOW_SOFTWARE:-0} AQ_NO_MODIFIERS=${AQ_NO_MODIFIERS:-0}"
+if [ -d /dev/dri ]; then
+  ls -l /dev/dri >> "$LOG" 2>&1 || true
+else
+  log "/dev/dri is unavailable; Hyprland cannot access a DRM device"
+fi
+HYPRLAND_LUA="$SYSTEM_HYPRLAND_LUA"
+if [ -f "$USER_HYPRLAND_LUA" ]; then
+  HYPRLAND_LUA="$USER_HYPRLAND_LUA"
+  log "using user Lua config"
+else
+  log "using packaged Lua config"
+fi
+
+if [ "$HYPRLAND_LUA" = "$USER_HYPRLAND_LUA" ] && [ -f "$USER_HYPRLAND_LUA" ] && ! verify_config "$USER_HYPRLAND_LUA"; then
+  log "user Lua config failed validation; falling back to ${SYSTEM_HYPRLAND_LUA}"
+  HYPRLAND_LUA="$SYSTEM_HYPRLAND_LUA"
+fi
+
+log "Hyprland Lua config: ${HYPRLAND_LUA}"
+
+if [ ! -f "$HYPRLAND_LUA" ]; then
+  log "Hyprland Lua config not found: $HYPRLAND_LUA"
+  printf '%s\n' "argvus-start: Argvus Hyprland configuration not found:" | tee -a "$LOG" >&2
+  printf '%s\n' "$HYPRLAND_LUA" | tee -a "$LOG" >&2
+  printf '%s\n' "The argvus package may be incomplete or corrupted." | tee -a "$LOG" >&2
+  exit 78
+fi
+
+if ! verify_config "$HYPRLAND_LUA"; then
+  log "Hyprland Lua config failed validation: ${HYPRLAND_LUA}"
+  printf '%s\n' "argvus-start: Hyprland Lua config failed validation: ${HYPRLAND_LUA}" | tee -a "$LOG" >&2
+  exit 78
+fi
+
+if command -v start-hyprland >/dev/null 2>&1; then
+  log "using start-hyprland launcher: $(command -v start-hyprland)"
+  exec start-hyprland -- --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+fi
+
+if [ -x /usr/bin/Hyprland ]; then
+  log "using direct Hyprland launcher: /usr/bin/Hyprland"
+  exec /usr/bin/Hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+fi
+
+if command -v Hyprland >/dev/null 2>&1; then
+  log "using direct Hyprland launcher: $(command -v Hyprland)"
+  exec Hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+fi
+
+if [ -x /usr/bin/hyprland ]; then
+  log "using direct Hyprland launcher: /usr/bin/hyprland"
+  exec /usr/bin/hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+fi
+
+if command -v hyprland >/dev/null 2>&1; then
+  log "using direct Hyprland launcher: $(command -v hyprland)"
+  exec hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+fi
+
+log "Hyprland executable not found"
+printf '%s\n' "argvus-start: Hyprland executable not found." | tee -a "$LOG" >&2
+printf '%s\n' "Install the hyprland package from your distro repository." | tee -a "$LOG" >&2
+exit 127

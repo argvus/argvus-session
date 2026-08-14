@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Argvus
+Comment=Argvus Hyprland session
+Exec=argvus-session
+TryExec=argvus-session
+Type=Application
+DesktopNames=Hyprland
+Keywords=tiling;wayland;compositor;

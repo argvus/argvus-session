@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate session files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Validate expected files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f usr/share/wayland-sessions/argvus.desktop
+          test ! -e usr/share/xsessions/argvus.desktop
+          grep -q '^Exec=argvus-session$' usr/share/wayland-sessions/argvus.desktop
+          grep -q '^TryExec=argvus-session$' usr/share/wayland-sessions/argvus.desktop
+
+          test -x bin/argvus-session
+          test -x bin/argvus-start
+          test -x bin/argvus-tty
+          sh -n bin/argvus-session bin/argvus-start bin/argvus-tty
+
+      - name: Validate Makefile install
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          make DESTDIR="$RUNNER_TEMP/pkg" PREFIX=/usr install
+          test -x "$RUNNER_TEMP/pkg/usr/bin/argvus-session"
+          test -x "$RUNNER_TEMP/pkg/usr/bin/argvus-start"
+          test -x "$RUNNER_TEMP/pkg/usr/bin/argvus-tty"
+          test -f "$RUNNER_TEMP/pkg/usr/share/wayland-sessions/argvus.desktop"

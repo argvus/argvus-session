@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+# Argvus Wayland session wrapper.
+
+set -eu
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/argvus"
+LOG="$STATE_DIR/session.log"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
+mkdir -p "$STATE_DIR"
+
+log() {
+  printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
+}
+
+log "running argvus-session"
+export XDG_CONFIG_HOME="$CONFIG_HOME"
+case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
+  *":$SYSTEM_CONFIG:") ;;
+  *) export XDG_CONFIG_DIRS="$SYSTEM_CONFIG:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
+esac
+export ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG"
+
+log "executing argvus-start"
+exec argvus-start

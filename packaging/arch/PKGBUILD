@@ -1,0 +1,23 @@
+# Maintainer: William C. Canin
+pkgname=argvus-session
+pkgver=0.0.0
+pkgrel=1
+pkgdesc="Session startup infrastructure for the Argvus desktop."
+arch=('any')
+url="https://github.com/argvus/argvus-session"
+license=('GPL-3.0-only')
+depends=()
+options=('!debug')
+source=(
+  "${pkgname}-${pkgver}.tar.gz::https://github.com/argvus/argvus-session/archive/refs/tags/v${pkgver}.tar.gz"
+)
+sha256sums=('SKIP')
+
+package() {
+  cd "${srcdir}/${pkgname}-${pkgver}"
+
+  make DESTDIR="${pkgdir}" PREFIX=/usr install
+
+  install -Dm644 "LICENSE" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
