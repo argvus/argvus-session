@@ -1,0 +1,11 @@
+[Unit]
+Description=ARGVUS PolicyKit agent integration
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/argvus-sessionctl start-polkit
+ExecStop=/usr/bin/argvus-sessionctl stop-polkit
+

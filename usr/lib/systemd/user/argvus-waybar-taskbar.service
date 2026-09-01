@@ -1,0 +1,11 @@
+[Unit]
+Description=ARGVUS taskbar panel
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/argvus-sessionctl run waybar-taskbar
+Restart=on-failure
+RestartSec=2s
+

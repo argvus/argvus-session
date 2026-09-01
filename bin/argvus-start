@@ -16,6 +16,12 @@ log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
 }
 
+sync_session_environment() {
+  if command -v argvus-sessionctl >/dev/null 2>&1; then
+    argvus-sessionctl import-environment >/dev/null 2>&1 || true
+  fi
+}
+
 hyprland_bin() {
   if command -v Hyprland >/dev/null 2>&1; then
     command -v Hyprland
@@ -86,6 +92,7 @@ log "GDMSESSION=${GDMSESSION:-} DESKTOP_SESSION=${DESKTOP_SESSION:-} XDG_SESSION
 VIRTUALIZATION="$(detect_virtualization)"
 configure_virtual_machine "$VIRTUALIZATION"
 log "virtualization=${VIRTUALIZATION} WLR_RENDERER_ALLOW_SOFTWARE=${WLR_RENDERER_ALLOW_SOFTWARE:-0} AQ_NO_MODIFIERS=${AQ_NO_MODIFIERS:-0}"
+sync_session_environment
 if [ -d /dev/dri ]; then
   ls -l /dev/dri >> "$LOG" 2>&1 || true
 else
@@ -120,29 +127,57 @@ if ! verify_config "$HYPRLAND_LUA"; then
   exit 78
 fi
 
+stop_session_target() {
+  if command -v argvus-sessionctl >/dev/null 2>&1; then
+    argvus-sessionctl stop >/dev/null 2>&1 || true
+  elif command -v systemctl >/dev/null 2>&1; then
+    systemctl --user stop argvus-session.target graphical-session.target >/dev/null 2>&1 || true
+  fi
+}
+
+run_hyprland() {
+  "$@" >> "$LOG" 2>&1 &
+  HYPRLAND_PID=$!
+
+  # shellcheck disable=SC2329
+  forward_signal() {
+    log "received signal, stopping Argvus session target"
+    stop_session_target
+    kill "$HYPRLAND_PID" 2>/dev/null || true
+  }
+
+  trap forward_signal INT TERM HUP
+  status=0
+  wait "$HYPRLAND_PID" || status=$?
+  trap - INT TERM HUP
+  log "Hyprland exited with status $status; stopping Argvus session target"
+  stop_session_target
+  exit "$status"
+}
+
 if command -v start-hyprland >/dev/null 2>&1; then
   log "using start-hyprland launcher: $(command -v start-hyprland)"
-  exec start-hyprland -- --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+  run_hyprland start-hyprland -- --config "$HYPRLAND_LUA"
 fi
 
 if [ -x /usr/bin/Hyprland ]; then
   log "using direct Hyprland launcher: /usr/bin/Hyprland"
-  exec /usr/bin/Hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+  run_hyprland /usr/bin/Hyprland --config "$HYPRLAND_LUA"
 fi
 
 if command -v Hyprland >/dev/null 2>&1; then
   log "using direct Hyprland launcher: $(command -v Hyprland)"
-  exec Hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+  run_hyprland Hyprland --config "$HYPRLAND_LUA"
 fi
 
 if [ -x /usr/bin/hyprland ]; then
   log "using direct Hyprland launcher: /usr/bin/hyprland"
-  exec /usr/bin/hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+  run_hyprland /usr/bin/hyprland --config "$HYPRLAND_LUA"
 fi
 
 if command -v hyprland >/dev/null 2>&1; then
   log "using direct Hyprland launcher: $(command -v hyprland)"
-  exec hyprland --config "$HYPRLAND_LUA" >> "$LOG" 2>&1
+  run_hyprland hyprland --config "$HYPRLAND_LUA"
 fi
 
 log "Hyprland executable not found"

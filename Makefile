@@ -1,9 +1,23 @@
 PREFIX ?= /usr
 DESTDIR ?=
+INSTALL ?= install
+RM ?= rm -f
+SYSTEM_PREFIXES := /usr /usr/local
+
+ifeq ($(origin SUDO), undefined)
+SUDO =
+ifeq ($(DESTDIR),)
+ifneq ($(filter $(PREFIX),$(SYSTEM_PREFIXES)),)
+ifneq ($(shell id -u),0)
+SUDO = sudo
+endif
+endif
+endif
+endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall release-archive
+.PHONY: help install uninstall reload-user-systemd release-archive
 
 help:
 	@echo "Available targets:"
@@ -12,20 +26,38 @@ help:
 	@echo "  make release-archive"
 
 install:
-	install -Dm755 bin/argvus-session \
+	$(SUDO) $(INSTALL) -Dm755 bin/argvus-session \
 		"$(DESTDIR)$(PREFIX)/bin/argvus-session"
-	install -Dm755 bin/argvus-start \
+	$(SUDO) $(INSTALL) -Dm755 bin/argvus-start \
 		"$(DESTDIR)$(PREFIX)/bin/argvus-start"
-	install -Dm755 bin/argvus-tty \
+	$(SUDO) $(INSTALL) -Dm755 bin/argvus-tty \
 		"$(DESTDIR)$(PREFIX)/bin/argvus-tty"
-	install -Dm644 usr/share/wayland-sessions/argvus.desktop \
+	$(SUDO) $(INSTALL) -Dm755 bin/argvus-sessionctl \
+		"$(DESTDIR)$(PREFIX)/bin/argvus-sessionctl"
+	$(SUDO) $(INSTALL) -Dm644 usr/share/wayland-sessions/argvus.desktop \
 		"$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"
+	$(SUDO) $(INSTALL) -Dm644 usr/lib/systemd/user/argvus-session.target \
+		"$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-session.target"
+	for unit in usr/lib/systemd/user/argvus-*.service; do \
+		$(SUDO) $(INSTALL) -Dm644 "$$unit" \
+			"$(DESTDIR)$(PREFIX)/lib/systemd/user/$${unit##*/}"; \
+	done
+	$(MAKE) reload-user-systemd
 
 uninstall:
-	rm -f "$(DESTDIR)$(PREFIX)/bin/argvus-session"
-	rm -f "$(DESTDIR)$(PREFIX)/bin/argvus-start"
-	rm -f "$(DESTDIR)$(PREFIX)/bin/argvus-tty"
-	rm -f "$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"
+	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-session"
+	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-start"
+	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-tty"
+	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-sessionctl"
+	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"
+	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-session.target"
+	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-*.service"
+	$(MAKE) reload-user-systemd
+
+reload-user-systemd:
+	@if [ -z "$(DESTDIR)" ] && command -v systemctl >/dev/null 2>&1; then \
+		systemctl --user daemon-reload >/dev/null 2>&1 || true; \
+	fi
 
 release-archive:
 	mkdir -p .release

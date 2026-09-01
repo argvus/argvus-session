@@ -1,0 +1,359 @@
+#!/usr/bin/env sh
+# shellcheck disable=SC1091
+# Control the ARGVUS graphical session lifecycle.
+
+set -eu
+
+SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
+CONFIG_HOME="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/argvus"
+LOG="$STATE_DIR/session.log"
+
+log() {
+  mkdir -p "$STATE_DIR"
+  printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
+}
+
+warn() {
+  printf 'argvus-sessionctl: %s\n' "$*" >&2
+}
+
+have() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+user_systemd_available() {
+  have systemctl && systemctl --user show-environment >/dev/null 2>&1
+}
+
+unit_exists() {
+  user_systemd_available || return 1
+  systemctl --user cat "$1" >/dev/null 2>&1
+}
+
+import_environment() {
+  export ARGVUS_CONFIG_HOME="$CONFIG_HOME"
+  export ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG"
+  export XDG_CONFIG_HOME="$CONFIG_HOME"
+  case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
+    *":$SYSTEM_CONFIG:") ;;
+    *) export XDG_CONFIG_DIRS="$SYSTEM_CONFIG:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
+  esac
+  export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Hyprland}"
+  export XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-Hyprland}"
+  export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
+  export DESKTOP_SESSION="${DESKTOP_SESSION:-argvus}"
+  export GDMSESSION="${GDMSESSION:-argvus}"
+  export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
+  export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt6ct}"
+  export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-org.hyprland.style}"
+
+  if user_systemd_available; then
+    systemctl --user import-environment \
+      ARGVUS_CONFIG_HOME ARGVUS_SYSTEM_CONFIG \
+      XDG_CONFIG_HOME XDG_CONFIG_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
+      XDG_SESSION_TYPE DESKTOP_SESSION GDMSESSION WAYLAND_DISPLAY DISPLAY \
+      XDG_CURRENT_DESKTOP XDG_SESSION_CLASS XDG_SESSION_ID XDG_VTNR \
+      XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD \
+      QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_QUICK_CONTROLS_STYLE \
+      XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_SIZE \
+      MOZ_ENABLE_WAYLAND ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER \
+      _JAVA_AWT_WM_NONREPARENTING SAL_USE_VCLPLUGIN YAZI_CONFIG_HOME \
+      DBUS_SESSION_BUS_ADDRESS >/dev/null 2>&1 || true
+  fi
+
+  if have dbus-update-activation-environment; then
+    dbus-update-activation-environment --systemd \
+      ARGVUS_CONFIG_HOME ARGVUS_SYSTEM_CONFIG \
+      XDG_CONFIG_HOME XDG_CONFIG_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
+      XDG_SESSION_TYPE DESKTOP_SESSION GDMSESSION WAYLAND_DISPLAY DISPLAY \
+      XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE \
+      QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_QUICK_CONTROLS_STYLE \
+      XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_SIZE \
+      MOZ_ENABLE_WAYLAND ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER \
+      _JAVA_AWT_WM_NONREPARENTING SAL_USE_VCLPLUGIN YAZI_CONFIG_HOME \
+      DBUS_SESSION_BUS_ADDRESS >/dev/null 2>&1 || true
+  fi
+}
+
+require_systemd() {
+  user_systemd_available || {
+    warn "systemd --user is not available"
+    exit 69
+  }
+}
+
+start_session() {
+  require_systemd
+  import_environment
+  systemctl --user start argvus-session.target
+}
+
+stop_session() {
+  require_systemd
+  systemctl --user stop argvus-session.target graphical-session.target
+}
+
+restart_session() {
+  stop_session || true
+  start_session
+}
+
+prepare_script() {
+  printf '%s\n' "$SYSTEM_CONFIG/scripts/apps/hypr-init.sh"
+}
+
+prepare_session() {
+  script="$(prepare_script)"
+  [ -f "$script" ] || {
+    warn "prepare script not found: $script"
+    exit 78
+  }
+  ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+    sh "$script" --prepare
+}
+
+reload_configuration() {
+  script="$(prepare_script)"
+  [ -f "$script" ] || {
+    warn "reload script not found: $script"
+    exit 78
+  }
+  ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+    sh "$script" --reload-config
+}
+
+restart_units() {
+  require_systemd
+  [ "$#" -gt 0 ] || return 0
+  systemctl --user restart "$@"
+}
+
+restart_components() {
+  units=""
+  for component in "$@"; do
+    case "$component" in
+      waybar|waybars)
+        units="$units argvus-waybar-taskbar.service argvus-waybar-sysinfo.service"
+        ;;
+      wallpaper)
+        units="$units argvus-wallpaper.service"
+        ;;
+      hypridle|idle)
+        units="$units argvus-hypridle.service"
+        ;;
+      dunst|notifications)
+        units="$units argvus-dunst.service"
+        ;;
+      shell|quickshell)
+        units="$units argvus-shell.service"
+        ;;
+      snappy|snappy-switcher)
+        units="$units argvus-snappy-switcher.service"
+        ;;
+      clipboard)
+        units="$units argvus-clipboard-text.service argvus-clipboard-image.service"
+        ;;
+      keyboard|keyboard-layout)
+        units="$units argvus-keyboard-layout.service"
+        ;;
+      bluetooth|blueman|blueman-applet)
+        units="$units argvus-blueman-applet.service"
+        ;;
+      polkit|policykit)
+        units="$units argvus-polkit.service"
+        ;;
+      *)
+        warn "unknown component: $component"
+        exit 64
+        ;;
+    esac
+  done
+  # shellcheck disable=SC2086
+  restart_units $units
+}
+
+reload_session() {
+  require_systemd
+  import_environment
+  reload_configuration
+  restart_components wallpaper hypridle waybar dunst shell snappy-switcher polkit
+}
+
+status_session() {
+  require_systemd
+  systemctl --user status --no-pager argvus-session.target || true
+  systemctl --user list-units --no-pager 'argvus-*.service' 'hyprpolkitagent.service' || true
+}
+
+logs_session() {
+  require_systemd
+  if [ "$#" -gt 0 ]; then
+    journalctl --user "$@"
+  else
+    journalctl --user -u argvus-session.target -u 'argvus-*.service' -u hyprpolkitagent.service
+  fi
+}
+
+run_component() {
+  component="${1:-}"
+  case "$component" in
+    waybar-taskbar)
+      have waybar || exit 0
+      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      exec waybar -c "$(paths_config waybar/argvus-taskbar.jsonc)" -s "$(paths_config waybar/argvus-taskbar.css)"
+      ;;
+    waybar-sysinfo)
+      have waybar || exit 0
+      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      mkdir -p "$(paths_cache waybar)"
+      if [ "$(sed -n '1p' "$(paths_cache waybar/sysinfo-state)" 2>/dev/null || true)" = "disabled" ]; then
+        exit 0
+      fi
+      printf 'enabled\n' > "$(paths_cache waybar/sysinfo-state)" 2>/dev/null || true
+      exec waybar -c "$(paths_config waybar/argvus-sysinfo.jsonc)" -s "$(paths_config waybar/argvus-sysinfo.css)"
+      ;;
+    wallpaper)
+      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      [ -n "${WALLPAPER_PATH:-}" ] || exit 0
+      [ -f "$WALLPAPER_PATH" ] || exit 0
+      if have hyprpaper; then
+        runtime_config="$(hypr_wallpaper_runtime_config "$WALLPAPER_PATH")"
+        exec hyprpaper -c "$runtime_config"
+      fi
+      if have swaybg; then
+        exec swaybg -m fill -i "$WALLPAPER_PATH"
+      fi
+      exit 0
+      ;;
+    hypridle)
+      have hypridle || exit 0
+      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      exec hypridle -c "$(paths_config hypr/hypridle.conf)"
+      ;;
+    dunst)
+      have dunst || exit 0
+      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      exec dunst -config "$(paths_config dunst/dunstrc)"
+      ;;
+    shell)
+      have qs || exit 0
+      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      mkdir -p "$(paths_cache quickshell)"
+      exec qs -c argvus-control-panel
+      ;;
+    snappy-switcher)
+      have snappy-switcher || exit 0
+      exec snappy-switcher --daemon
+      ;;
+    clipboard-text)
+      have wl-paste || exit 0
+      have cliphist || exit 0
+      exec wl-paste --type text --watch cliphist store
+      ;;
+    clipboard-image)
+      have wl-paste || exit 0
+      have cliphist || exit 0
+      exec wl-paste --type image --watch cliphist store
+      ;;
+    keyboard-layout)
+      script="$SYSTEM_CONFIG/scripts/argvus/keyboard-layout-daemon.sh"
+      [ -f "$script" ] || exit 0
+      exec sh "$script"
+      ;;
+    blueman-applet)
+      have blueman-applet || exit 0
+      exec blueman-applet
+      ;;
+    *)
+      warn "unknown run component: ${component:-empty}"
+      exit 64
+      ;;
+  esac
+}
+
+start_polkit() {
+  require_systemd
+  import_environment
+  if unit_exists hyprpolkitagent.service; then
+    systemctl --user start hyprpolkitagent.service
+    exit 0
+  fi
+  warn "hyprpolkitagent.service is not installed; install hyprpolkitagent's user unit"
+  exit 0
+}
+
+stop_polkit() {
+  user_systemd_available || exit 0
+  if unit_exists hyprpolkitagent.service; then
+    systemctl --user stop hyprpolkitagent.service >/dev/null 2>&1 || true
+  fi
+}
+
+usage() {
+  cat <<EOF
+Usage: argvus-sessionctl <command> [args]
+
+Commands:
+  import-environment  synchronize ARGVUS/Wayland variables into systemd and DBus
+  ready               mark the compositor ready and start the ARGVUS session target
+  start               start argvus-session.target
+  stop                stop argvus-session.target and graphical-session.target
+  restart             restart the ARGVUS session target
+  reload              re-apply mutable config and restart affected services
+  restart <items...>  restart component groups: waybar, wallpaper, dunst, shell, ...
+  status              show target and service status
+  logs [journal args] show ARGVUS user-unit journal logs
+EOF
+}
+
+case "${1:-}" in
+  import-environment)
+    import_environment
+    ;;
+  ready|start)
+    start_session
+    ;;
+  stop)
+    stop_session
+    ;;
+  restart)
+    shift
+    if [ "$#" -eq 0 ]; then
+      restart_session
+    else
+      restart_components "$@"
+    fi
+    ;;
+  reload)
+    reload_session
+    ;;
+  status)
+    status_session
+    ;;
+  logs)
+    shift
+    logs_session "$@"
+    ;;
+  run)
+    shift
+    run_component "$@"
+    ;;
+  prepare)
+    prepare_session
+    ;;
+  start-polkit)
+    start_polkit
+    ;;
+  stop-polkit)
+    stop_polkit
+    ;;
+  -h|--help|help|'')
+    usage
+    ;;
+  *)
+    warn "unknown command: $1"
+    usage >&2
+    exit 64
+    ;;
+esac

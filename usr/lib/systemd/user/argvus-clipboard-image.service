@@ -1,0 +1,11 @@
+[Unit]
+Description=ARGVUS image clipboard history watcher
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/argvus-sessionctl run clipboard-image
+Restart=on-failure
+RestartSec=2s
+

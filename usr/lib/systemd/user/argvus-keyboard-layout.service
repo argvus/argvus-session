@@ -1,0 +1,12 @@
+[Unit]
+Description=ARGVUS keyboard layout notification daemon
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service graphical-session.target
+StartLimitIntervalSec=30s
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/argvus-sessionctl run keyboard-layout
+Restart=on-failure
+RestartSec=3s
