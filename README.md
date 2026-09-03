@@ -3,10 +3,15 @@
 Argvus Session provides the lifecycle and supervision infrastructure for the
 Argvus Desktop Environment.
 
-It ships the graphical entrypoints, session controller, and systemd user units
-that bind ARGVUS desktop processes to one explicit session target. The main
-`argvus` package still owns desktop configuration, themes, Hyprland config,
-Quickshell UI, Waybar/Dunst configs, and feature scripts.
+It ships the graphical entrypoints, base Hyprland session config, shared
+bootstrap helpers, session controller, and systemd user units that bind ARGVUS
+desktop processes to one explicit session target. Component packages own
+desktop configuration domains such as shell UI, taskbar, notifications, lock
+screen, power, display, network, app profiles and portals. The `argvus` package
+coordinates the complete desktop as a metapackage.
+
+Because the clipboard watcher units live here, `argvus-session` also depends on
+`cliphist` and `wl-clipboard`.
 
 ## Flow
 
@@ -36,7 +41,6 @@ argvus-session.target
         |-- argvus-wallpaper.service
         |-- argvus-shell.service
         |-- argvus-waybar-taskbar.service
-        |-- argvus-waybar-sysinfo.service
         |-- argvus-dunst.service
         |-- argvus-hypridle.service
         |-- argvus-polkit.service
@@ -52,6 +56,15 @@ paths, `start-hyprland` compatibility, Lua config verification, VM detection,
 user config override, and packaged fallback behavior. The Hyprland Lua
 `hyprland.start` event is only a readiness bridge that runs
 `argvus-sessionctl ready`.
+
+`argvus-waybar-sysinfo.service` is intentionally opt-in. It is started by the
+shell/sysinfo toggle only after the user enables it, and future logins start it
+again only while that saved state remains enabled. This avoids a second polling
+Waybar process during default login.
+
+When `argvus-start` detects a virtual machine, it exports `ARGVUS_LOW_POWER=1`
+and software-rendering compatibility variables. The packaged Hyprland config
+uses that mode to disable blur, shadows, and animations for VM sessions.
 
 When Hyprland exits, `argvus-start` stops `argvus-session.target`, asks
 `graphical-session.target` to stop if active, then exits with Hyprland's exit
@@ -79,14 +92,14 @@ argvus-sessionctl restart dunst shell snappy-switcher
 argvus-sessionctl restart clipboard keyboard-layout blueman-applet
 ```
 
-`reload` re-applies mutable ARGVUS state through the `argvus` package's
-one-shot scripts, reloads Hyprland, reapplies monitor changes, and restarts only
-the services that need fresh configuration.
+`reload` re-applies mutable ARGVUS state through component-owned one-shot
+scripts, reloads Hyprland, reapplies monitor changes, and restarts only the
+services that need fresh configuration.
 
 `argvus-blueman-applet.service` is still installed for users who want Blueman's
 legacy tray applet, but it is no longer pulled into the default session target.
-Bluetooth power/status is surfaced by the `argvus` Waybar module and Quickshell
-control-panel card.
+Bluetooth power/status is surfaced by `argvus-network` commands consumed by the
+`argvus-shell` Waybar module and Quickshell control-panel card.
 
 ## Environment
 
@@ -130,6 +143,11 @@ usr/
       user/
         argvus-session.target
         argvus-*.service
+  share/
+    argvus/
+      hypr/hyprland.lua
+      scripts/apps/hypr-init.sh
+      scripts/argvus/bootstrap.sh
   share/
     wayland-sessions/
       argvus.desktop
@@ -175,4 +193,7 @@ distribution.
 ## Related Repositories
 
 - https://github.com/argvus/argvus
+- https://github.com/argvus/argvus-shell
+- https://github.com/argvus/argvus-network
+- https://github.com/argvus/argvus-display
 - https://github.com/argvus/packages

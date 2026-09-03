@@ -70,7 +70,8 @@ configure_virtual_machine() {
   export WLR_RENDERER_ALLOW_SOFTWARE=1
   export WLR_NO_HARDWARE_CURSORS=1
   export AQ_NO_MODIFIERS=1
-  export ARGVUS_DEBUG=1
+  export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
+  export ARGVUS_LOW_POWER="${ARGVUS_LOW_POWER:-1}"
 }
 
 export XDG_CURRENT_DESKTOP="Hyprland"

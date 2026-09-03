@@ -55,6 +55,8 @@ import_environment() {
       XDG_SESSION_TYPE DESKTOP_SESSION GDMSESSION WAYLAND_DISPLAY DISPLAY \
       XDG_CURRENT_DESKTOP XDG_SESSION_CLASS XDG_SESSION_ID XDG_VTNR \
       XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD \
+      ARGVUS_LOW_POWER LIBGL_ALWAYS_SOFTWARE WLR_RENDERER_ALLOW_SOFTWARE \
+      WLR_NO_HARDWARE_CURSORS AQ_NO_MODIFIERS \
       QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_QUICK_CONTROLS_STYLE \
       XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_SIZE \
       MOZ_ENABLE_WAYLAND ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER \
@@ -68,6 +70,8 @@ import_environment() {
       XDG_CONFIG_HOME XDG_CONFIG_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
       XDG_SESSION_TYPE DESKTOP_SESSION GDMSESSION WAYLAND_DISPLAY DISPLAY \
       XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE \
+      ARGVUS_LOW_POWER LIBGL_ALWAYS_SOFTWARE WLR_RENDERER_ALLOW_SOFTWARE \
+      WLR_NO_HARDWARE_CURSORS AQ_NO_MODIFIERS \
       QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_QUICK_CONTROLS_STYLE \
       XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_SIZE \
       MOZ_ENABLE_WAYLAND ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER \
@@ -83,10 +87,52 @@ require_systemd() {
   }
 }
 
+systemd_env_value() {
+  _name="$1"
+  user_systemd_available || return 0
+  systemctl --user show-environment 2>/dev/null |
+    sed -n "s/^${_name}=//p" |
+    tail -n 1
+}
+
+adopt_systemd_environment() {
+  for _name in WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD; do
+    eval "_current=\${${_name}:-}"
+    [ -n "$_current" ] && continue
+    _value="$(systemd_env_value "$_name")"
+    [ -n "$_value" ] || continue
+    export "$_name=$_value"
+  done
+}
+
+wayland_socket_ready() {
+  [ -n "${WAYLAND_DISPLAY:-}" ] || return 1
+  [ -n "${XDG_RUNTIME_DIR:-}" ] || return 1
+
+  case "$WAYLAND_DISPLAY" in
+    /*) _socket="$WAYLAND_DISPLAY" ;;
+    *)  _socket="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ;;
+  esac
+
+  [ -S "$_socket" ]
+}
+
+wait_graphical_runtime() {
+  _tries=0
+  while [ "$_tries" -lt 50 ]; do
+    adopt_systemd_environment
+    wayland_socket_ready && return 0
+    _tries=$((_tries + 1))
+    sleep 0.1
+  done
+  log "Wayland socket not confirmed before starting ${1:-component}; continuing"
+}
+
 start_session() {
   require_systemd
   import_environment
-  systemctl --user start argvus-session.target
+  systemctl --user start graphical-session.target argvus-session.target
+  start_sysinfo_if_enabled
 }
 
 stop_session() {
@@ -129,12 +175,135 @@ restart_units() {
   systemctl --user restart "$@"
 }
 
+sysinfo_enabled() {
+  . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+  [ "$(sed -n '1p' "$(paths_cache waybar/sysinfo-state)" 2>/dev/null || true)" = "enabled" ]
+}
+
+run_waybar() {
+  _name="$1"
+  _config_rel="waybar/argvus-${_name}.jsonc"
+  _style_rel="waybar/argvus-${_name}.css"
+  _config="$(paths_config "$_config_rel")"
+  _style="$(paths_config "$_style_rel")"
+  _system_config_file="$(paths_system_config "$_config_rel")"
+  _system_style_file="$(paths_system_config "$_style_rel")"
+
+  if [ ! -f "$_config" ] || [ ! -f "$_style" ]; then
+    log "Waybar ${_name} skipped; missing config=${_config} style=${_style}"
+    exit 0
+  fi
+
+  wait_graphical_runtime "waybar-${_name}"
+  log "starting Waybar ${_name}: config=${_config} style=${_style}"
+
+  set +e
+  waybar -c "$_config" -s "$_style"
+  _status=$?
+  set -e
+
+  if [ "$_status" -le 128 ] &&
+    { [ "$_config" != "$_system_config_file" ] || [ "$_style" != "$_system_style_file" ]; } &&
+    [ -f "$_system_config_file" ] && [ -f "$_system_style_file" ]; then
+    log "Waybar ${_name} exited with ${_status}; retrying packaged config"
+    exec waybar -c "$_system_config_file" -s "$_system_style_file"
+  fi
+
+  exit "$_status"
+}
+
+default_wallpaper() {
+  for _wallpaper in \
+    "$SYSTEM_CONFIG/backgrounds/argvus/default.png" \
+    "/usr/share/backgrounds/argvus/default.png"
+  do
+    [ -f "$_wallpaper" ] || continue
+    printf '%s\n' "$_wallpaper"
+    return 0
+  done
+}
+
+low_power_session() {
+  [ "${ARGVUS_LOW_POWER:-0}" = "1" ] && return 0
+
+  if have systemd-detect-virt; then
+    systemd-detect-virt --vm >/dev/null 2>&1
+    return $?
+  fi
+
+  return 1
+}
+
+run_swaybg_wallpaper() {
+  _wallpaper="$1"
+  have swaybg || return 1
+  log "starting swaybg with ${_wallpaper}"
+  exec swaybg -m fill -i "$_wallpaper"
+}
+
+run_hyprpaper_wallpaper() {
+  _wallpaper="$1"
+  have hyprpaper || return 1
+
+  runtime_config="$(hypr_wallpaper_runtime_config "$_wallpaper")"
+  log "starting hyprpaper with ${_wallpaper}"
+
+  set +e
+  hyprpaper -c "$runtime_config"
+  _status=$?
+  set -e
+
+  if [ "$_status" -le 128 ] || [ "$_status" -eq 139 ]; then
+    log "hyprpaper exited with ${_status}; trying swaybg fallback"
+    run_swaybg_wallpaper "$_wallpaper"
+  fi
+
+  exit "$_status"
+}
+
+run_wallpaper() {
+  _wallpaper="${WALLPAPER_PATH:-}"
+  if [ -z "$_wallpaper" ] || [ ! -f "$_wallpaper" ]; then
+    _fallback="$(default_wallpaper)"
+    if [ -n "$_fallback" ]; then
+      log "wallpaper path unavailable (${_wallpaper:-empty}); using ${_fallback}"
+      _wallpaper="$_fallback"
+    else
+      log "wallpaper skipped; no valid wallpaper path and no packaged default"
+      exit 0
+    fi
+  fi
+
+  wait_graphical_runtime wallpaper
+
+  if low_power_session; then
+    run_swaybg_wallpaper "$_wallpaper" || {
+      log "low-power wallpaper requested, but swaybg is unavailable"
+    }
+  fi
+
+  run_hyprpaper_wallpaper "$_wallpaper" || true
+  run_swaybg_wallpaper "$_wallpaper" || true
+
+  log "wallpaper skipped; neither hyprpaper nor swaybg is installed"
+  exit 0
+}
+
 restart_components() {
   units=""
   for component in "$@"; do
     case "$component" in
       waybar|waybars)
-        units="$units argvus-waybar-taskbar.service argvus-waybar-sysinfo.service"
+        units="$units argvus-waybar-taskbar.service"
+        if sysinfo_enabled; then
+          units="$units argvus-waybar-sysinfo.service"
+        fi
+        ;;
+      waybar-taskbar|taskbar)
+        units="$units argvus-waybar-taskbar.service"
+        ;;
+      waybar-sysinfo|sysinfo)
+        units="$units argvus-waybar-sysinfo.service"
         ;;
       wallpaper)
         units="$units argvus-wallpaper.service"
@@ -173,6 +342,36 @@ restart_components() {
   restart_units $units
 }
 
+start_sysinfo_if_enabled() {
+  require_systemd
+  import_environment
+  if sysinfo_enabled; then
+    systemctl --user start argvus-waybar-sysinfo.service
+  fi
+}
+
+sysinfo_command() {
+  case "${1:-}" in
+    is-enabled)
+      sysinfo_enabled
+      ;;
+    start-if-enabled)
+      start_sysinfo_if_enabled
+      ;;
+    status)
+      if sysinfo_enabled; then
+        printf 'enabled\n'
+      else
+        printf 'disabled\n'
+      fi
+      ;;
+    *)
+      warn "unknown sysinfo command: ${1:-empty}"
+      exit 64
+      ;;
+  esac
+}
+
 reload_session() {
   require_systemd
   import_environment
@@ -201,30 +400,16 @@ run_component() {
     waybar-taskbar)
       have waybar || exit 0
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
-      exec waybar -c "$(paths_config waybar/argvus-taskbar.jsonc)" -s "$(paths_config waybar/argvus-taskbar.css)"
+      run_waybar taskbar
       ;;
     waybar-sysinfo)
       have waybar || exit 0
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
-      mkdir -p "$(paths_cache waybar)"
-      if [ "$(sed -n '1p' "$(paths_cache waybar/sysinfo-state)" 2>/dev/null || true)" = "disabled" ]; then
-        exit 0
-      fi
-      printf 'enabled\n' > "$(paths_cache waybar/sysinfo-state)" 2>/dev/null || true
-      exec waybar -c "$(paths_config waybar/argvus-sysinfo.jsonc)" -s "$(paths_config waybar/argvus-sysinfo.css)"
+      run_waybar sysinfo
       ;;
     wallpaper)
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
-      [ -n "${WALLPAPER_PATH:-}" ] || exit 0
-      [ -f "$WALLPAPER_PATH" ] || exit 0
-      if have hyprpaper; then
-        runtime_config="$(hypr_wallpaper_runtime_config "$WALLPAPER_PATH")"
-        exec hyprpaper -c "$runtime_config"
-      fi
-      if have swaybg; then
-        exec swaybg -m fill -i "$WALLPAPER_PATH"
-      fi
-      exit 0
+      run_wallpaper
       ;;
     hypridle)
       have hypridle || exit 0
@@ -304,6 +489,7 @@ Commands:
   restart <items...>  restart component groups: waybar, wallpaper, dunst, shell, ...
   status              show target and service status
   logs [journal args] show ARGVUS user-unit journal logs
+  sysinfo <command>   sysinfo helpers: is-enabled, start-if-enabled, status
 EOF
 }
 
@@ -334,6 +520,10 @@ case "${1:-}" in
   logs)
     shift
     logs_session "$@"
+    ;;
+  sysinfo)
+    shift
+    sysinfo_command "$@"
     ;;
   run)
     shift

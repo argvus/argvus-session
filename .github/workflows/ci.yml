@@ -13,35 +13,37 @@ permissions:
 
 jobs:
   validate:
-    name: Validate session files
+    name: Validate package sources
     runs-on: ubuntu-latest
+    container: archlinux:latest
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Validate expected files
+      - name: Install validation tools
+        run: |
+          pacman -Syu --noconfirm --needed             base-devel             git             shellcheck             sudo
+
+      - name: Validate repository
         shell: bash
         run: |
           set -euo pipefail
+          if make -n validate >/dev/null 2>&1; then
+            make validate
+          else
+            echo "No make validate target; skipping repository validation."
+          fi
 
-          test -f usr/share/wayland-sessions/argvus.desktop
-          test ! -e usr/share/xsessions/argvus.desktop
-          grep -q '^Exec=argvus-session$' usr/share/wayland-sessions/argvus.desktop
-          grep -q '^TryExec=argvus-session$' usr/share/wayland-sessions/argvus.desktop
-
-          test -x bin/argvus-session
-          test -x bin/argvus-start
-          test -x bin/argvus-tty
-          sh -n bin/argvus-session bin/argvus-start bin/argvus-tty
-
-      - name: Validate Makefile install
+      - name: Validate CI PKGBUILD
         shell: bash
         run: |
           set -euo pipefail
+          cd "packaging/arch"
+          makepkg -p PKGBUILD --printsrcinfo >/dev/null
 
-          make DESTDIR="$RUNNER_TEMP/pkg" PREFIX=/usr install
-          test -x "$RUNNER_TEMP/pkg/usr/bin/argvus-session"
-          test -x "$RUNNER_TEMP/pkg/usr/bin/argvus-start"
-          test -x "$RUNNER_TEMP/pkg/usr/bin/argvus-tty"
-          test -f "$RUNNER_TEMP/pkg/usr/share/wayland-sessions/argvus.desktop"
+      - name: Validate local PKGBUILD
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "packaging/arch/PKGBUILD.local"

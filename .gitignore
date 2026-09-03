@@ -1,2 +1,4 @@
 /.release/
 /tmp
+*.zst
+argvus*.tar.gz

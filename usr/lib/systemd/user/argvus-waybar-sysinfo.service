@@ -5,7 +5,7 @@ After=argvus-session-prepare.service graphical-session.target
 
 [Service]
 Type=simple
+ExecCondition=/usr/bin/argvus-sessionctl sysinfo is-enabled
 ExecStart=/usr/bin/argvus-sessionctl run waybar-sysinfo
 Restart=on-failure
 RestartSec=2s
-
