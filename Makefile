@@ -17,7 +17,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall reload-user-systemd release-archive
+.PHONY: help install uninstall reload-user-systemd release-archive clean
 
 help:
 	@echo "Available targets:"
@@ -80,3 +80,6 @@ release-archive:
 
 build:
 	@tools/build-local-package.sh
+
+clean:
+	rm -f packaging/arch/*.zst packaging/arch/*.tar.gz
