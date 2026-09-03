@@ -176,6 +176,12 @@ end
 
 local _is_vm = _is_virtual_machine()
 local _low_power_session = os.getenv("ARGVUS_LOW_POWER") == "1" or _is_vm
+local _effects_state = _read_first_line({
+  _state_home .. "/state/effects",
+  _state_home .. "/effects",
+})
+local _effects_enabled = _effects_state == "enabled"
+  or (_effects_state ~= "disabled" and not _low_power_session)
 
 if _is_vm then
   hl.env("LIBGL_ALWAYS_SOFTWARE", "1")
@@ -309,15 +315,15 @@ hl.config({
     dim_strength = 0.08,
 
     shadow = {
-      enabled = not _low_power_session,
-      range = _low_power_session and 0 or 6,
+      enabled = _effects_enabled,
+      range = _effects_enabled and 6 or 0,
       render_power = 2,
       color = theme.shadow_color,
       color_inactive = theme.shadow_color_inactive,
     },
 
     blur = {
-      enabled = not _low_power_session,
+      enabled = _effects_enabled,
       size = 3,
       passes = 1,
       new_optimizations = true,
@@ -332,7 +338,7 @@ hl.config({
   },
 
   animations = {
-    enabled = not _low_power_session,
+    enabled = _effects_enabled,
   },
 
   dwindle = {
@@ -404,45 +410,45 @@ hl.curve("smoothOut", { type = "bezier", points = { { 0.36, 0 }, { 0.66, -0.56 }
 hl.curve("smoothIn", { type = "bezier", points = { { 0.25, 1 }, { 0.5, 1 } } })
 hl.curve("linear", { type = "bezier", points = { { 0, 0 }, { 1, 1 } } })
 
-hl.animation({ leaf = "global", enabled = not _low_power_session, speed = 1, bezier = "default" })
+hl.animation({ leaf = "global", enabled = _effects_enabled, speed = 1, bezier = "default" })
 hl.animation({
   leaf = "windows",
-  enabled = not _low_power_session,
+  enabled = _effects_enabled,
   speed = 5,
   bezier = "myBezier",
 })
 hl.animation({
   leaf = "windowsIn",
-  enabled = not _low_power_session,
+  enabled = _effects_enabled,
   speed = 5,
   bezier = "myBezier",
   style = "popin 80%",
 })
 hl.animation({
   leaf = "windowsOut",
-  enabled = not _low_power_session,
+  enabled = _effects_enabled,
   speed = 4,
   bezier = "smoothOut",
   style = "popin 80%",
 })
-hl.animation({ leaf = "border", enabled = not _low_power_session, speed = 10, bezier = "default" })
-hl.animation({ leaf = "fade", enabled = not _low_power_session, speed = 5, bezier = "smoothIn" })
+hl.animation({ leaf = "border", enabled = _effects_enabled, speed = 10, bezier = "default" })
+hl.animation({ leaf = "fade", enabled = _effects_enabled, speed = 5, bezier = "smoothIn" })
 hl.animation({
   leaf = "fadeOut",
-  enabled = not _low_power_session,
+  enabled = _effects_enabled,
   speed = 4,
   bezier = "smoothOut",
 })
 hl.animation({
   leaf = "workspaces",
-  enabled = not _low_power_session,
+  enabled = _effects_enabled,
   speed = 5,
   bezier = "myBezier",
   style = "slide",
 })
 
 -- Blur --------------------------------------------------------------------------------------------
-if not _low_power_session then
+if _effects_enabled then
   hl.layer_rule({ match = { namespace = "waybar" }, blur = true })
   hl.layer_rule({ match = { namespace = "quickshell" }, blur = true })
   hl.layer_rule({ match = { namespace = "rofi" }, blur = true })
@@ -569,6 +575,9 @@ hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/
 
 -- GTK Theme Dark/Light ----------------------------------------------------------------------------
 hl.bind(mod .. " + F5", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/toggle-mode.sh"))))
+
+-- Visual effects ----------------------------------------------------------------------------------
+hl.bind(mod .. " + F6", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/effects-toggle.sh")) .. " toggle"))
 
 -- Finder ------------------------------------------------------------------------------------------
 local _launcher_bin = _get_default("launcher")

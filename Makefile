@@ -58,7 +58,7 @@ uninstall:
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/hypr/.luarc.json"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/hypr/.stylua.toml"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/scripts/apps/hypr-init.sh"
-	for script in bootstrap paths variables locale log string json get-default default_apps_show keyboard-layout-daemon; do \
+	for script in bootstrap paths variables locale log string json get-default default_apps_show keyboard-layout-daemon effects-toggle; do \
 		$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/scripts/argvus/$$script.sh"; \
 	done
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"

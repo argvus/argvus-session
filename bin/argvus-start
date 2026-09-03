@@ -61,17 +61,31 @@ detect_virtualization() {
 configure_virtual_machine() {
   virtualization="$1"
   case "$virtualization" in
-    none|'') return ;;
+    none|'')
+      unset WLR_RENDERER GBM_BACKEND LIBVA_DRIVER_NAME __GLX_VENDOR_LIBRARY_NAME
+      unset MESA_LOADER_DRIVER_OVERRIDE GALLIUM_DRIVER
+      unset WLR_RENDERER_ALLOW_SOFTWARE WLR_NO_HARDWARE_CURSORS AQ_NO_MODIFIERS
+      unset LIBGL_ALWAYS_SOFTWARE ARGVUS_LOW_POWER
+      export ARGVUS_VIRTUALIZATION=none
+      if command -v systemctl >/dev/null 2>&1 &&
+         systemctl --user show-environment >/dev/null 2>&1; then
+        systemctl --user unset-environment \
+          WLR_RENDERER_ALLOW_SOFTWARE WLR_NO_HARDWARE_CURSORS AQ_NO_MODIFIERS \
+          LIBGL_ALWAYS_SOFTWARE ARGVUS_LOW_POWER >/dev/null 2>&1 || true
+      fi
+      return
+      ;;
   esac
 
   unset WLR_RENDERER GBM_BACKEND LIBVA_DRIVER_NAME __GLX_VENDOR_LIBRARY_NAME
   unset MESA_LOADER_DRIVER_OVERRIDE GALLIUM_DRIVER
 
+  export ARGVUS_VIRTUALIZATION="$virtualization"
   export WLR_RENDERER_ALLOW_SOFTWARE=1
   export WLR_NO_HARDWARE_CURSORS=1
   export AQ_NO_MODIFIERS=1
-  export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
-  export ARGVUS_LOW_POWER="${ARGVUS_LOW_POWER:-1}"
+  export LIBGL_ALWAYS_SOFTWARE=1
+  export ARGVUS_LOW_POWER=1
 }
 
 export XDG_CURRENT_DESKTOP="Hyprland"
