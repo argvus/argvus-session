@@ -566,7 +566,7 @@ hl.bind(mod .. " + SHIFT + slash", hl.dsp.exec_cmd(_sh(_config_path("scripts/app
 hl.bind(mod .. " + CTRL + slash", hl.dsp.exec_cmd(_sh(_config_path("scripts/apps/cheatsheets.sh")) .. " kitty"))
 
 -- About ARGVUS ------------------------------------------------------------------------------------
-hl.bind(mod .. " + F1", hl.dsp.exec_cmd("sh -c 'command -v argvus-about >/dev/null 2>&1 && argvus-about'"))
+hl.bind(mod .. " + F1", hl.dsp.exec_cmd("argvus --about"))
 
 -- Open Terminal -----------------------------------------------------------------------------------
 hl.bind(mod .. " + Return", hl.dsp.exec_cmd(terminal))
@@ -575,7 +575,7 @@ hl.bind(mod .. " + Return", hl.dsp.exec_cmd(terminal))
 hl.bind(mod .. " + Space", hl.dsp.exec_cmd(file_manager))
 
 -- Removable storage -------------------------------------------------------------------------------
-hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd("argvus-storage menu"))
+hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd("argvus --storage"))
 
 -- Sidebar Settings --------------------------------------------------------------------------------
 hl.bind(mod .. " + comma", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/toggle-sidebar.sh"))))
@@ -618,7 +618,7 @@ end
 hl.bind(mod .. " + D", hl.dsp.exec_cmd(_launcher_cmd))
 
 -- Default apps selector (argvus-default-apps) -------------------------------------------------------
-hl.bind(mod .. " + ALT + P", hl.dsp.exec_cmd("sh /usr/share/argvus/scripts/argvus/default_apps_show.sh"))
+hl.bind(mod .. " + ALT + P", hl.dsp.exec_cmd("argvus --default-apps"))
 
 -- Maximize Window ---------------------------------------------------------------------------------
 hl.bind(mod .. " + S", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
