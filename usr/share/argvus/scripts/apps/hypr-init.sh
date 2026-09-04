@@ -77,6 +77,24 @@ run_waybars() {
   sessionctl restart waybar
 }
 
+sync_rofi_config() {
+  _rofi_config="$(paths_config rofi/config.rasi)"
+  _system_rofi_config="$(paths_system_config rofi/config.rasi)"
+
+  if [ ! -f "$_rofi_config" ] && [ -f "$_system_rofi_config" ]; then
+    mkdir -p "${_rofi_config%/*}"
+    cp "$_system_rofi_config" "$_rofi_config"
+  fi
+
+  [ -f "$_rofi_config" ] || return 0
+
+  if grep -q '^[[:space:]]*font:' "$_rofi_config"; then
+    sed -i 's|^[[:space:]]*font:.*|    font: "Terminus (TTF) 12";|' "$_rofi_config"
+  else
+    sed -i '/^[[:space:]]*configuration[[:space:]]*{/a\    font: "Terminus (TTF) 12";' "$_rofi_config"
+  fi
+}
+
 theme_startup_fingerprint() {
   _theme="$1"
 
@@ -332,6 +350,7 @@ prepare_session() {
       sh "$(paths_config scripts/argvus/accent-switch.sh)" --startup
     fi
     set_gsettings
+    sync_rofi_config
     sync_foot_config
     sync_btop_config
     sync_yazi_config
@@ -352,6 +371,7 @@ prepare_session() {
 
 reload_config() {
     sh "$(paths_config scripts/argvus/hyprlock-theme.sh)" --invalidate >/dev/null 2>&1 || true
+    sync_rofi_config
     sync_foot_config
     sync_btop_config
     sync_yazi_config

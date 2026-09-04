@@ -272,7 +272,7 @@ local _file_manager_bin = _get_default("file_manager")
 local _file_manager_cmd = _argvus_file_manager_wrappers[_file_manager_bin] or _file_manager_bin
 local file_manager
 if _tui_file_managers[_file_manager_cmd] then
-  file_manager = terminal .. " -e " .. _file_manager_cmd
+  file_manager = "argvus-tui-terminal --class argvus-file-manager -- " .. _file_manager_cmd
 else
   file_manager = _file_manager_cmd
 end
@@ -527,6 +527,12 @@ hl.window_rule({
   center = true,
   size = "720 520",
 })
+hl.window_rule({
+  match = { class = "argvus-about|io.github.argvus.About" },
+  float = true,
+  center = true,
+  size = "900 720",
+})
 
 -- Agente de autenticação do PolicyKit (pkexec) ------------------------------------------------------
 -- Sem esta regra, a janela do hyprpolkitagent entra no layout em tile atrás/abaixo
@@ -558,6 +564,9 @@ hl.bind(mod .. " + SHIFT + slash", hl.dsp.exec_cmd(_sh(_config_path("scripts/app
 
 -- Cheatsheets Kitty -------------------------------------------------------------------------------
 hl.bind(mod .. " + CTRL + slash", hl.dsp.exec_cmd(_sh(_config_path("scripts/apps/cheatsheets.sh")) .. " kitty"))
+
+-- About ARGVUS ------------------------------------------------------------------------------------
+hl.bind(mod .. " + F1", hl.dsp.exec_cmd("sh -c 'command -v argvus-about >/dev/null 2>&1 && argvus-about'"))
 
 -- Open Terminal -----------------------------------------------------------------------------------
 hl.bind(mod .. " + Return", hl.dsp.exec_cmd(terminal))
