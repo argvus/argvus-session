@@ -505,6 +505,12 @@ hl.window_rule({ match = { class = "blueman-manager" }, float = true })
 hl.window_rule({ match = { class = "nwg-displays" }, float = true, size = "1100 768", center = true })
 hl.window_rule({ match = { class = "xdg-desktop-portal-gtk" }, float = true })
 hl.window_rule({
+  match = { class = "argvus-taskbar-cpu|argvus-taskbar-mem|cpu-temp-popup|gpu-temp-popup" },
+  float = true,
+  size = "900 620",
+  center = true,
+})
+hl.window_rule({
   match = { class = "firefox", title = ".*Picture-in-Picture.*" },
   float = true,
   pin = true,
