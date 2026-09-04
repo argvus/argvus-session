@@ -13,14 +13,47 @@ start_wallpaper() {
   hypr_apply_wallpaper "$WALLPAPER_PATH"
 }
 
+active_theme_name() {
+  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
+    sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme"
+  else
+    printf '%s\n' "$ACTIVE_THEME"
+  fi
+}
+
+gtk_theme_name_for_theme() {
+  case "$1" in
+    argvus-dark-aether) printf '%s\n' "Argvus Dark Aether" ;;
+    argvus-dark-aether-float) printf '%s\n' "Argvus Dark Aether Float" ;;
+    argvus-dark-slate) printf '%s\n' "Argvus Dark Slate" ;;
+    argvus-dark-slate-float) printf '%s\n' "Argvus Dark Slate Float" ;;
+    argvus-dark-silver) printf '%s\n' "Argvus Dark Silver" ;;
+    argvus-dark-silver-float) printf '%s\n' "Argvus Dark Silver Float" ;;
+    argvus-dark-universe) printf '%s\n' "Argvus Dark Universe" ;;
+    argvus-dark-universe-float) printf '%s\n' "Argvus Dark Universe Float" ;;
+    argvus-light-veil) printf '%s\n' "Argvus Light Veil" ;;
+    argvus-light-veil-float) printf '%s\n' "Argvus Light Veil Float" ;;
+    *) printf '%s\n' "${GTK_THEME:-Argvus Dark Aether}" ;;
+  esac
+}
+
 set_gsettings() {
+  _theme="$(active_theme_name)"
+  _gtk_theme="$(gtk_theme_name_for_theme "$_theme")"
+  _scheme="prefer-dark"
+  case "$_theme" in
+    argvus-light-veil|argvus-light-veil-float) _scheme="prefer-light" ;;
+  esac
+
   # GTK Theme
   if command -v gsettings >/dev/null 2>&1; then
     if
-      gsettings set org.gnome.desktop.interface icon-theme "$ICON_THEME" &&
-      gsettings set org.gnome.desktop.interface gtk-theme "$GTK_THEME" &&
-      gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' &&
-      gsettings set org.gnome.desktop.interface cursor-theme "$GTK_CURSOR"
+      gsettings set org.gnome.desktop.interface icon-theme "Argvus Icons" &&
+      gsettings set org.gnome.desktop.interface gtk-theme "$_gtk_theme" &&
+      gsettings set org.gnome.desktop.interface color-scheme "$_scheme" &&
+      gsettings set org.gnome.desktop.interface font-name "Terminus (TTF) 11" &&
+      gsettings set org.gnome.desktop.interface document-font-name "Terminus (TTF) 11" &&
+      gsettings set org.gnome.desktop.interface cursor-theme "${GTK_CURSOR:-Adwaita}"
     then
       printf "GTK theme applied."
     else
@@ -42,6 +75,57 @@ set_gsettings() {
 
 run_waybars() {
   sessionctl restart waybar
+}
+
+theme_startup_fingerprint() {
+  _theme="$1"
+
+  printf 'theme=%s\n' "$_theme"
+  for _path in \
+    "$(paths_config scripts/argvus/theme-switch.sh)" \
+    "$(paths_system_config "hypr/themes/${_theme}")" \
+    "$(paths_system_config "waybar/themes/${_theme}")" \
+    "$(paths_system_config "quickshell/argvus-control-panel/themes/${_theme}")" \
+    "$(paths_system_config "rofi/themes/${_theme}")" \
+    "$(paths_system_config "dunst/themes/${_theme}")" \
+    "$(paths_system_config "kitty/themes/${_theme}")" \
+    "$(paths_system_config "gtk-3.0/themes/${_theme}")" \
+    "$(paths_system_config "gtk-4.0/themes/${_theme}")"; do
+    if [ -d "$_path" ]; then
+      find "$_path" -type f -exec stat -c '%n:%Y:%s' {} \; 2>/dev/null | sort
+    elif [ -f "$_path" ]; then
+      stat -c '%n:%Y:%s' "$_path" 2>/dev/null || true
+    else
+      printf '%s:missing\n' "$_path"
+    fi
+  done
+}
+
+theme_startup_materialized() {
+  _theme="$1"
+
+  [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || return 1
+  [ -f "$(paths_user_config "waybar/argvus-taskbar.css")" ] || return 1
+  [ -f "$(paths_user_config "rofi/theme.rasi")" ] || return 1
+  [ -f "$(paths_user_config "gtk-4.0/settings.ini")" ] || return 1
+  [ -d "$(paths_user_config "quickshell/argvus-control-panel/themes/${_theme}")" ] || return 1
+}
+
+apply_startup_theme() {
+  _theme="$1"
+  _stamp_file="$(paths_cache session/theme-startup.stamp)"
+  _fingerprint="$(theme_startup_fingerprint "$_theme")"
+
+  if [ -f "$_stamp_file" ] &&
+     [ "$(cat "$_stamp_file" 2>/dev/null || true)" = "$_fingerprint" ] &&
+     theme_startup_materialized "$_theme"; then
+    return 0
+  fi
+
+  if ARGVUS_NO_RUNTIME=1 sh "$(paths_config scripts/argvus/theme-switch.sh)" "$_theme" >/dev/null 2>&1; then
+    mkdir -p "${_stamp_file%/*}"
+    printf '%s' "$_fingerprint" > "$_stamp_file"
+  fi
 }
 
 apply_display() {
@@ -236,13 +320,13 @@ prepare_session() {
 
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
       _argvus_active_theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
-      ARGVUS_NO_RUNTIME=1 sh "$(paths_config scripts/argvus/theme-switch.sh)" "$_argvus_active_theme" >/dev/null 2>&1 || true
+      apply_startup_theme "$_argvus_active_theme"
     else
       # First login for this user: apply the packaged default theme so the
       # mutable per-user configs (qt6ct.conf, waybar, rofi, dunst, ...) are
       # lazily materialized from /usr/share/argvus automatically. No
       # argvus --setup --copy-all needed for the DE to be fully themed.
-      ARGVUS_NO_RUNTIME=1 sh "$(paths_config scripts/argvus/theme-switch.sh)" "$ACTIVE_THEME" >/dev/null 2>&1 || true
+      apply_startup_theme "$ACTIVE_THEME"
     fi
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.accent-color" ]; then
       sh "$(paths_config scripts/argvus/accent-switch.sh)" --startup
