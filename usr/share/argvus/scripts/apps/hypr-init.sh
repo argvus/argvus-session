@@ -208,8 +208,31 @@ sync_yazi_config() {
   fi
 }
 
+migrate_monitor_state() {
+  _legacy_monitors="$ARGVUS_CONFIG_HOME/hypr/monitors.conf"
+  _old_user_lua="$ARGVUS_CONFIG_HOME/argvus/hypr/monitors.lua"
+  _generated_lua="$ARGVUS_CONFIG_HOME/argvus/generated/hypr/monitors.lua"
+
+  # Migrate legacy monitors.lua from user override to generated path
+  if [ -f "$_old_user_lua" ] && [ ! -f "$_generated_lua" ]; then
+    _gen_dir="${_generated_lua%/*}"
+    mkdir -p "$_gen_dir"
+    mv "$_old_user_lua" "$_generated_lua"
+  fi
+
+  # Migrate legacy monitors.conf to ARGVUS state (idempotent)
+  if [ -f "$_legacy_monitors" ] && command -v argvus-displayctl >/dev/null 2>&1; then
+    _state_file="$ARGVUS_CONFIG_HOME/argvus/.monitors"
+    if [ ! -f "$_state_file" ] || [ ! -s "$_state_file" ]; then
+      argvus-displayctl --migrate-nwg 2>/dev/null || true
+    fi
+  fi
+}
+
 prepare_session() {
     command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update
+
+    migrate_monitor_state
 
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
       _argvus_active_theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"

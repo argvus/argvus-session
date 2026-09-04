@@ -189,12 +189,20 @@ if _is_vm then
 end
 
 -- Monitor -----------------------------------------------------------------------------------------
+-- Default fallback: any monitor, preferred mode, auto position, scale 1.
+-- Generated state from argvus-display may override this.
 hl.monitor({
   output = "", -- "" = any monitor
   mode = "preferred", -- "preferred" = any mode
   position = "auto", -- "auto" = automatic
   scale = 1,
 })
+
+-- Generated monitor state (produced by argvus-display / nwg-displays adapter)
+local _generated_monitors = _generated_config .. "/hypr/monitors.lua"
+if _path_exists(_generated_monitors) then
+  dofile(_generated_monitors)
+end
 
 -- Environment variables ---------------------------------------------------------------------------
 
@@ -904,6 +912,7 @@ hl.bind(mod .. " + ALT + up",   hl.dsp.exec_cmd("sh /usr/share/argvus/scripts/ar
 hl.bind(mod .. " + ALT + down", hl.dsp.exec_cmd("sh /usr/share/argvus/scripts/argvus/spaces-switch.sh --set waybar_pos bottom"))
 
 -- User overrides ----------------------------------------------------------------------------------
+-- monitors.lua: generated state loaded above, then user override takes precedence.
 _load_user_override("monitors.lua")
 _load_user_override("rules.lua")
 _load_user_override("bindings.lua")
