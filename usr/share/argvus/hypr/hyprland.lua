@@ -201,7 +201,10 @@ hl.monitor({
 -- Generated monitor state (produced by argvus-display / nwg-displays adapter)
 local _generated_monitors = _generated_config .. "/hypr/monitors.lua"
 if _path_exists(_generated_monitors) then
-  dofile(_generated_monitors)
+  local _ok, _err = pcall(dofile, _generated_monitors)
+  if not _ok then
+    print("ARGVUS: ignoring invalid generated monitor config: " .. tostring(_err))
+  end
 end
 
 -- Environment variables ---------------------------------------------------------------------------
