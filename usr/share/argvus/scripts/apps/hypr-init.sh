@@ -60,14 +60,14 @@ font_state_value() {
 
 font_default_value() {
   printf '%s %s\n' \
-    "$(font_state_value default_name "Terminus (TTF)")" \
-    "$(font_state_value default_size 11)"
+    "$(font_state_value apps_name "$(font_state_value default_name "Terminus (TTF) Bold")")" \
+    "$(font_state_value apps_size "$(font_state_value default_size 13)")"
 }
 
 font_monospace_value() {
   printf '%s %s\n' \
-    "$(font_state_value monospace_name "Terminus (TTF)")" \
-    "$(font_state_value monospace_size 11)"
+    "$(font_state_value terminal_name "$(font_state_value monospace_name "JetBrainsMono Nerd Font")")" \
+    "$(font_state_value terminal_size "$(font_state_value monospace_size 13)")"
 }
 
 set_gsettings() {

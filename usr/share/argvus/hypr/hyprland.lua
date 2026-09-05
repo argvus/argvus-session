@@ -81,8 +81,8 @@ local function _font_state_value(key, fallback)
   return fallback
 end
 
-local _argvus_font_family = _font_state_value("default_family", "Terminus (TTF)")
-local _argvus_font_size = tonumber(_font_state_value("default_size", "11")) or 11
+local _argvus_font_family = _font_state_value("system_family", _font_state_value("default_family", "Terminus (TTF)"))
+local _argvus_font_size = tonumber(_font_state_value("system_size", _font_state_value("default_size", "13"))) or 13
 
 -- Default applications (written by argvus-settings Apps) -------------------------------------------
 local _defaults_fallback = {
@@ -262,8 +262,16 @@ hl.env("YAZI_CONFIG_HOME", _yazi_config_home)
 
 -- Variables ---------------------------------------------------------------------------------------
 local mod = "SUPER"
-local kitty_config = string.format("%q", _config_path("kitty/kitty.conf"))
-local foot_config = string.format("%q", _config_path("foot/foot.ini"))
+local kitty_config = string.format("%q", _first_existing({
+  _config_home .. "/argvus/kitty/kitty.conf",
+  _generated_config .. "/kitty/kitty.conf",
+  _system_config .. "/kitty/kitty.conf",
+}))
+local foot_config = string.format("%q", _first_existing({
+  _config_home .. "/argvus/foot/foot.ini",
+  _generated_config .. "/foot/foot.ini",
+  _system_config .. "/foot/foot.ini",
+}))
 local _terminal_bin = _get_default("terminal")
 -- Keep explicit config paths for terminals that do not read Argvus' per-user tree.
 local terminal
@@ -546,7 +554,7 @@ hl.window_rule({
   match = { class = "argvus-default-apps|argvus-settings" },
   float = true,
   center = true,
-  size = "1024 680",
+  size = "1120 760",
 })
 hl.window_rule({
   match = { class = "argvus-about|io.github.argvus.About" },
