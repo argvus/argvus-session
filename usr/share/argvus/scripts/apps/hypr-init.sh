@@ -37,10 +37,45 @@ gtk_theme_name_for_theme() {
   esac
 }
 
+font_state_value() {
+  _key="$1"
+  _fallback="$2"
+  _fonts_file="${ARGVUS_CONFIG_HOME}/argvus/fonts.conf"
+
+  if [ -f "$_fonts_file" ]; then
+    awk -F= -v key="$_key" '
+      $1 == key {
+        sub(/^[^=]*=/, "")
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+        print
+        found = 1
+        exit
+      }
+      END { exit found ? 0 : 1 }
+    ' "$_fonts_file" 2>/dev/null && return 0
+  fi
+
+  printf '%s\n' "$_fallback"
+}
+
+font_default_value() {
+  printf '%s %s\n' \
+    "$(font_state_value default_name "Terminus (TTF)")" \
+    "$(font_state_value default_size 11)"
+}
+
+font_monospace_value() {
+  printf '%s %s\n' \
+    "$(font_state_value monospace_name "Terminus (TTF)")" \
+    "$(font_state_value monospace_size 11)"
+}
+
 set_gsettings() {
   _theme="$(active_theme_name)"
   _gtk_theme="$(gtk_theme_name_for_theme "$_theme")"
   _scheme="prefer-dark"
+  _default_font="$(font_default_value)"
+  _monospace_font="$(font_monospace_value)"
   case "$_theme" in
     argvus-light-veil|argvus-light-veil-float) _scheme="prefer-light" ;;
   esac
@@ -51,8 +86,9 @@ set_gsettings() {
       gsettings set org.gnome.desktop.interface icon-theme "Argvus Icons" &&
       gsettings set org.gnome.desktop.interface gtk-theme "$_gtk_theme" &&
       gsettings set org.gnome.desktop.interface color-scheme "$_scheme" &&
-      gsettings set org.gnome.desktop.interface font-name "Terminus (TTF) 11" &&
-      gsettings set org.gnome.desktop.interface document-font-name "Terminus (TTF) 11" &&
+      gsettings set org.gnome.desktop.interface font-name "$_default_font" &&
+      gsettings set org.gnome.desktop.interface document-font-name "$_default_font" &&
+      gsettings set org.gnome.desktop.interface monospace-font-name "$_monospace_font" &&
       gsettings set org.gnome.desktop.interface cursor-theme "${GTK_CURSOR:-Adwaita}"
     then
       printf "GTK theme applied."
@@ -88,10 +124,22 @@ sync_rofi_config() {
 
   [ -f "$_rofi_config" ] || return 0
 
+  _rofi_font="$(font_default_value)"
+  _font_line="    font: \"$_rofi_font\";"
   if grep -q '^[[:space:]]*font:' "$_rofi_config"; then
-    sed -i 's|^[[:space:]]*font:.*|    font: "Terminus (TTF) 12";|' "$_rofi_config"
+    _tmp="${_rofi_config}.tmp.$$"
+    awk -v font="$_font_line" '
+      /^[[:space:]]*font:/ { print font; next }
+      { print }
+    ' "$_rofi_config" >"$_tmp" && mv "$_tmp" "$_rofi_config"
+    rm -f "$_tmp"
   else
-    sed -i '/^[[:space:]]*configuration[[:space:]]*{/a\    font: "Terminus (TTF) 12";' "$_rofi_config"
+    _tmp="${_rofi_config}.tmp.$$"
+    awk -v font="$_font_line" '
+      { print }
+      /^[[:space:]]*configuration[[:space:]]*{/ { print font }
+    ' "$_rofi_config" >"$_tmp" && mv "$_tmp" "$_rofi_config"
+    rm -f "$_tmp"
   fi
 }
 

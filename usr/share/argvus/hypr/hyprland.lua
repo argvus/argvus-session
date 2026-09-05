@@ -66,6 +66,24 @@ local function _read_first_line(paths)
   return nil
 end
 
+local function _font_state_value(key, fallback)
+  local file = io.open(_state_home .. "/fonts.conf", "r")
+  if file then
+    for line in file:lines() do
+      local candidate_key, value = line:match("^%s*([^=#]+)%s*=%s*(.-)%s*$")
+      if candidate_key == key and value and value ~= "" then
+        file:close()
+        return value
+      end
+    end
+    file:close()
+  end
+  return fallback
+end
+
+local _argvus_font_family = _font_state_value("default_family", "Terminus (TTF)")
+local _argvus_font_size = tonumber(_font_state_value("default_size", "11")) or 11
+
 -- Default applications (written by argvus-settings Apps) -------------------------------------------
 local _defaults_fallback = {
   terminal = "kitty",
@@ -304,7 +322,8 @@ hl.config({
 
     groupbar = {
       enabled = true,
-      font_size = 14,
+      font_family = _argvus_font_family,
+      font_size = _argvus_font_size,
       render_titles = false,
       text_color = "rgba(ffffffff)",
       col = {
@@ -364,6 +383,8 @@ hl.config({
     force_default_wallpaper = 0,
     disable_hyprland_logo = true,
     disable_splash_rendering = true,
+    font_family = _argvus_font_family,
+    splash_font_family = _argvus_font_family,
   },
 
   debug = {
