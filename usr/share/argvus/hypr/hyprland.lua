@@ -66,7 +66,7 @@ local function _read_first_line(paths)
   return nil
 end
 
--- Default applications (written by argvus-default-apps) --------------------------------------------
+-- Default applications (written by argvus-settings Apps) -------------------------------------------
 local _defaults_fallback = {
   terminal = "kitty",
   file_manager = "argvus --spf",
@@ -520,12 +520,12 @@ hl.window_rule({
 })
 hl.window_rule({ match = { class = "mpv" }, float = true })
 
--- argvus-default-apps selector: open as a floating, centered window ---------------
+-- argvus settings/default-apps selector: open as a floating, centered window -------
 hl.window_rule({
-  match = { class = "argvus-default-apps" },
+  match = { class = "argvus-default-apps|argvus-settings" },
   float = true,
   center = true,
-  size = "720 520",
+  size = "1024 680",
 })
 hl.window_rule({
   match = { class = "argvus-about|io.github.argvus.About" },
@@ -617,7 +617,7 @@ else
 end
 hl.bind(mod .. " + D", hl.dsp.exec_cmd(_launcher_cmd))
 
--- Default apps selector (argvus-default-apps) -------------------------------------------------------
+-- Default apps selector (argvus-settings Apps) ------------------------------------------------------
 hl.bind(mod .. " + ALT + P", hl.dsp.exec_cmd("argvus --default-apps"))
 
 -- Maximize Window ---------------------------------------------------------------------------------

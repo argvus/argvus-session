@@ -4,15 +4,15 @@
 # get-default.sh <category> — prints the configured default app (binary) for a
 # category, falling back to the Argvus built-in default when no state exists.
 #
-# Reads the single `defaults.json` written by `argvus-default-apps`, with the
+# Reads the single `defaults.json` written by `argvus-settings`, with the
 # same path precedence used across Argvus:
 #   $XDG_CONFIG_HOME/argvus/defaults.json
 #       -> /usr/share/argvus/defaults.json
 #
-# (Legacy `$XDG_STATE_HOME/argvus/defaults.json` written by older versions of
-# the Rust tool is still honored while migrating to the argvus/ root.)
+# Legacy `$XDG_STATE_HOME/argvus/defaults.json` written by older versions of
+# the default-apps tool is still honored while migrating to the argvus/ root.
 #
-# Categories match the argvus-default-apps keys:
+# Categories match the argvus-settings Apps keys:
 #   terminal, file_manager, text_editor, terminal_editor, browser,
 #   image_viewer, pdf_viewer, video_player, audio_player, archive, launcher
 

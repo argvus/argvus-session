@@ -30,7 +30,7 @@ get_default_value() {
   elif command -v get-default >/dev/null 2>&1; then
     get-default "$_cat"
   else
-    # Local fallback matching argvus-default-apps defaults.
+    # Local fallback matching argvus-settings Apps defaults.
     case "$_cat" in
       terminal) printf 'kitty\n' ;;
       file_manager) printf 'argvus --spf\n' ;;
