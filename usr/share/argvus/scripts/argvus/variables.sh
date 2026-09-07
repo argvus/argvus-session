@@ -32,7 +32,7 @@ get_default_value() {
   else
     # Local fallback matching argvus-settings Apps defaults.
     case "$_cat" in
-      terminal) printf 'kitty\n' ;;
+      terminal) printf 'argvus-terminal\n' ;;
       file_manager) printf 'argvus --spf\n' ;;
       terminal_editor) printf 'vim\n' ;;
       text_editor) printf 'mousepad\n' ;;
@@ -50,7 +50,7 @@ get_default_value() {
 
 # -- Application paths --------------------------------------------------------
 TERM="$(get_default_value terminal | sed '/^$/d' | head -1)"
-[ -n "$TERM" ] || TERM="kitty"
+[ -n "$TERM" ] || TERM="argvus-terminal"
 FINDER="$(get_default_value launcher | sed '/^$/d' | head -1)"
 [ -n "$FINDER" ] || FINDER="rofi"
 FILE_MANAGER="$(get_default_value file_manager | sed '/^$/d' | head -1)"

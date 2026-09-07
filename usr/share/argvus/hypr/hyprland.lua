@@ -86,7 +86,7 @@ local _argvus_font_size = tonumber(_font_state_value("system_size", _font_state_
 
 -- Default applications (written by argvus-settings Apps) -------------------------------------------
 local _defaults_fallback = {
-  terminal = "kitty",
+  terminal = "argvus-terminal",
   file_manager = "argvus --spf",
   text_editor = "mousepad",
   terminal_editor = "vim",
@@ -262,11 +262,6 @@ hl.env("YAZI_CONFIG_HOME", _yazi_config_home)
 
 -- Variables ---------------------------------------------------------------------------------------
 local mod = "SUPER"
-local kitty_config = string.format("%q", _first_existing({
-  _config_home .. "/argvus/kitty/kitty.conf",
-  _generated_config .. "/kitty/kitty.conf",
-  _system_config .. "/kitty/kitty.conf",
-}))
 local foot_config = string.format("%q", _first_existing({
   _config_home .. "/argvus/foot/foot.ini",
   _generated_config .. "/foot/foot.ini",
@@ -276,7 +271,9 @@ local _terminal_bin = _get_default("terminal")
 -- Keep explicit config paths for terminals that do not read Argvus' per-user tree.
 local terminal
 if _terminal_bin == "kitty" then
-  terminal = "kitty --config " .. kitty_config
+  terminal = "kitty"
+elseif _terminal_bin == "argvus-terminal" then
+  terminal = "argvus-terminal"
 elseif _terminal_bin == "foot" then
   terminal = "foot -c " .. foot_config
 else

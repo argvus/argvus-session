@@ -154,7 +154,7 @@ theme_startup_fingerprint() {
     "$(paths_system_config "quickshell/argvus-control-panel/themes/${_theme}")" \
     "$(paths_system_config "rofi/themes/${_theme}")" \
     "$(paths_system_config "dunst/themes/${_theme}")" \
-    "$(paths_system_config "kitty/themes/${_theme}")" \
+    "/usr/share/argvus-terminal/kitty/themes/${_theme}" \
     "$(paths_system_config "gtk-3.0/themes/${_theme}")" \
     "$(paths_system_config "gtk-4.0/themes/${_theme}")"; do
     if [ -d "$_path" ]; then

@@ -36,7 +36,7 @@ install:
 	$(SUDO) $(INSTALL) -Dm755 bin/argvus-sessionctl \
 		"$(DESTDIR)$(PREFIX)/bin/argvus-sessionctl"
 	$(SUDO) $(INSTALL) -dm755 "$(DESTDIR)$(PREFIX)/share/argvus"
-	$(SUDO) cp -a usr/share/argvus/. \
+	$(SUDO) cp -R --no-preserve=ownership usr/share/argvus/. \
 		"$(DESTDIR)$(PREFIX)/share/argvus/"
 	$(SUDO) find "$(DESTDIR)$(PREFIX)/share/argvus/scripts" -type f -name '*.sh' -exec chmod 755 {} \; 2>/dev/null || true
 	$(SUDO) $(INSTALL) -Dm644 usr/share/wayland-sessions/argvus.desktop \
