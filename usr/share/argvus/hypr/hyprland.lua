@@ -551,10 +551,10 @@ hl.window_rule({ match = { class = "mpv" }, float = true })
 
 -- argvus settings/default-apps selector: open as a floating, centered window -------
 hl.window_rule({
-  match = { class = "argvus-default-apps|argvus-settings" },
+  match = { class = "argvus-settings" },
   float = true,
   center = true,
-  size = "1120 760",
+  size = "1280, 860",
 })
 hl.window_rule({
   match = { class = "argvus-about|io.github.argvus.About" },
