@@ -23,17 +23,9 @@ active_theme_name() {
 
 gtk_theme_name_for_theme() {
   case "$1" in
-    argvus-dark-aether) printf '%s\n' "Argvus Dark Aether" ;;
-    argvus-dark-aether-float) printf '%s\n' "Argvus Dark Aether Float" ;;
-    argvus-dark-slate) printf '%s\n' "Argvus Dark Slate" ;;
-    argvus-dark-slate-float) printf '%s\n' "Argvus Dark Slate Float" ;;
-    argvus-dark-silver) printf '%s\n' "Argvus Dark Silver" ;;
-    argvus-dark-silver-float) printf '%s\n' "Argvus Dark Silver Float" ;;
-    argvus-dark-universe) printf '%s\n' "Argvus Dark Universe" ;;
-    argvus-dark-universe-float) printf '%s\n' "Argvus Dark Universe Float" ;;
-    argvus-light-veil) printf '%s\n' "Argvus Light Veil" ;;
-    argvus-light-veil-float) printf '%s\n' "Argvus Light Veil Float" ;;
-    *) printf '%s\n' "${GTK_THEME:-Argvus Dark Aether}" ;;
+    argvus-light-veil|argvus-light-veil-float) printf '%s\n' "Adwaita" ;;
+    argvus-dark-*) printf '%s\n' "Adwaita-dark" ;;
+    *) printf '%s\n' "${GTK_THEME:-Adwaita-dark}" ;;
   esac
 }
 
