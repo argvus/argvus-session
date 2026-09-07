@@ -147,6 +147,7 @@ theme_startup_fingerprint() {
     "$(paths_system_config "rofi/themes/${_theme}")" \
     "$(paths_system_config "dunst/themes/${_theme}")" \
     "/usr/share/argvus-terminal/kitty/themes/${_theme}" \
+    "/usr/share/argvus-system-monitor/btop/themes/${_theme}" \
     "$(paths_system_config "gtk-3.0/themes/${_theme}")" \
     "$(paths_system_config "gtk-4.0/themes/${_theme}")"; do
     if [ -d "$_path" ]; then
@@ -202,16 +203,6 @@ apply_display() {
   sh "$(paths_config scripts/argvus/monitor-switch.sh)" "$_legacy_mode"
 }
 
-should_manage_btop_config() {
-  _conf="$1"
-  [ -f "$_conf" ] || return 0
-  _theme="$(sed -n 's/^[[:space:]]*color_theme[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$_conf" | head -n1)"
-  case "$_theme" in
-    ''|Default|*argvus*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 should_manage_foot_config() {
   _conf="$1"
   [ -f "$_conf" ] || return 0
@@ -265,35 +256,7 @@ sync_btop_config() {
     _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
   fi
 
-  _btop_dir="$(paths_user_config btop)"
-  _system_btop="$(paths_system_config btop)"
-
-  if [ ! -d "$_btop_dir" ] && [ -d "$_system_btop" ]; then
-    mkdir -p "$_btop_dir"
-    cp -R "$_system_btop/." "$_btop_dir/"
-  elif [ -d "$_system_btop" ]; then
-    mkdir -p "$_btop_dir"
-    if [ -f "$_system_btop/btop.conf" ] && [ ! -e "$_btop_dir/btop.conf" ]; then
-      cp "$_system_btop/btop.conf" "$_btop_dir/btop.conf"
-    fi
-    if [ -d "$_system_btop/themes/${_theme}" ]; then
-      mkdir -p "$_btop_dir/themes/${_theme}"
-      cp -R "$_system_btop/themes/${_theme}/." "$_btop_dir/themes/${_theme}/"
-    fi
-  fi
-
-  if [ -f "$_btop_dir/btop.conf" ] && [ -f "$_btop_dir/themes/${_theme}/theme.theme" ]; then
-    sed -i "s|color_theme = .*|color_theme = \"${_btop_dir}/themes/${_theme}/theme.theme\"|" "$_btop_dir/btop.conf"
-  fi
-
-  _native_btop="$ARGVUS_CONFIG_HOME/btop/btop.conf"
-  if should_manage_btop_config "$_native_btop" && [ -f "$_btop_dir/themes/${_theme}/theme.theme" ]; then
-    mkdir -p "${_native_btop%/*}"
-    if [ ! -f "$_native_btop" ] && [ -f "$_system_btop/btop.conf" ]; then
-      cp "$_system_btop/btop.conf" "$_native_btop"
-    fi
-    sed -i "s|color_theme = .*|color_theme = \"${_btop_dir}/themes/${_theme}/theme.theme\"|" "$_native_btop"
-  fi
+  command -v argvus-system-monitor >/dev/null 2>&1 && argvus-system-monitor --apply "$_theme" >/dev/null 2>&1 || true
 }
 
 sync_yazi_config() {
