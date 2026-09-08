@@ -46,6 +46,26 @@ paths_ensure_generated_copy() {
 
   # Migrate: if generated copy exists but user path doesn't, move it to user path
   if [ -e "$_generated_path" ] || [ -L "$_generated_path" ]; then
+    # A settings-managed CSS shim (an @import wrapper to the system css) must
+    # not be promoted to the user copy: the user copy is the themed css that
+    # theme-switch rewrites per theme. Retire the shim and use the system css.
+    case "$_relative_path" in
+      waybar/*.css)
+        _first_line="$(sed -n '1p' "$_generated_path" 2>/dev/null || true)"
+        case "$_first_line" in
+          '@import url("/usr/'*)
+            _system_path="$(paths_system_config "$_relative_path")"
+            if [ -f "$_system_path" ]; then
+              mv "$_generated_path" "${_generated_path}.retired"
+              mkdir -p "${_user_path%/*}"
+              cp "$_system_path" "$_user_path"
+              printf '%s\n' "$_user_path"
+              return 0
+            fi
+            ;;
+        esac
+        ;;
+    esac
     _parent="${_user_path%/*}"
     mkdir -p "$_parent"
     mv "$_generated_path" "$_user_path"
