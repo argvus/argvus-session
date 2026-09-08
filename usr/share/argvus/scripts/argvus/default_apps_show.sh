@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 # shellcheck shell=sh
 #
-# default_apps_show.sh - opens the argvus-settings Apps page.
+# default_apps_show.sh - opens the ARGVUS Control Center Apps page.
 # Resolves the binary by PATH (or /usr/bin) so the sidebar card and shortcuts
 # can launch it regardless of the current $PATH of the calling process.
 
 set -eu
 
-BIN="argvus-settings"
+BIN="argvus"
 
 # Resolve the tool; prefer the user-local build (which may be newer than the
 # system package) and fall back to PATH so hyprland's minimal env still works.
@@ -23,9 +23,9 @@ if [ -z "$FOUND" ]; then
 fi
 
 if [ -z "$FOUND" ]; then
-  notify-send "Default Programs" "argvus-settings not installed" >/dev/null 2>&1 || true
+  notify-send "Default Programs" "ARGVUS Control Center not installed" >/dev/null 2>&1 || true
   exit 1
 fi
 
 # Avoid clutter for the persistent "show again" refresh; just launch.
-"$FOUND" --page apps
+"$FOUND" --control-center apps

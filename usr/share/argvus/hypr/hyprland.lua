@@ -84,7 +84,7 @@ end
 local _argvus_font_family = _font_state_value("system_family", _font_state_value("default_family", "IBM Plex Mono"))
 local _argvus_font_size = tonumber(_font_state_value("system_size", _font_state_value("default_size", "13"))) or 13
 
--- Default applications (written by argvus-settings Apps) -------------------------------------------
+-- Default applications (written by ARGVUS Control Center Apps) --------------------------------------
 local _defaults_fallback = {
   terminal = "argvus-terminal",
   file_manager = "argvus --spf",
@@ -546,18 +546,12 @@ hl.window_rule({
 })
 hl.window_rule({ match = { class = "mpv" }, float = true })
 
--- argvus settings/default-apps selector: open as a floating, centered window -------
+-- ARGVUS Control Center: open as a floating, centered terminal window -------------------------------
 hl.window_rule({
-  match = { class = "argvus-settings" },
+  match = { class = "argvus-control-center" },
   float = true,
   center = true,
   size = "1280, 860",
-})
-hl.window_rule({
-  match = { class = "argvus-about|io.github.argvus.About" },
-  float = true,
-  center = true,
-  size = "900 720",
 })
 
 -- Agente de autenticação do PolicyKit (pkexec) ------------------------------------------------------
@@ -643,8 +637,8 @@ else
 end
 hl.bind(mod .. " + D", hl.dsp.exec_cmd(_launcher_cmd))
 
--- Default apps selector (argvus-settings Apps) ------------------------------------------------------
-hl.bind(mod .. " + ALT + P", hl.dsp.exec_cmd("argvus --default-apps"))
+-- ARGVUS Control Center ----------------------------------------------------------------------------
+hl.bind(mod .. " + ALT + P", hl.dsp.exec_cmd("argvus --control-center"))
 
 -- Maximize Window ---------------------------------------------------------------------------------
 hl.bind(mod .. " + S", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
