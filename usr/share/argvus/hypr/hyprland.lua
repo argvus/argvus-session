@@ -81,7 +81,7 @@ local function _font_state_value(key, fallback)
   return fallback
 end
 
-local _argvus_font_family = _font_state_value("system_family", _font_state_value("default_family", "Terminus (TTF)"))
+local _argvus_font_family = _font_state_value("system_family", _font_state_value("default_family", "IBM Plex Mono"))
 local _argvus_font_size = tonumber(_font_state_value("system_size", _font_state_value("default_size", "13"))) or 13
 
 -- Default applications (written by argvus-settings Apps) -------------------------------------------
