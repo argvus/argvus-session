@@ -66,6 +66,19 @@ local function _read_first_line(paths)
   return nil
 end
 
+local function _load_generated_table(relative_path)
+  local path = _generated_config .. "/" .. relative_path
+  if not _path_exists(path) then
+    return nil
+  end
+  local ok, value = pcall(dofile, path)
+  if ok and type(value) == "table" then
+    return value
+  end
+  print("ARGVUS: ignoring invalid generated config: " .. path)
+  return nil
+end
+
 local function _font_state_value(key, fallback)
   local file = io.open(_state_home .. "/fonts.conf", "r")
   if file then
@@ -83,6 +96,21 @@ end
 
 local _argvus_font_family = _font_state_value("system_family", _font_state_value("default_family", "IBM Plex Mono"))
 local _argvus_font_size = tonumber(_font_state_value("system_size", _font_state_value("default_size", "13"))) or 13
+
+local _argvus_input = {
+  kb_layout = "br,us",
+  kb_variant = "abnt2",
+  kb_options = "grp:alt_shift_toggle",
+}
+
+local _generated_input = _load_generated_table("hypr/input.lua")
+if _generated_input then
+  for key, value in pairs(_generated_input) do
+    if type(key) == "string" and type(value) == "string" then
+      _argvus_input[key] = value
+    end
+  end
+end
 
 -- Default applications (written by ARGVUS Control Center Apps) --------------------------------------
 local _defaults_fallback = {
@@ -411,9 +439,9 @@ hl.config({
   xwayland = { enabled = true },
 
   input = {
-    kb_layout = "br,us",
-    kb_variant = "abnt2",
-    kb_options = "grp:alt_shift_toggle",
+    kb_layout = _argvus_input.kb_layout,
+    kb_variant = _argvus_input.kb_variant,
+    kb_options = _argvus_input.kb_options,
     numlock_by_default = true,
     follow_mouse = 1,
     -- Mouse acceleration (disable)
@@ -531,6 +559,12 @@ hl.window_rule({ match = { class = "blueman-manager" }, float = true })
 hl.window_rule({ match = { class = "nwg-displays" }, float = true, size = "1100 768", center = true })
 hl.window_rule({ match = { class = "xdg-desktop-portal-gtk" }, float = true })
 hl.window_rule({
+  match = { class = "argvus-cpu|argvus-mem" },
+  float = true,
+  center = true,
+  size = "1280, 860",
+})
+hl.window_rule({
   match = { class = "argvus-taskbar-cpu|argvus-taskbar-mem|cpu-temp-popup|gpu-temp-popup" },
   float = true,
   size = "900 620",
@@ -602,7 +636,7 @@ hl.bind(mod .. " + comma", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/togg
 hl.bind("mouse:274", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/toggle-sidebar.sh"))))
 
 -- Toggle Waybar top -------------------------------------------------------------------------------
-hl.bind(mod .. " + BackSpace", hl.dsp.exec_cmd("systemctl --user kill --signal=SIGUSR1 argvus-waybar-taskbar.service"))
+hl.bind(mod .. " + BackSpace", hl.dsp.exec_cmd("systemctl --user kill --signal=SIGUSR1 argvus-taskbar.service"))
 
 -- Wallpaper Picker --------------------------------------------------------------------------------
 hl.bind(mod .. " + Y", hl.dsp.exec_cmd(_sh(_config_path("scripts/apps/hypr-wallpaper-pick.sh"))))
@@ -612,6 +646,9 @@ hl.bind(mod .. " + SHIFT + T", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/
 
 -- Accent color ------------------------------------------------------------------------------------
 hl.bind(mod .. " + SHIFT + A", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/accent-switch.sh"))))
+
+-- Inactivity lock timeout -------------------------------------------------------------------------
+hl.bind(mod .. " + SHIFT + L", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/idle-timeout.sh"))))
 
 -- Brightness --------------------------------------------------------------------------------------
 hl.bind(mod .. " + SHIFT + B", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/brightness-switch.sh"))))

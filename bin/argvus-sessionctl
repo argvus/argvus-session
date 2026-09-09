@@ -132,7 +132,7 @@ start_session() {
   require_systemd
   import_environment
   systemctl --user start graphical-session.target argvus-session.target
-  start_sysinfo_if_enabled
+  start_widget_telemetry_if_enabled
 }
 
 stop_session() {
@@ -175,17 +175,53 @@ restart_units() {
   systemctl --user restart "$@"
 }
 
-sysinfo_enabled() {
+widget_telemetry_enabled() {
   . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
-  [ "$(sed -n '1p' "$(paths_cache waybar/sysinfo-state)" 2>/dev/null || true)" = "enabled" ]
+  _state_file="$(paths_cache waybar/widget-telemetry-state)"
+  _legacy_desktop_state_file="$(paths_cache waybar/desktop-telemetry-state)"
+  _legacy_state_file="$(paths_cache waybar/sysinfo-state)"
+  if [ -f "$_state_file" ]; then
+    _state="$(sed -n '1p' "$_state_file" 2>/dev/null || true)"
+  elif [ -f "$_legacy_desktop_state_file" ]; then
+    _state="$(sed -n '1p' "$_legacy_desktop_state_file" 2>/dev/null || true)"
+  else
+    _state="$(sed -n '1p' "$_legacy_state_file" 2>/dev/null || true)"
+  fi
+  [ "$_state" = "enabled" ]
+}
+
+resolve_waybar_file() {
+  _canonical_rel="$1"
+  _legacy_rel="${2:-}"
+  for _resolver in paths_override_config paths_user_config paths_generated_config; do
+    _candidate="$($_resolver "$_canonical_rel")"
+    if [ -e "$_candidate" ] || [ -L "$_candidate" ]; then
+      printf '%s\n' "$_candidate"
+      return 0
+    fi
+    [ -n "$_legacy_rel" ] || continue
+    _candidate="$($_resolver "$_legacy_rel")"
+    if [ -e "$_candidate" ] || [ -L "$_candidate" ]; then
+      printf '%s\n' "$_candidate"
+      return 0
+    fi
+  done
+  paths_system_config "$_canonical_rel"
 }
 
 run_waybar() {
   _name="$1"
+  _legacy_name="${2:-}"
   _config_rel="waybar/argvus-${_name}.jsonc"
   _style_rel="waybar/argvus-${_name}.css"
-  _config="$(paths_config "$_config_rel")"
-  _style="$(paths_config "$_style_rel")"
+  _legacy_config_rel=""
+  _legacy_style_rel=""
+  if [ -n "$_legacy_name" ]; then
+    _legacy_config_rel="waybar/argvus-${_legacy_name}.jsonc"
+    _legacy_style_rel="waybar/argvus-${_legacy_name}.css"
+  fi
+  _config="$(resolve_waybar_file "$_config_rel" "$_legacy_config_rel")"
+  _style="$(resolve_waybar_file "$_style_rel" "$_legacy_style_rel")"
   _system_config_file="$(paths_system_config "$_config_rel")"
   _system_style_file="$(paths_system_config "$_style_rel")"
 
@@ -294,16 +330,16 @@ restart_components() {
   for component in "$@"; do
     case "$component" in
       waybar|waybars)
-        units="$units argvus-waybar-taskbar.service"
-        if sysinfo_enabled; then
-          units="$units argvus-waybar-sysinfo.service"
+        units="$units argvus-taskbar.service"
+        if widget_telemetry_enabled; then
+          units="$units argvus-widget-telemetry.service"
         fi
         ;;
       waybar-taskbar|taskbar)
-        units="$units argvus-waybar-taskbar.service"
+        units="$units argvus-taskbar.service"
         ;;
-      waybar-sysinfo|sysinfo)
-        units="$units argvus-waybar-sysinfo.service"
+      widget-telemetry|desktop-telemetry|telemetry|waybar-sysinfo|sysinfo)
+        units="$units argvus-widget-telemetry.service"
         ;;
       wallpaper)
         units="$units argvus-wallpaper.service"
@@ -342,31 +378,31 @@ restart_components() {
   restart_units $units
 }
 
-start_sysinfo_if_enabled() {
+start_widget_telemetry_if_enabled() {
   require_systemd
   import_environment
-  if sysinfo_enabled; then
-    systemctl --user start argvus-waybar-sysinfo.service
+  if widget_telemetry_enabled; then
+    systemctl --user start argvus-widget-telemetry.service
   fi
 }
 
-sysinfo_command() {
+widget_telemetry_command() {
   case "${1:-}" in
     is-enabled)
-      sysinfo_enabled
+      widget_telemetry_enabled
       ;;
     start-if-enabled)
-      start_sysinfo_if_enabled
+      start_widget_telemetry_if_enabled
       ;;
     status)
-      if sysinfo_enabled; then
+      if widget_telemetry_enabled; then
         printf 'enabled\n'
       else
         printf 'disabled\n'
       fi
       ;;
     *)
-      warn "unknown sysinfo command: ${1:-empty}"
+      warn "unknown widget telemetry command: ${1:-empty}"
       exit 64
       ;;
   esac
@@ -397,15 +433,15 @@ logs_session() {
 run_component() {
   component="${1:-}"
   case "$component" in
-    waybar-taskbar)
+    taskbar|waybar-taskbar)
       have waybar || exit 0
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
       run_waybar taskbar
       ;;
-    waybar-sysinfo)
+    widget-telemetry|desktop-telemetry|waybar-sysinfo)
       have waybar || exit 0
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
-      run_waybar sysinfo
+      run_waybar widget-telemetry sysinfo
       ;;
     wallpaper)
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
@@ -489,7 +525,8 @@ Commands:
   restart <items...>  restart component groups: waybar, wallpaper, dunst, shell, ...
   status              show target and service status
   logs [journal args] show ARGVUS user-unit journal logs
-  sysinfo <command>   sysinfo helpers: is-enabled, start-if-enabled, status
+  widget-telemetry <command>
+                      telemetry helpers: is-enabled, start-if-enabled, status
 EOF
 }
 
@@ -521,9 +558,9 @@ case "${1:-}" in
     shift
     logs_session "$@"
     ;;
-  sysinfo)
+  widget-telemetry|desktop-telemetry|sysinfo)
     shift
-    sysinfo_command "$@"
+    widget_telemetry_command "$@"
     ;;
   run)
     shift

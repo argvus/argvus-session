@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# Daemon that shows a notification when the keyboard layout changes (BR/US).
+# Daemon that shows a notification when the keyboard layout changes.
 #
 # Works on any machine: it listens to Hyprland's "activelayout" IPC events and
 # notifies once per change, ignoring virtual/control/mouse devices.
@@ -21,9 +21,10 @@ fi
 
 # Map the keymap description to a friendly label + flag.
 layout_label() {
-  case "$1" in
-    *us*|*english*) printf 'English (US)  🇺🇸' ;;
-    *pt*|*portuguese*|*brazil*) printf 'Portuguese (BR)  🇧🇷' ;;
+  _normalized="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case "$_normalized" in
+    *english*|*'(us)'*) printf 'English (US)  🇺🇸' ;;
+    *portuguese*|*brazil*) printf 'Portuguese (BR)  🇧🇷' ;;
     *) printf '%s' "$1" ;;
   esac
 }

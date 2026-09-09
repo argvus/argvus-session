@@ -1,11 +1,11 @@
 [Unit]
-Description=ARGVUS sysinfo panel
+Description=ARGVUS widget telemetry panel
 PartOf=argvus-session.target graphical-session.target
 After=argvus-session-prepare.service graphical-session.target
 
 [Service]
 Type=simple
-ExecCondition=/usr/bin/argvus-sessionctl sysinfo is-enabled
-ExecStart=/usr/bin/argvus-sessionctl run waybar-sysinfo
+ExecCondition=/usr/bin/argvus-sessionctl widget-telemetry is-enabled
+ExecStart=/usr/bin/argvus-sessionctl run widget-telemetry
 Restart=on-failure
 RestartSec=2s
