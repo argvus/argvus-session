@@ -559,15 +559,9 @@ hl.window_rule({ match = { class = "blueman-manager" }, float = true })
 hl.window_rule({ match = { class = "nwg-displays" }, float = true, size = "1100 768", center = true })
 hl.window_rule({ match = { class = "xdg-desktop-portal-gtk" }, float = true })
 hl.window_rule({
-  match = { class = "argvus-cpu|argvus-mem" },
+  match = { class = "argvus-cpu|argvus-mem|argvus-taskbar-cpu|argvus-taskbar-mem|cpu-temp-popup|gpu-temp-popup" },
   float = true,
-  center = true,
-  size = "1280, 860",
-})
-hl.window_rule({
-  match = { class = "argvus-taskbar-cpu|argvus-taskbar-mem|cpu-temp-popup|gpu-temp-popup" },
-  float = true,
-  size = "900 620",
+  size = "1399 920",
   center = true,
 })
 hl.window_rule({
@@ -585,7 +579,7 @@ hl.window_rule({
   match = { class = "argvus-control-center" },
   float = true,
   center = true,
-  size = "1280, 860",
+  size = "1399 920",
 })
 
 -- Agente de autenticação do PolicyKit (pkexec) ------------------------------------------------------
@@ -666,7 +660,7 @@ hl.bind(mod .. " + F6", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/effects
 local _launcher_bin = _get_default("launcher")
 local _launcher_cmd
 if _launcher_bin == "rofi" or _launcher_bin == "" then
-  _launcher_cmd = 'rofi -config ' .. rofi_config .. ' -show drun -display-drun "drun"'
+  _launcher_cmd = "argvus-launcher --config " .. rofi_config
 else
   _launcher_cmd = _launcher_bin .. " --show drun"
 end
