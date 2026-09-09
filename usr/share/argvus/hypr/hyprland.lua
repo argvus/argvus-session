@@ -617,7 +617,7 @@ hl.bind("ALT + SHIFT + Tab", hl.dsp.exec_cmd("snappy-switcher prev --mod alt"))
 hl.bind(mod .. " + SHIFT + slash", hl.dsp.exec_cmd(_sh(_config_path("scripts/apps/cheatsheets.sh")) .. " hypr"))
 
 -- Cheatsheets Kitty -------------------------------------------------------------------------------
-hl.bind(mod .. " + CTRL + slash", hl.dsp.exec_cmd(_sh(_config_path("scripts/apps/cheatsheets.sh")) .. " kitty"))
+hl.bind(mod .. " + CTRL + slash", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus-launcher/cheatsheets.sh")) .. " kitty"))
 
 -- About ARGVUS ------------------------------------------------------------------------------------
 hl.bind(mod .. " + F1", hl.dsp.exec_cmd("argvus --about"))
@@ -667,8 +667,6 @@ local _launcher_bin = _get_default("launcher")
 local _launcher_cmd
 if _launcher_bin == "rofi" or _launcher_bin == "" then
   _launcher_cmd = 'rofi -config ' .. rofi_config .. ' -show drun -display-drun "drun"'
-elseif _launcher_bin == "wofi" then
-  _launcher_cmd = "wofi --show drun"
 else
   _launcher_cmd = _launcher_bin .. " --show drun"
 end
@@ -963,7 +961,7 @@ hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 -- Emoji picker ------------------------------------------------------------------------------------
-hl.bind(mod .. " + period", hl.dsp.exec_cmd(_sh(_config_path("scripts/apps/emoji-picker.sh"))))
+hl.bind(mod .. " + period", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus-launcher/emoji-picker.sh"))))
 
 -- Color Picker ------------------------------------------------------------------------------------
 hl.bind(mod .. " + P", hl.dsp.exec_cmd("hyprpicker -a"))
