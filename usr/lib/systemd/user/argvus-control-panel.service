@@ -1,5 +1,5 @@
 [Unit]
-Description=ARGVUS shell
+Description=ARGVUS control panel
 PartOf=argvus-session.target graphical-session.target
 After=argvus-session-prepare.service graphical-session.target
 StartLimitIntervalSec=30s
@@ -7,6 +7,6 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/argvus-sessionctl run shell
+ExecStart=/usr/bin/argvus-sessionctl run control-panel
 Restart=on-failure
 RestartSec=3s

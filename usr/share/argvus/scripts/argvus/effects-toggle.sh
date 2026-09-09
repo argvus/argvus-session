@@ -37,7 +37,7 @@ apply_runtime() {
   fi
 
   if command -v argvus-sessionctl >/dev/null 2>&1; then
-    argvus-sessionctl restart shell >/dev/null 2>&1 || true
+    argvus-sessionctl restart control-panel >/dev/null 2>&1 || true
   fi
 }
 

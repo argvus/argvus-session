@@ -350,8 +350,8 @@ restart_components() {
       dunst|notifications)
         units="$units argvus-dunst.service"
         ;;
-      shell|quickshell)
-        units="$units argvus-shell.service"
+      control-panel|shell|quickshell)
+        units="$units argvus-control-panel.service"
         ;;
       snappy|snappy-switcher)
         units="$units argvus-snappy-switcher.service"
@@ -412,7 +412,7 @@ reload_session() {
   require_systemd
   import_environment
   reload_configuration
-  restart_components wallpaper hypridle waybar dunst shell snappy-switcher polkit
+  restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit
 }
 
 status_session() {
@@ -457,7 +457,7 @@ run_component() {
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
       exec dunst -config "$(paths_config dunst/dunstrc)"
       ;;
-    shell)
+    control-panel|shell|quickshell)
       have qs || exit 0
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
       mkdir -p "$(paths_cache quickshell)"
@@ -522,7 +522,7 @@ Commands:
   stop                stop argvus-session.target and graphical-session.target
   restart             restart the ARGVUS session target
   reload              re-apply mutable config and restart affected services
-  restart <items...>  restart component groups: waybar, wallpaper, dunst, shell, ...
+  restart <items...>  restart component groups: waybar, wallpaper, dunst, control-panel, ...
   status              show target and service status
   logs [journal args] show ARGVUS user-unit journal logs
   widget-telemetry <command>

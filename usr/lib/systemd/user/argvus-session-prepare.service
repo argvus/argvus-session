@@ -2,7 +2,7 @@
 Description=Prepare ARGVUS desktop session state
 Documentation=man:systemd.service(5)
 PartOf=argvus-session.target graphical-session.target
-Before=argvus-wallpaper.service argvus-shell.service argvus-taskbar.service argvus-widget-telemetry.service argvus-dunst.service argvus-hypridle.service argvus-polkit.service argvus-snappy-switcher.service argvus-clipboard-text.service argvus-clipboard-image.service argvus-keyboard-layout.service
+Before=argvus-wallpaper.service argvus-control-panel.service argvus-taskbar.service argvus-widget-telemetry.service argvus-dunst.service argvus-hypridle.service argvus-polkit.service argvus-snappy-switcher.service argvus-clipboard-text.service argvus-clipboard-image.service argvus-keyboard-layout.service
 
 [Service]
 Type=oneshot
