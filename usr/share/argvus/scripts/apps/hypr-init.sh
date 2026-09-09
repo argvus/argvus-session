@@ -142,6 +142,8 @@ theme_startup_fingerprint() {
   for _path in \
     "$(paths_config scripts/argvus/theme-switch.sh)" \
     "$(paths_system_config "hypr/themes/${_theme}")" \
+    "$(paths_system_config "waybar/argvus-taskbar.jsonc")" \
+    "$(paths_system_config "waybar/argvus-taskbar.css")" \
     "$(paths_system_config "waybar/themes/${_theme}")" \
     "$(paths_system_config "quickshell/argvus-control-panel/themes/${_theme}")" \
     "$(paths_system_config "rofi/themes/${_theme}")" \
