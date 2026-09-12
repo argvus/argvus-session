@@ -450,6 +450,7 @@ run_component() {
     hypridle)
       have hypridle || exit 0
       . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      ARGVUS_MUTABLE_CONFIG=1
       exec hypridle -c "$(paths_config hypr/hypridle.conf)"
       ;;
     dunst)
