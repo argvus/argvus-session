@@ -36,14 +36,14 @@ install:
 	$(SUDO) $(INSTALL) -Dm755 bin/argvus-sessionctl \
 		"$(DESTDIR)$(PREFIX)/bin/argvus-sessionctl"
 	$(SUDO) $(INSTALL) -dm755 "$(DESTDIR)$(PREFIX)/share/argvus"
-	$(SUDO) cp -R --no-preserve=ownership usr/share/argvus/. \
+	$(SUDO) cp -R --no-preserve=ownership src/usr/share/argvus/. \
 		"$(DESTDIR)$(PREFIX)/share/argvus/"
 	$(SUDO) find "$(DESTDIR)$(PREFIX)/share/argvus/scripts" -type f -name '*.sh' -exec chmod 755 {} \; 2>/dev/null || true
-	$(SUDO) $(INSTALL) -Dm644 usr/share/wayland-sessions/argvus.desktop \
+	$(SUDO) $(INSTALL) -Dm644 src/usr/share/wayland-sessions/argvus.desktop \
 		"$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"
-	$(SUDO) $(INSTALL) -Dm644 usr/lib/systemd/user/argvus-session.target \
+	$(SUDO) $(INSTALL) -Dm644 src/usr/lib/systemd/user/argvus-session.target \
 		"$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-session.target"
-	for unit in usr/lib/systemd/user/argvus-*.service; do \
+	for unit in src/usr/lib/systemd/user/argvus-*.service; do \
 		$(SUDO) $(INSTALL) -Dm644 "$$unit" \
 			"$(DESTDIR)$(PREFIX)/lib/systemd/user/$${unit##*/}"; \
 	done

@@ -15,10 +15,10 @@ On Arch Linux, the package recipe lives at `packaging/arch/PKGBUILD`.
 Validate the expected files:
 
 ```sh
-test -f usr/share/wayland-sessions/argvus.desktop
-test ! -e usr/share/xsessions/argvus.desktop
-grep -q '^Exec=argvus-session$' usr/share/wayland-sessions/argvus.desktop
-grep -q '^TryExec=argvus-session$' usr/share/wayland-sessions/argvus.desktop
+test -f src/usr/share/wayland-sessions/argvus.desktop
+test ! -e src/usr/share/xsessions/argvus.desktop
+grep -q '^Exec=argvus-session$' src/usr/share/wayland-sessions/argvus.desktop
+grep -q '^TryExec=argvus-session$' src/usr/share/wayland-sessions/argvus.desktop
 test -x bin/argvus-session
 test -x bin/argvus-start
 test -x bin/argvus-tty
