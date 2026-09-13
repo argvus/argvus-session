@@ -633,7 +633,7 @@ hl.bind(mod .. " + Return", hl.dsp.exec_cmd(terminal))
 hl.bind(mod .. " + Space", hl.dsp.exec_cmd(file_manager))
 
 -- Removable storage -------------------------------------------------------------------------------
-hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd("argvus --storage"))
+hl.bind(mod .. " + SHIFT + D", hl.dsp.exec_cmd("argvus --removable-devices"))
 
 -- Sidebar Settings --------------------------------------------------------------------------------
 hl.bind(mod .. " + comma", hl.dsp.exec_cmd(_sh(_config_path("scripts/argvus/toggle-sidebar.sh"))))
