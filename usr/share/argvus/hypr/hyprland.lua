@@ -198,13 +198,23 @@ local _spaces_path = _first_existing({
   _config_home .. "/.spaces",
 })
 local _spaces_file = io.open(_spaces_path)
+local _spaces_waybar = _theme_name:match("%-float$") and 20 or 0
 if _spaces_file then
   for _line in _spaces_file:lines() do
     local _key, _val = _line:match("^([%w_]+)=(%d+)$")
     if _key == "gaps_in" then theme.gaps_in = tonumber(_val) end
     if _key == "gaps_out" then theme.gaps_out = tonumber(_val) end
+    if _key == "waybar" then _spaces_waybar = tonumber(_val) end
   end
   _spaces_file:close()
+end
+
+-- Waybar reserves its own height, but its configurable margin is outside
+-- that exclusive zone. Keep tiled windows away from the same margin on every
+-- monitor edge, including after a Hyprland reload.
+if _spaces_waybar > 0 then
+  local _outer_gap = theme.gaps_out + _spaces_waybar
+  theme.gaps_out = string.format("%d %d %d %d", _outer_gap, _outer_gap, _outer_gap, _outer_gap)
 end
 
 -- Virtual machine compatibility -------------------------------------------------------------------
