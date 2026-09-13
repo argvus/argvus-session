@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
 # Build the Hyprland keyboard cycle.
 #
-# The list comes from the Control Center generated config first (generated/hypr/input.lua),
-# falling back to the enabled system locales when no generated config exists.
+# Input sources are independent from the system locale, as in GNOME/KDE.
+# Once configured, the Control Center generated config is the sole source for
+# the taskbar cycle. Enabled locales are only the first-run fallback.
 
 set -eu
 
@@ -39,7 +40,7 @@ append_layout() {
 
 seed_from_generated_input() {
   [ -r "$GENERATED_INPUT" ] || return 0
-  _value="$(sed -n 's/^[[:space:]]*kb_layout[[:space:]]*=[[:space:]]*"\([^"]*\)",*[[:space:]]*$/ \1/p' "$GENERATED_INPUT" | head -n1 2>/dev/null || true)"
+  _value="$(sed -n 's/^[[:space:]]*kb_layout[[:space:]]*=[[:space:]]*"\([^"]*\)",*[[:space:]]*$/\1/p' "$GENERATED_INPUT" | head -n1 2>/dev/null || true)"
   case "$_value" in
     ''|*[!A-Za-z0-9_,-]*) return 0 ;;
   esac
@@ -76,7 +77,9 @@ append_locale_layout() {
 AVAILABLE_LAYOUTS="$(available_layouts)"
 LAYOUTS=""
 
-if [ -r "$LOCALE_GEN" ]; then
+seed_from_generated_input
+
+if [ -z "$LAYOUTS" ] && [ -r "$LOCALE_GEN" ]; then
   while IFS= read -r _line || [ -n "$_line" ]; do
     _line="$(printf '%s' "$_line" | sed 's/^[[:space:]]*//')"
     case "$_line" in
@@ -85,12 +88,6 @@ if [ -r "$LOCALE_GEN" ]; then
     _locale_entry="${_line%%[[:space:]]*}"
     append_locale_layout "$_locale_entry"
   done < "$LOCALE_GEN"
-fi
-
-# Keep a manually selected layout usable when no matching locale is enabled.
-# Enabled locale entries remain the source of truth for the taskbar choices.
-if [ -z "$LAYOUTS" ]; then
-  seed_from_generated_input
 fi
 
 if [ -z "$LAYOUTS" ]; then
