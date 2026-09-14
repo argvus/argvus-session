@@ -54,9 +54,6 @@ uninstall:
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-start"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-tty"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-sessionctl"
-	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/hypr/hyprland.lua"
-	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/hypr/.luarc.json"
-	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/hypr/.stylua.toml"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/scripts/apps/hypr-init.sh"
 	for script in bootstrap paths variables locale log string json get-default default_apps_show keyboard-layout-daemon keyboard-layout-cycle effects-toggle; do \
 		$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/scripts/argvus/$$script.sh"; \
