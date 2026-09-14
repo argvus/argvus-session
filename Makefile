@@ -35,15 +35,15 @@ install:
 		"$(DESTDIR)$(PREFIX)/bin/argvus-tty"
 	$(SUDO) $(INSTALL) -Dm755 bin/argvus-sessionctl \
 		"$(DESTDIR)$(PREFIX)/bin/argvus-sessionctl"
-	$(SUDO) $(INSTALL) -dm755 "$(DESTDIR)$(PREFIX)/share/argvus"
-	$(SUDO) cp -R --no-preserve=ownership src/usr/share/argvus/. \
-		"$(DESTDIR)$(PREFIX)/share/argvus/"
-	$(SUDO) find "$(DESTDIR)$(PREFIX)/share/argvus/scripts" -type f -name '*.sh' -exec chmod 755 {} \; 2>/dev/null || true
-	$(SUDO) $(INSTALL) -Dm644 src/usr/share/wayland-sessions/argvus.desktop \
+	$(SUDO) $(INSTALL) -dm755 "$(DESTDIR)$(PREFIX)/share/argvus/session"
+	$(SUDO) cp -R --no-preserve=ownership src/usr/share/argvus/session/. \
+		"$(DESTDIR)$(PREFIX)/share/argvus/session/"
+	$(SUDO) find "$(DESTDIR)$(PREFIX)/share/argvus/session/sh" -type f -name '*.sh' -exec chmod 755 {} \; 2>/dev/null || true
+	$(SUDO) $(INSTALL) -Dm644 src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop \
 		"$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"
-	$(SUDO) $(INSTALL) -Dm644 src/usr/lib/systemd/user/argvus-session.target \
+	$(SUDO) $(INSTALL) -Dm644 src/usr/share/argvus/session/config/systemd/user/argvus-session.target \
 		"$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-session.target"
-	for unit in src/usr/lib/systemd/user/argvus-*.service; do \
+	for unit in src/usr/share/argvus/session/config/systemd/user/argvus-*.service; do \
 		$(SUDO) $(INSTALL) -Dm644 "$$unit" \
 			"$(DESTDIR)$(PREFIX)/lib/systemd/user/$${unit##*/}"; \
 	done
@@ -54,10 +54,7 @@ uninstall:
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-start"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-tty"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/bin/argvus-sessionctl"
-	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/scripts/apps/hypr-init.sh"
-	for script in bootstrap paths variables locale log string json get-default default_apps_show keyboard-layout-daemon keyboard-layout-cycle effects-toggle; do \
-		$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/argvus/scripts/argvus/$$script.sh"; \
-	done
+	$(SUDO) rm -rf "$(DESTDIR)$(PREFIX)/share/argvus/session"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-session.target"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-*.service"

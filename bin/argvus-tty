@@ -110,9 +110,10 @@ export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export ARGVUS_SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
+ARGVUS_PROJECT_CONFIG_DIRS="$ARGVUS_SYSTEM_CONFIG/portal/config:$ARGVUS_SYSTEM_CONFIG/appearance/config:$ARGVUS_SYSTEM_CONFIG/app-profiles/config:$ARGVUS_SYSTEM_CONFIG/terminal/config:$ARGVUS_SYSTEM_CONFIG/launcher/config:$ARGVUS_SYSTEM_CONFIG/notifications/config:$ARGVUS_SYSTEM_CONFIG/network/config:$ARGVUS_SYSTEM_CONFIG/control-panel/config:$ARGVUS_SYSTEM_CONFIG/taskbar/config:$ARGVUS_SYSTEM_CONFIG"
 case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
-  *":$ARGVUS_SYSTEM_CONFIG:") ;;
-  *) export XDG_CONFIG_DIRS="$ARGVUS_SYSTEM_CONFIG:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
+  *":$ARGVUS_SYSTEM_CONFIG/portal/config:") ;;
+  *) export XDG_CONFIG_DIRS="$ARGVUS_PROJECT_CONFIG_DIRS:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
 esac
 
 if [ -n "$VT" ]; then

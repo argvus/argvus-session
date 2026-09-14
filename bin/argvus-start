@@ -8,7 +8,7 @@ LOG="$STATE_DIR/session.log"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 USER_HYPRLAND_LUA="$CONFIG_HOME/hypr/hyprland.lua"
 SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
-SYSTEM_HYPRLAND_LUA="$SYSTEM_CONFIG/hypr/hyprland.lua"
+SYSTEM_HYPRLAND_LUA="$SYSTEM_CONFIG/hyprland/config/hyprland.lua"
 
 mkdir -p "$STATE_DIR"
 

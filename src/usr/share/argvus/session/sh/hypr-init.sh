@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # shellcheck disable=SC1090,SC1091
-ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}/scripts/argvus/bootstrap.sh}"
+ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}/session/sh/bootstrap.sh}"
 . "$ARGVUS_BOOTSTRAP"
 
 sessionctl() {
@@ -106,8 +106,8 @@ run_waybars() {
 }
 
 sync_rofi_config() {
-  _rofi_config="$(paths_config rofi/config.rasi)"
-  _system_rofi_config="$(paths_system_config rofi/config.rasi)"
+  _rofi_config="$(paths_config launcher/config/config.rasi)"
+  _system_rofi_config="$(paths_system_config launcher/config/config.rasi)"
 
   if [ ! -f "$_rofi_config" ] && [ -f "$_system_rofi_config" ]; then
     mkdir -p "${_rofi_config%/*}"
@@ -140,18 +140,18 @@ theme_startup_fingerprint() {
 
   printf 'theme=%s\n' "$_theme"
   for _path in \
-    "$(paths_config scripts/argvus/theme-switch.sh)" \
-    "$(paths_system_config "hypr/themes/${_theme}")" \
-    "$(paths_system_config "waybar/argvus-taskbar.jsonc")" \
-    "$(paths_system_config "waybar/argvus-taskbar.css")" \
-    "$(paths_system_config "waybar/themes/${_theme}")" \
-    "$(paths_system_config "quickshell/argvus-control-panel/themes/${_theme}")" \
-    "$(paths_system_config "rofi/themes/${_theme}")" \
-    "$(paths_system_config "dunst/themes/${_theme}")" \
-    "/usr/share/argvus-terminal/kitty/themes/${_theme}" \
-    "/usr/share/argvus-system-monitor/btop/themes/${_theme}" \
-    "$(paths_system_config "gtk-3.0/themes/${_theme}")" \
-    "$(paths_system_config "gtk-4.0/themes/${_theme}")"; do
+    "$(paths_config appearance/sh/theme-switch.sh)" \
+    "$(paths_system_config "appearance/config/hypr/themes/${_theme}")" \
+    "$(paths_system_config "taskbar/config/argvus-taskbar.jsonc")" \
+    "$(paths_system_config "taskbar/config/argvus-taskbar.css")" \
+    "$(paths_system_config "taskbar/config/themes/${_theme}")" \
+    "$(paths_system_config "control-panel/config/quickshell/argvus-control-panel/themes/${_theme}")" \
+    "$(paths_system_config "launcher/config/themes/${_theme}")" \
+    "$(paths_system_config "notifications/config/themes/${_theme}")" \
+    "/usr/share/argvus/terminal/config/themes/${_theme}" \
+    "/usr/share/argvus/system-monitor/config/btop/themes/${_theme}" \
+    "$(paths_system_config "appearance/config/gtk-3.0/themes/${_theme}")" \
+    "$(paths_system_config "appearance/config/gtk-4.0/themes/${_theme}")"; do
     if [ -d "$_path" ]; then
       find "$_path" -type f -exec stat -c '%n:%Y:%s' {} \; 2>/dev/null | sort
     elif [ -f "$_path" ]; then
@@ -183,7 +183,7 @@ apply_startup_theme() {
     return 0
   fi
 
-  if ARGVUS_NO_RUNTIME=1 sh "$(paths_config scripts/argvus/theme-switch.sh)" "$_theme" >/dev/null 2>&1; then
+  if ARGVUS_NO_RUNTIME=1 sh "$(paths_config appearance/sh/theme-switch.sh)" "$_theme" >/dev/null 2>&1; then
     mkdir -p "${_stamp_file%/*}"
     printf '%s' "$_fingerprint" > "$_stamp_file"
   fi
@@ -202,7 +202,7 @@ apply_display() {
     *) _legacy_mode="$_mode" ;;
   esac
 
-  sh "$(paths_config scripts/argvus/monitor-switch.sh)" "$_legacy_mode"
+  sh "$(paths_config display/sh/monitor-switch.sh)" "$_legacy_mode"
 }
 
 should_manage_foot_config() {
@@ -218,7 +218,7 @@ sync_foot_config() {
   fi
 
   _foot_dir="$(paths_user_config foot)"
-  _system_foot="$(paths_system_config foot)"
+  _system_foot="$(paths_system_config app-profiles/config/foot)"
 
   if [ ! -d "$_foot_dir" ] && [ -d "$_system_foot" ]; then
     mkdir -p "$_foot_dir"
@@ -268,7 +268,7 @@ sync_yazi_config() {
   fi
 
   _yazi_dir="$(paths_user_config yazi)"
-  _system_yazi="$(paths_system_config yazi)"
+  _system_yazi="$(paths_system_config app-profiles/config/yazi)"
 
   if [ ! -d "$_yazi_dir" ] && [ -d "$_system_yazi" ]; then
     mkdir -p "$_yazi_dir"
@@ -352,7 +352,7 @@ prepare_session() {
       apply_startup_theme "$ACTIVE_THEME"
     fi
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.accent-color" ]; then
-      sh "$(paths_config scripts/argvus/accent-switch.sh)" --startup
+      sh "$(paths_config appearance/sh/accent-switch.sh)" --startup
     fi
     set_gsettings
     sync_rofi_config
@@ -362,7 +362,7 @@ prepare_session() {
 
     # Apply user's spaces override (gaps + waybar margins) before bars start.
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
-      sh "$(paths_config scripts/argvus/spaces-switch.sh)" --apply-static
+      sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static
     fi
 
     # Apply saved monitor scale settings (monitor-switch) and any layout
@@ -375,7 +375,7 @@ prepare_session() {
 }
 
 reload_config() {
-    sh "$(paths_config scripts/argvus/hyprlock-theme.sh)" --invalidate >/dev/null 2>&1 || true
+    sh "$(paths_config lock/sh/hyprlock-theme.sh)" --invalidate >/dev/null 2>&1 || true
     sync_rofi_config
     sync_foot_config
     sync_btop_config
@@ -383,7 +383,7 @@ reload_config() {
 
     # Apply spaces override (waybar margins to config files) before hyprctl reload.
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
-      sh "$(paths_config scripts/argvus/spaces-switch.sh)" --apply-static
+      sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static
     fi
 
     # Reload Hyprland config (applies gaps from .spaces via hyprland.lua)

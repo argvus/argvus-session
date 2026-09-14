@@ -7,10 +7,51 @@ ARGVUS_CONFIG_HOME="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}"
 ARGVUS_STATE_HOME="${ARGVUS_STATE_HOME:-${ARGVUS_CONFIG_HOME}/argvus/state}"
 ARGVUS_CACHE_HOME="${ARGVUS_CACHE_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/argvus}"
 
-paths_user_config() { echo "${ARGVUS_CONFIG_HOME}/argvus/${1}"; }
-paths_override_config() { echo "${ARGVUS_CONFIG_HOME}/${1}"; }
+paths_legacy_relative() {
+  case "$1" in
+    taskbar/config/*|widget-telemetry/config/*)
+      printf 'waybar/%s\n' "${1#*/config/}"
+      ;;
+    launcher/config/*)
+      printf 'rofi/%s\n' "${1#*/config/}"
+      ;;
+    notifications/config/*)
+      printf 'dunst/%s\n' "${1#*/config/}"
+      ;;
+    control-panel/config/quickshell/*)
+      printf 'quickshell/%s\n' "${1#control-panel/config/quickshell/}"
+      ;;
+    appearance/config/*)
+      printf '%s\n' "${1#appearance/config/}"
+      ;;
+    app-profiles/config/*)
+      printf '%s\n' "${1#app-profiles/config/}"
+      ;;
+    hyprland/sh/*)
+      printf 'scripts/argvus/%s\n' "${1##*/}"
+      ;;
+    */sh/*)
+      printf 'scripts/argvus/%s\n' "${1##*/}"
+      ;;
+    *)
+      printf '%s\n' "$1"
+      ;;
+  esac
+}
+
+paths_user_config() {
+  _legacy_relative_path="$(paths_legacy_relative "$1")"
+  echo "${ARGVUS_CONFIG_HOME}/argvus/${_legacy_relative_path}"
+}
+paths_override_config() {
+  _legacy_relative_path="$(paths_legacy_relative "$1")"
+  echo "${ARGVUS_CONFIG_HOME}/${_legacy_relative_path}"
+}
 paths_system_config() { echo "${ARGVUS_SYSTEM_CONFIG}/${1}"; }
-paths_generated_config() { echo "${ARGVUS_CONFIG_HOME}/argvus/generated/${1}"; }
+paths_generated_config() {
+  _legacy_relative_path="$(paths_legacy_relative "$1")"
+  echo "${ARGVUS_CONFIG_HOME}/argvus/generated/${_legacy_relative_path}"
+}
 paths_cache() { echo "${ARGVUS_CACHE_HOME}/${1}"; }
 paths_state() { echo "${ARGVUS_STATE_HOME}/${1}"; }
 paths_argvus_config() { echo "${ARGVUS_CONFIG_HOME}/argvus/${1}"; }
@@ -49,7 +90,8 @@ paths_ensure_generated_copy() {
     # A settings-managed CSS shim (an @import wrapper to the system css) must
     # not be promoted to the user copy: the user copy is the themed css that
     # theme-switch rewrites per theme. Retire the shim and use the system css.
-    case "$_relative_path" in
+    _legacy_relative_path="$(paths_legacy_relative "$_relative_path")"
+    case "$_legacy_relative_path" in
       waybar/*.css)
         _first_line="$(sed -n '1p' "$_generated_path" 2>/dev/null || true)"
         case "$_first_line" in
@@ -94,7 +136,7 @@ paths_config() {
 
   if [ "${ARGVUS_MUTABLE_CONFIG:-0}" = 1 ]; then
     case "$_relative_path" in
-      scripts/*|*/scripts/*|docs/*|*/docs/*)
+      sh/*|*/sh/*|docs/*|*/docs/*)
         paths_read_config "$_relative_path"
         return 0
       ;;

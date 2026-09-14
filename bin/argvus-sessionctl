@@ -35,9 +35,10 @@ import_environment() {
   export ARGVUS_CONFIG_HOME="$CONFIG_HOME"
   export ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG"
   export XDG_CONFIG_HOME="$CONFIG_HOME"
+  ARGVUS_PROJECT_CONFIG_DIRS="$SYSTEM_CONFIG/portal/config:$SYSTEM_CONFIG/appearance/config:$SYSTEM_CONFIG/app-profiles/config:$SYSTEM_CONFIG/terminal/config:$SYSTEM_CONFIG/launcher/config:$SYSTEM_CONFIG/notifications/config:$SYSTEM_CONFIG/network/config:$SYSTEM_CONFIG/control-panel/config:$SYSTEM_CONFIG/taskbar/config:$SYSTEM_CONFIG"
   case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
-    *":$SYSTEM_CONFIG:") ;;
-    *) export XDG_CONFIG_DIRS="$SYSTEM_CONFIG:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
+    *":$SYSTEM_CONFIG/portal/config:") ;;
+    *) export XDG_CONFIG_DIRS="$ARGVUS_PROJECT_CONFIG_DIRS:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
   esac
   export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Hyprland}"
   export XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-Hyprland}"
@@ -129,8 +130,20 @@ wait_graphical_runtime() {
 }
 
 start_session() {
+  _start_mode="${1:-start}"
   require_systemd
   import_environment
+
+  # Hyprland can invoke `ready` while an older ARGVUS target is still active
+  # (systemd --user survives logout/login).  Reusing that target also reuses
+  # the previous HYPRLAND_INSTANCE_SIGNATURE, which disables Waybar's
+  # hyprland/* modules against the stale IPC socket.  Recreate the target only
+  # after the compositor reports ready, so its services inherit the current
+  # Wayland/Hyprland environment.
+  if [ "$_start_mode" = ready ]; then
+    systemctl --user stop argvus-session.target >/dev/null 2>&1 || true
+  fi
+
   systemctl --user start graphical-session.target argvus-session.target
   start_widget_telemetry_if_enabled
 }
@@ -146,7 +159,7 @@ restart_session() {
 }
 
 prepare_script() {
-  printf '%s\n' "$SYSTEM_CONFIG/scripts/apps/hypr-init.sh"
+  printf '%s\n' "$SYSTEM_CONFIG/session/sh/hypr-init.sh"
 }
 
 prepare_session() {
@@ -176,7 +189,7 @@ restart_units() {
 }
 
 widget_telemetry_enabled() {
-  . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+  . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
   _state_file="$(paths_cache waybar/widget-telemetry-state)"
   _legacy_desktop_state_file="$(paths_cache waybar/desktop-telemetry-state)"
   _legacy_state_file="$(paths_cache waybar/sysinfo-state)"
@@ -212,14 +225,22 @@ resolve_waybar_file() {
 run_waybar() {
   _name="$1"
   _legacy_name="${2:-}"
-  _config_rel="waybar/argvus-${_name}.jsonc"
-  _style_rel="waybar/argvus-${_name}.css"
-  _legacy_config_rel=""
-  _legacy_style_rel=""
-  if [ -n "$_legacy_name" ]; then
-    _legacy_config_rel="waybar/argvus-${_legacy_name}.jsonc"
-    _legacy_style_rel="waybar/argvus-${_legacy_name}.css"
-  fi
+  case "$_name" in
+    taskbar)
+      _config_rel="taskbar/config/argvus-taskbar.jsonc"
+      _style_rel="taskbar/config/argvus-taskbar.css"
+      ;;
+    widget-telemetry)
+      _config_rel="widget-telemetry/config/argvus-widget-telemetry.jsonc"
+      _style_rel="widget-telemetry/config/argvus-widget-telemetry.css"
+      ;;
+    *)
+      _config_rel="${_name}/config/argvus-${_name}.jsonc"
+      _style_rel="${_name}/config/argvus-${_name}.css"
+      ;;
+  esac
+  _legacy_config_rel="waybar/argvus-${_name}.jsonc"
+  _legacy_style_rel="waybar/argvus-${_name}.css"
   _config="$(resolve_waybar_file "$_config_rel" "$_legacy_config_rel")"
   _style="$(resolve_waybar_file "$_style_rel" "$_legacy_style_rel")"
   _system_config_file="$(paths_system_config "$_config_rel")"
@@ -435,32 +456,32 @@ run_component() {
   case "$component" in
     taskbar|waybar-taskbar)
       have waybar || exit 0
-      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       run_waybar taskbar
       ;;
     widget-telemetry|desktop-telemetry|waybar-sysinfo)
       have waybar || exit 0
-      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       run_waybar widget-telemetry sysinfo
       ;;
     wallpaper)
-      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       run_wallpaper
       ;;
     hypridle)
       have hypridle || exit 0
-      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       ARGVUS_MUTABLE_CONFIG=1
-      exec hypridle -c "$(paths_config hypr/hypridle.conf)"
+      exec hypridle -c "$(paths_config power/config/hypridle.conf)"
       ;;
     dunst)
       have dunst || exit 0
-      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
-      exec dunst -config "$(paths_config dunst/dunstrc)"
+      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
+      exec dunst -config "$(paths_config notifications/config/dunstrc)"
       ;;
     control-panel|shell|quickshell)
       have qs || exit 0
-      . "$SYSTEM_CONFIG/scripts/argvus/bootstrap.sh"
+      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       mkdir -p "$(paths_cache quickshell)"
       exec qs -c argvus-control-panel
       ;;
@@ -479,7 +500,7 @@ run_component() {
       exec wl-paste --type image --watch cliphist store
       ;;
     keyboard-layout)
-      script="$SYSTEM_CONFIG/scripts/argvus/keyboard-layout-daemon.sh"
+      script="$SYSTEM_CONFIG/session/sh/keyboard-layout-daemon.sh"
       [ -f "$script" ] || exit 0
       exec sh "$script"
       ;;
@@ -535,8 +556,11 @@ case "${1:-}" in
   import-environment)
     import_environment
     ;;
-  ready|start)
-    start_session
+  ready)
+    start_session ready
+    ;;
+  start)
+    start_session start
     ;;
   stop)
     stop_session

@@ -5,7 +5,7 @@
 # bootstrap.sh — Carrega automaticamente todos os módulos compartilhados.
 #
 # Uso em scripts:
-#   . "${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}/scripts/argvus/bootstrap.sh"
+#   . "${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}/session/sh/bootstrap.sh"
 #
 # Isso disponibiliza todas as APIs (log_*, string_*, json_*, ...)
 # e variáveis globais (WALLPAPER_PATH, BUTTON_LAYOUT, ...).
@@ -17,10 +17,11 @@ ARGVUS_SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
 ARGVUS_CONFIG_HOME="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}"
 ARGVUS_STATE_HOME="${ARGVUS_STATE_HOME:-${ARGVUS_CONFIG_HOME}/argvus/state}"
 ARGVUS_CACHE_HOME="${ARGVUS_CACHE_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/argvus}"
-ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-$ARGVUS_SYSTEM_CONFIG/scripts/argvus/bootstrap.sh}"
+ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-$ARGVUS_SYSTEM_CONFIG/session/sh/bootstrap.sh}"
+ARGVUS_PROJECT_CONFIG_DIRS="$ARGVUS_SYSTEM_CONFIG/portal/config:$ARGVUS_SYSTEM_CONFIG/appearance/config:$ARGVUS_SYSTEM_CONFIG/app-profiles/config:$ARGVUS_SYSTEM_CONFIG/terminal/config:$ARGVUS_SYSTEM_CONFIG/launcher/config:$ARGVUS_SYSTEM_CONFIG/notifications/config:$ARGVUS_SYSTEM_CONFIG/network/config:$ARGVUS_SYSTEM_CONFIG/control-panel/config:$ARGVUS_SYSTEM_CONFIG/taskbar/config:$ARGVUS_SYSTEM_CONFIG"
 case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
-  *":$ARGVUS_SYSTEM_CONFIG:"*) ;;
-  *) XDG_CONFIG_DIRS="$ARGVUS_SYSTEM_CONFIG:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
+  *":$ARGVUS_SYSTEM_CONFIG/portal/config:"*) ;;
+  *) XDG_CONFIG_DIRS="$ARGVUS_PROJECT_CONFIG_DIRS:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
 esac
 export XDG_CONFIG_DIRS
 
