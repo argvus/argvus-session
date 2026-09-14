@@ -588,8 +588,16 @@ hl.window_rule({ match = { class = "mpv" }, float = true })
 hl.window_rule({
   match = { class = "argvus-control-center" },
   float = true,
+  maximize = false,
   center = true,
-  size = "1399 920",
+  size = "1380 840",
+})
+hl.window_rule({
+  match = { class = "kitty", title = ".*argvus-control-center$" },
+  float = true,
+  maximize = false,
+  center = true,
+  size = "1380 840",
 })
 
 -- Agente de autenticação do PolicyKit (pkexec) ------------------------------------------------------
