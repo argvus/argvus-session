@@ -12,6 +12,9 @@ paths_legacy_relative() {
     taskbar/config/*|widget-telemetry/config/*)
       printf 'waybar/%s\n' "${1#*/config/}"
       ;;
+    taskbar-storage/config/*)
+      printf 'taskbar/storage/%s\n' "${1#*/config/}"
+      ;;
     launcher/config/*)
       printf 'rofi/%s\n' "${1#*/config/}"
       ;;

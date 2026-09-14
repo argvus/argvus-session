@@ -4,6 +4,11 @@
 ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}/session/sh/bootstrap.sh}"
 . "$ARGVUS_BOOTSTRAP"
 
+# Appearance owns the live wallpaper helper. Keep session preparation usable
+# without that optional component, but load it when the package is present.
+ARGVUS_HYPR_HELPER="${ARGVUS_SYSTEM_CONFIG}/appearance/sh/hypr.sh"
+[ -r "$ARGVUS_HYPR_HELPER" ] && . "$ARGVUS_HYPR_HELPER"
+
 sessionctl() {
   command -v argvus-sessionctl >/dev/null 2>&1 || return 127
   argvus-sessionctl "$@"
