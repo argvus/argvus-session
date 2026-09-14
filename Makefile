@@ -57,7 +57,9 @@ uninstall:
 	$(SUDO) rm -rf "$(DESTDIR)$(PREFIX)/share/argvus/session"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/share/wayland-sessions/argvus.desktop"
 	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-session.target"
-	$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/lib/systemd/user/argvus-*.service"
+	for unit in src/usr/share/argvus/session/config/systemd/user/argvus-*.service; do \
+		$(SUDO) $(RM) "$(DESTDIR)$(PREFIX)/lib/systemd/user/$${unit##*/}"; \
+	done
 	$(MAKE) reload-user-systemd
 
 reload-user-systemd:

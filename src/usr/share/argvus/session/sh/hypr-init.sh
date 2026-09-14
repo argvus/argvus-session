@@ -146,15 +146,23 @@ theme_startup_fingerprint() {
   printf 'theme=%s\n' "$_theme"
   for _path in \
     "$(paths_config appearance/sh/theme-switch.sh)" \
+    "$(paths_config appearance/sh/accent-switch.sh)" \
+    "$(paths_config hyprland/sh/spaces-switch.sh)" \
+    "$(paths_system_config session/sh/paths.sh)" \
     "$(paths_system_config "appearance/config/hypr/themes/${_theme}")" \
     "$(paths_system_config "taskbar/config/argvus-taskbar.jsonc")" \
     "$(paths_system_config "taskbar/config/argvus-taskbar.css")" \
     "$(paths_system_config "taskbar/config/themes/${_theme}")" \
+    "$(paths_system_config widget-telemetry/config/argvus-widget-telemetry.jsonc)" \
+    "$(paths_system_config widget-telemetry/config/argvus-widget-telemetry.css)" \
+    "$(paths_system_config "widget-telemetry/config/themes/${_theme}")" \
+    "$(paths_system_config launcher/config/config.rasi)" \
+    "$(paths_system_config launcher/config/theme.rasi)" \
     "$(paths_system_config "control-panel/config/quickshell/argvus-control-panel/themes/${_theme}")" \
     "$(paths_system_config "launcher/config/themes/${_theme}")" \
     "$(paths_system_config "notifications/config/themes/${_theme}")" \
-    "/usr/share/argvus/terminal/config/themes/${_theme}" \
-    "/usr/share/argvus/system-monitor/config/btop/themes/${_theme}" \
+    "$(paths_system_config "terminal/config/themes/${_theme}")" \
+    "$(paths_system_config "system-monitor/config/btop/themes/${_theme}")" \
     "$(paths_system_config "appearance/config/gtk-3.0/themes/${_theme}")" \
     "$(paths_system_config "appearance/config/gtk-4.0/themes/${_theme}")"; do
     if [ -d "$_path" ]; then
@@ -171,8 +179,17 @@ theme_startup_materialized() {
   _theme="$1"
 
   [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || return 1
-  [ -f "$(paths_user_config "waybar/argvus-taskbar.css")" ] || return 1
-  [ -f "$(paths_user_config "rofi/theme.rasi")" ] || return 1
+  for _relative in \
+    taskbar/config/argvus-taskbar.jsonc taskbar/config/argvus-taskbar.css \
+    "taskbar/config/themes/${_theme}/theme.css" \
+    widget-telemetry/config/argvus-widget-telemetry.jsonc \
+    widget-telemetry/config/argvus-widget-telemetry.css \
+    "widget-telemetry/config/themes/${_theme}/widget-telemetry-theme.css" \
+    launcher/config/config.rasi launcher/config/theme.rasi \
+    appearance/config/waybar/mode.css; do
+    [ ! -f "$(paths_system_config "$_relative")" ] ||
+      [ -f "$(paths_user_config "$_relative")" ] || return 1
+  done
   [ -f "$(paths_user_config "gtk-4.0/settings.ini")" ] || return 1
   [ -d "$(paths_user_config "quickshell/argvus-control-panel/themes/${_theme}")" ] || return 1
 }
@@ -388,11 +405,11 @@ reload_config() {
 
     # Apply spaces override (waybar margins to config files) before hyprctl reload.
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
-      sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static
+      sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static || return $?
     fi
 
     # Reload Hyprland config (applies gaps from .spaces via hyprland.lua)
-    hyprctl reload
+    hyprctl reload || return $?
 
     # Apply monitor layout written by nwg-displays (if changed).
     apply_display --session-reload 2>/dev/null || true

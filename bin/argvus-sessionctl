@@ -37,7 +37,7 @@ import_environment() {
   export XDG_CONFIG_HOME="$CONFIG_HOME"
   ARGVUS_PROJECT_CONFIG_DIRS="$SYSTEM_CONFIG/portal/config:$SYSTEM_CONFIG/appearance/config:$SYSTEM_CONFIG/app-profiles/config:$SYSTEM_CONFIG/terminal/config:$SYSTEM_CONFIG/launcher/config:$SYSTEM_CONFIG/notifications/config:$SYSTEM_CONFIG/network/config:$SYSTEM_CONFIG/control-panel/config:$SYSTEM_CONFIG/taskbar/config:$SYSTEM_CONFIG"
   case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
-    *":$SYSTEM_CONFIG/portal/config:") ;;
+    *":$SYSTEM_CONFIG/portal/config:"*) ;;
     *) export XDG_CONFIG_DIRS="$ARGVUS_PROJECT_CONFIG_DIRS:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
   esac
   export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Hyprland}"
@@ -176,7 +176,7 @@ reload_configuration() {
   script="$(prepare_script)"
   [ -f "$script" ] || {
     warn "reload script not found: $script"
-    exit 78
+    return 78
   }
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     sh "$script" --reload-config
@@ -432,8 +432,11 @@ widget_telemetry_command() {
 reload_session() {
   require_systemd
   import_environment
-  reload_configuration
-  restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit
+  _reload_status=0
+  reload_configuration || _reload_status=$?
+  # A failed config sync must not strand components stopped by theme switching.
+  restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit || _reload_status=$?
+  return "$_reload_status"
 }
 
 status_session() {

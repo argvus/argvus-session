@@ -9,6 +9,9 @@ ARGVUS_CACHE_HOME="${ARGVUS_CACHE_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/argvus}"
 
 paths_legacy_relative() {
   case "$1" in
+    power/config/hypridle.conf|lock/config/hyprlock.conf)
+      printf 'hypr/%s\n' "${1##*/}"
+      ;;
     taskbar/config/*|widget-telemetry/config/*)
       printf 'waybar/%s\n' "${1#*/config/}"
       ;;
@@ -67,15 +70,18 @@ paths_read_config() {
   _generated_path="$(paths_generated_config "$_relative_path")"
   _system_path="$(paths_system_config "$_relative_path")"
 
-  if [ -e "$_override_path" ] || [ -L "$_override_path" ]; then
-    printf '%s\n' "$_override_path"
-  elif [ -e "$_user_path" ] || [ -L "$_user_path" ]; then
-    printf '%s\n' "$_user_path"
-  elif [ -e "$_generated_path" ] || [ -L "$_generated_path" ]; then
-    printf '%s\n' "$_generated_path"
-  else
-    printf '%s\n' "$_system_path"
-  fi
+  # Also accept component-shaped user copies created during the migration.
+  # Keep native overrides ahead of managed user and generated configuration.
+  for _candidate in \
+    "$_override_path" "$ARGVUS_CONFIG_HOME/$_relative_path" \
+    "$_user_path" "$ARGVUS_CONFIG_HOME/argvus/$_relative_path" \
+    "$_generated_path" "$ARGVUS_CONFIG_HOME/argvus/generated/$_relative_path"; do
+    if [ -e "$_candidate" ] || [ -L "$_candidate" ]; then
+      printf '%s\n' "$_candidate"
+      return 0
+    fi
+  done
+  printf '%s\n' "$_system_path"
 }
 
 paths_ensure_generated_copy() {
@@ -86,6 +92,25 @@ paths_ensure_generated_copy() {
   if [ -e "$_user_path" ] || [ -L "$_user_path" ]; then
     printf '%s\n' "$_user_path"
     return 0
+  fi
+
+  # Retain edits from the component-shaped managed layout. Copy instead of
+  # moving so older installed consumers can still read the previous location.
+  _component_user_path="$ARGVUS_CONFIG_HOME/argvus/$_relative_path"
+  if [ "$_component_user_path" != "$_user_path" ] && [ -f "$_component_user_path" ]; then
+    mkdir -p "${_user_path%/*}"
+    cp "$_component_user_path" "$_user_path" || return 1
+    printf '%s\n' "$_user_path"
+    return 0
+  fi
+
+  # Read-only lookup also accepts component-shaped generated files. Promote
+  # those through the same migration/shim handling rather than losing edits.
+  if [ ! -e "$_generated_path" ] && [ ! -L "$_generated_path" ]; then
+    _component_generated_path="$ARGVUS_CONFIG_HOME/argvus/generated/$_relative_path"
+    if [ -e "$_component_generated_path" ] || [ -L "$_component_generated_path" ]; then
+      _generated_path="$_component_generated_path"
+    fi
   fi
 
   # Migrate: if generated copy exists but user path doesn't, move it to user path

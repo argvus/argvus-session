@@ -29,9 +29,9 @@ XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
 # Locate the defaults state file by precedence.
 find_state_file() {
-  _user="$XDG_CONFIG_HOME/argvus/defaults.json"
+  _user="${ARGVUS_CONFIG_HOME:-$XDG_CONFIG_HOME}/argvus/defaults.json"
   _state="$XDG_STATE_HOME/argvus/defaults.json"
-  _system="/usr/share/argvus/defaults.json"
+  _system="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}/defaults.json"
   if [ -f "$_user" ]; then
     printf '%s\n' "$_user"
   elif [ -f "$_state" ]; then
