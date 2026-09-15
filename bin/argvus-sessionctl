@@ -9,6 +9,9 @@ CONFIG_HOME="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/argvus"
 LOG="$STATE_DIR/session.log"
 
+# shellcheck disable=SC1091
+. /usr/share/argvus/lib/i18n.sh
+
 log() {
   mkdir -p "$STATE_DIR"
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
@@ -54,6 +57,7 @@ import_environment() {
       ARGVUS_CONFIG_HOME ARGVUS_SYSTEM_CONFIG \
       XDG_CONFIG_HOME XDG_CONFIG_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
       XDG_SESSION_TYPE DESKTOP_SESSION GDMSESSION WAYLAND_DISPLAY DISPLAY \
+      LANG LC_ALL LC_MESSAGES \
       XDG_CURRENT_DESKTOP XDG_SESSION_CLASS XDG_SESSION_ID XDG_VTNR \
       XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD \
       ARGVUS_VIRTUALIZATION ARGVUS_LOW_POWER LIBGL_ALWAYS_SOFTWARE WLR_RENDERER_ALLOW_SOFTWARE \
@@ -70,6 +74,7 @@ import_environment() {
       ARGVUS_CONFIG_HOME ARGVUS_SYSTEM_CONFIG \
       XDG_CONFIG_HOME XDG_CONFIG_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
       XDG_SESSION_TYPE DESKTOP_SESSION GDMSESSION WAYLAND_DISPLAY DISPLAY \
+      LANG LC_ALL LC_MESSAGES \
       XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE \
       ARGVUS_VIRTUALIZATION ARGVUS_LOW_POWER LIBGL_ALWAYS_SOFTWARE WLR_RENDERER_ALLOW_SOFTWARE \
       WLR_NO_HARDWARE_CURSORS AQ_NO_MODIFIERS \
@@ -83,7 +88,7 @@ import_environment() {
 
 require_systemd() {
   user_systemd_available || {
-    warn "systemd --user is not available"
+    warn "$(argvus_tr session error.systemd_unavailable)"
     exit 69
   }
 }
@@ -165,7 +170,7 @@ prepare_script() {
 prepare_session() {
   script="$(prepare_script)"
   [ -f "$script" ] || {
-    warn "prepare script not found: $script"
+    warn "$(argvus_tr session error.prepare_missing "path=$script")"
     exit 78
   }
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
@@ -175,7 +180,7 @@ prepare_session() {
 reload_configuration() {
   script="$(prepare_script)"
   [ -f "$script" ] || {
-    warn "reload script not found: $script"
+    warn "$(argvus_tr session error.reload_missing "path=$script")"
     return 78
   }
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
@@ -390,7 +395,7 @@ restart_components() {
         units="$units argvus-polkit.service"
         ;;
       *)
-        warn "unknown component: $component"
+        warn "$(argvus_tr session error.unknown_component "component=$component")"
         exit 64
         ;;
     esac
@@ -423,7 +428,7 @@ widget_telemetry_command() {
       fi
       ;;
     *)
-      warn "unknown widget telemetry command: ${1:-empty}"
+      warn "$(argvus_tr session error.unknown_widget_command "command=${1:-empty}")"
       exit 64
       ;;
   esac
@@ -512,7 +517,7 @@ run_component() {
       exec blueman-applet
       ;;
     *)
-      warn "unknown run component: ${component:-empty}"
+      warn "$(argvus_tr session error.unknown_run_component "component=${component:-empty}")"
       exit 64
       ;;
   esac
@@ -525,7 +530,7 @@ start_polkit() {
     systemctl --user start hyprpolkitagent.service
     exit 0
   fi
-  warn "hyprpolkitagent.service is not installed; install hyprpolkitagent's user unit"
+  warn "$(argvus_tr session error.polkit_missing)"
   exit 0
 }
 
@@ -537,22 +542,19 @@ stop_polkit() {
 }
 
 usage() {
-  cat <<EOF
-Usage: argvus-sessionctl <command> [args]
-
-Commands:
-  import-environment  synchronize ARGVUS/Wayland variables into systemd and DBus
-  ready               mark the compositor ready and start the ARGVUS session target
-  start               start argvus-session.target
-  stop                stop argvus-session.target and graphical-session.target
-  restart             restart the ARGVUS session target
-  reload              re-apply mutable config and restart affected services
-  restart <items...>  restart component groups: waybar, wallpaper, dunst, control-panel, ...
-  status              show target and service status
-  logs [journal args] show ARGVUS user-unit journal logs
-  widget-telemetry <command>
-                      telemetry helpers: is-enabled, start-if-enabled, status
-EOF
+  argvus_tr session usage.sessionctl
+  argvus_tr session usage.commands
+  argvus_tr session usage.import_environment
+  argvus_tr session usage.ready
+  argvus_tr session usage.start
+  argvus_tr session usage.stop
+  argvus_tr session usage.restart
+  argvus_tr session usage.reload
+  argvus_tr session usage.restart_items
+  argvus_tr session usage.status
+  argvus_tr session usage.logs
+  argvus_tr session usage.widget_telemetry
+  argvus_tr session usage.widget_telemetry_help
 }
 
 case "${1:-}" in
@@ -607,7 +609,7 @@ case "${1:-}" in
     usage
     ;;
   *)
-    warn "unknown command: $1"
+  warn "$(argvus_tr session error.unknown_command "command=$1")"
     usage >&2
     exit 64
     ;;

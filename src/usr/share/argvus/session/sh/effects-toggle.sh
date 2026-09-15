@@ -66,7 +66,7 @@ case "${1:-status}" in
     esac
     ;;
   *)
-    printf 'Usage: %s {status|enable|disable|toggle}\n' "${0##*/}" >&2
+    argvus_tr session usage.effects "command=${0##*/}" >&2
     exit 64
     ;;
 esac

@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+
+# shellcheck disable=SC1091
+. /usr/share/argvus/lib/i18n.sh
 #
 # Daemon that shows a notification when the keyboard layout changes.
 #
@@ -23,8 +26,8 @@ fi
 layout_label() {
   _normalized="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   case "$_normalized" in
-    *english*|*'(us)'*) printf 'English (US)  🇺🇸' ;;
-    *portuguese*|*brazil*) printf 'Portuguese (BR)  🇧🇷' ;;
+    *english*|*'(us)'*) argvus_tr session keyboard.layout.english_us ;;
+    *portuguese*|*brazil*) argvus_tr session keyboard.layout.portuguese_br ;;
     *) printf '%s' "$1" ;;
   esac
 }
@@ -63,7 +66,7 @@ socat -u "UNIX-CONNECT:${SOCKET}" - 2>/dev/null \
       fi
       if [ "$layout" != "$last" ]; then
         last="$layout"
-        notify-send "Keyboard layout" "$(layout_label "$layout")"
+        notify-send "$(argvus_tr session keyboard.layout.title)" "$(layout_label "$layout")"
         # Coalesce the burst emitted simultaneously by several keyboards.
         sleep 0.2
       fi

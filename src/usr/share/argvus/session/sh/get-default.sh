@@ -18,9 +18,12 @@
 
 set -eu
 
+# shellcheck disable=SC1091
+. /usr/share/argvus/lib/i18n.sh
+
 CATEGORY="${1:-}"
 if [ -z "$CATEGORY" ]; then
-  printf 'Usage: get-default.sh <category>\n' >&2
+  argvus_tr session usage.get_default >&2
   exit 2
 fi
 

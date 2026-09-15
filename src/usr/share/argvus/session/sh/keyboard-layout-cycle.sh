@@ -7,6 +7,9 @@
 
 set -eu
 
+# shellcheck disable=SC1091
+. /usr/share/argvus/lib/i18n.sh
+
 LOCALE_GEN="${ARGVUS_LOCALE_GEN:-/etc/locale.gen}"
 HOMEDIR="${HOME:-/tmp}"
 
@@ -107,7 +110,7 @@ case "${1:-cycle}" in
     exec hyprctl switchxkblayout all next
     ;;
   *)
-    printf 'Usage: %s [cycle|--list]\n' "$0" >&2
+    argvus_tr session usage.keyboard_cycle "command=$0" >&2
     exit 64
     ;;
 esac

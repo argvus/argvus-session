@@ -9,6 +9,9 @@ LOG="$LOG_DIR/tty.log"
 DBUS_SESSION_BUS_ADDRESS_FILE="$STATE_DIR/.dbus-address"
 SESSION_ID_FILE="$STATE_DIR/.logind-session"
 
+# shellcheck disable=SC1091
+. /usr/share/argvus/lib/i18n.sh
+
 log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
 }
@@ -37,7 +40,8 @@ mkdir -p "$LOG_DIR"
 log "starting argvus-tty"
 
 if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
-  die "already in a graphical session (WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-} DISPLAY=${DISPLAY:-})"
+  die "$(argvus_tr session tty.already_graphical \
+    "wayland=${WAYLAND_DISPLAY:-}" "display=${DISPLAY:-}")"
 fi
 
 VT="${XDG_VTNR:-}"

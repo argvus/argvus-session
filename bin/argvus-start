@@ -10,6 +10,9 @@ USER_HYPRLAND_LUA="$CONFIG_HOME/hypr/hyprland.lua"
 SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
 SYSTEM_HYPRLAND_LUA="$SYSTEM_CONFIG/hyprland/config/hyprland.lua"
 
+# shellcheck disable=SC1091
+. /usr/share/argvus/lib/i18n.sh
+
 mkdir -p "$STATE_DIR"
 
 log() {
@@ -145,15 +148,15 @@ log "Hyprland Lua config: ${HYPRLAND_LUA}"
 
 if [ ! -f "$HYPRLAND_LUA" ]; then
   log "Hyprland Lua config not found: $HYPRLAND_LUA"
-  printf '%s\n' "argvus-start: Argvus Hyprland configuration not found:" | tee -a "$LOG" >&2
+  argvus_tr session startup.config_missing | tee -a "$LOG" >&2
   printf '%s\n' "$HYPRLAND_LUA" | tee -a "$LOG" >&2
-  printf '%s\n' "The argvus package may be incomplete or corrupted." | tee -a "$LOG" >&2
+  argvus_tr session startup.package_incomplete | tee -a "$LOG" >&2
   exit 78
 fi
 
 if ! verify_config "$HYPRLAND_LUA"; then
   log "Hyprland Lua config failed validation: ${HYPRLAND_LUA}"
-  printf '%s\n' "argvus-start: Hyprland Lua config failed validation: ${HYPRLAND_LUA}" | tee -a "$LOG" >&2
+  argvus_tr session startup.config_invalid "path=$HYPRLAND_LUA" | tee -a "$LOG" >&2
   exit 78
 fi
 
@@ -211,6 +214,6 @@ if command -v hyprland >/dev/null 2>&1; then
 fi
 
 log "Hyprland executable not found"
-printf '%s\n' "argvus-start: Hyprland executable not found." | tee -a "$LOG" >&2
-printf '%s\n' "Install the hyprland package from your distro repository." | tee -a "$LOG" >&2
+argvus_tr session startup.hyprland_missing | tee -a "$LOG" >&2
+argvus_tr session startup.install_hyprland | tee -a "$LOG" >&2
 exit 127

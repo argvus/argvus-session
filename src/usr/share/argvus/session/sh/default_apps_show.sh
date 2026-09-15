@@ -7,6 +7,9 @@
 
 set -eu
 
+# shellcheck disable=SC1091
+. /usr/share/argvus/lib/i18n.sh
+
 BIN="argvus"
 
 # Resolve the tool; prefer the user-local build (which may be newer than the
@@ -23,7 +26,8 @@ if [ -z "$FOUND" ]; then
 fi
 
 if [ -z "$FOUND" ]; then
-  notify-send "Default Programs" "ARGVUS Control Center not installed" >/dev/null 2>&1 || true
+  notify-send "$(argvus_tr session default_apps.title)" \
+    "$(argvus_tr session default_apps.missing)" >/dev/null 2>&1 || true
   exit 1
 fi
 

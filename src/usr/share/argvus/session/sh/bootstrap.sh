@@ -47,7 +47,7 @@ fi
 
 if ! command -v notify_error >/dev/null 2>&1; then
   notify_error() {
-    notify_send "Error: $1" "$2"
+    notify_send "$(argvus_tr session error.title): $1" "$2"
   }
 fi
 

@@ -88,12 +88,12 @@ set_gsettings() {
       gsettings set org.gnome.desktop.interface monospace-font-name "$_monospace_font" &&
       gsettings set org.gnome.desktop.interface cursor-theme "${GTK_CURSOR:-Adwaita}"
     then
-      printf "GTK theme applied."
+      argvus_tr session gtk.theme_applied
     else
-      printf "Could not apply GTK theme."
+      argvus_tr session gtk.theme_failed
     fi
   else
-    printf "gsettings not found — GTK theme not changed."
+    argvus_tr session gtk.gsettings_missing
   fi
 
   if command -v gsettings >/dev/null 2>&1; then
@@ -101,7 +101,7 @@ set_gsettings() {
     if
       gsettings set org.gnome.desktop.wm.preferences button-layout "$BUTTON_LAYOUT"
     then
-      printf "Disabled buttons 'minimize,maximize,close' in window"
+      argvus_tr session gtk.buttons_disabled
     fi
   fi
 }
@@ -435,6 +435,7 @@ case "${1:-}" in
     sessionctl reload
   ;;
   *)
-    notify-send "Error" "[hyprland:scripts:init]: Invalid parameter"
+    notify-send "$(argvus_tr notifications operation_failed)" \
+    "$(argvus_tr session invalid_parameter)"
   ;;
 esac
