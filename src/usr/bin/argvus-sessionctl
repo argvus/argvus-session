@@ -479,7 +479,7 @@ run_component() {
     hypridle)
       have hypridle || exit 0
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
-      ARGVUS_MUTABLE_CONFIG=1
+      export ARGVUS_MUTABLE_CONFIG=1
       exec hypridle -c "$(paths_config power/config/hypridle.conf)"
       ;;
     dunst)

@@ -133,27 +133,15 @@ with the ARGVUS session. ARGVUS does not start a second agent instance.
 ## Layout
 
 ```text
-bin/
+src/usr/bin/
   argvus-session
   argvus-start
   argvus-tty
   argvus-sessionctl
-usr/
-  lib/
-    systemd/
-      user/
-        argvus-session.target
-        argvus-*.service
-  share/
-    argvus/
-      session/
-        config/systemd/user/argvus-session.target
-        config/systemd/user/argvus-*.service
-        config/wayland-sessions/argvus.desktop
-        sh/bootstrap.sh
-  share/
-    wayland-sessions/
-      argvus.desktop
+src/usr/share/argvus/session/
+  config/systemd/user/argvus-session.target
+  config/wayland-sessions/argvus.desktop
+  sh/bootstrap.sh
 ```
 
 ## Installation

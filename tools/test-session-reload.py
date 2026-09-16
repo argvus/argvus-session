@@ -32,7 +32,7 @@ class ReloadTests(unittest.TestCase):
                 state.parent.mkdir(parents=True)
                 state.write_text("enabled\n")
                 result = subprocess.run(
-                    ["sh", str(ROOT / "bin/argvus-sessionctl"), "reload"],
+                    ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "reload"],
                     env=os.environ | {
                         "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
                         "ARGVUS_SYSTEM_CONFIG": str(system),

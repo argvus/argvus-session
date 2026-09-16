@@ -3,6 +3,19 @@
 Argvus Session ships the startup scripts and Wayland session entry used by the
 Argvus desktop.
 
+## Repository layout
+
+The repository follows the ARGVUS packaging-only skeleton:
+
+```text
+packaging/arch/
+  ci/PKGBUILD       # tagged release source
+  local/PKGBUILD    # local archive source
+  common/            # shared source normalization and payload functions
+src/usr/             # installed package payload
+tools/sh/            # validation and local build scripts
+```
+
 ## Requirements
 
 This repository is shell-script and desktop-entry based. Local validation
@@ -15,20 +28,19 @@ On Arch Linux, the package recipe lives at `packaging/arch/PKGBUILD`.
 Validate the expected files:
 
 ```sh
-test -f src/usr/share/wayland-sessions/argvus.desktop
-test ! -e src/usr/share/xsessions/argvus.desktop
-grep -q '^Exec=argvus-session$' src/usr/share/wayland-sessions/argvus.desktop
-grep -q '^TryExec=argvus-session$' src/usr/share/wayland-sessions/argvus.desktop
-test -x bin/argvus-session
-test -x bin/argvus-start
-test -x bin/argvus-tty
-sh -n bin/argvus-session bin/argvus-start bin/argvus-tty
+test -f src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
+grep -q '^Exec=argvus-session$' src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
+grep -q '^TryExec=argvus-session$' src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
+test -x src/usr/bin/argvus-session
+test -x src/usr/bin/argvus-start
+test -x src/usr/bin/argvus-tty
+sh -n src/usr/bin/argvus-session src/usr/bin/argvus-start src/usr/bin/argvus-tty
 ```
 
 Validate installation into a staging directory:
 
 ```sh
-make DESTDIR=/tmp/argvus-session-pkg PREFIX=/usr install
+make build
 ```
 
 ## Package Contents
