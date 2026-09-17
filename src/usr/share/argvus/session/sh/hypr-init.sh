@@ -382,9 +382,12 @@ prepare_session() {
     sync_btop_config
     sync_yazi_config
 
-    # Apply user's spaces override (gaps + waybar margins) before bars start.
+    # Apply current spacing (mode defaults or Control Panel overrides) before bars start.
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
       sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static
+    fi
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.borders" ]; then
+      sh "$(paths_config hyprland/sh/borders-switch.sh)" --apply-static
     fi
 
     # Apply saved monitor scale settings (monitor-switch) and any layout
@@ -403,9 +406,12 @@ reload_config() {
     sync_btop_config
     sync_yazi_config
 
-    # Apply spaces override (waybar margins to config files) before hyprctl reload.
+    # Apply current spacing before hyprctl reload.
     if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
       sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static || return $?
+    fi
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.borders" ]; then
+      sh "$(paths_config hyprland/sh/borders-switch.sh)" --apply-static || return $?
     fi
 
     # Reload Hyprland config (applies gaps from .spaces via hyprland.lua)
