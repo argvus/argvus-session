@@ -52,6 +52,18 @@ import_environment() {
   export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt6ct}"
   export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-org.hyprland.style}"
 
+  # A reload launched from a transient user unit may not inherit the
+  # compositor environment. Reuse the user manager's known graphical values
+  # instead of importing empty variables and making subsequent GUI launches
+  # stale or incomplete.
+  for _name in WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD DBUS_SESSION_BUS_ADDRESS; do
+    eval "_current=\${${_name}:-}"
+    [ -n "$_current" ] || {
+      _current="$(systemd_env_value "$_name")"
+      [ -n "$_current" ] && export "$_name=$_current"
+    }
+  done
+
   if user_systemd_available; then
     systemctl --user import-environment \
       ARGVUS_CONFIG_HOME ARGVUS_SYSTEM_CONFIG \
