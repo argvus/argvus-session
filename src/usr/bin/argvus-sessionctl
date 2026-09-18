@@ -490,6 +490,10 @@ run_component() {
       ;;
     hypridle)
       have hypridle || exit 0
+      KEEP_AWAKE_FILE="${ARGVUS_CONFIG_HOME}/argvus/.keep-awake"
+      if [ -f "$KEEP_AWAKE_FILE" ] && [ "$(sed -n '1p' "$KEEP_AWAKE_FILE")" = enabled ]; then
+        exit 0
+      fi
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       export ARGVUS_MUTABLE_CONFIG=1
       exec hypridle -c "$(paths_config power/config/hypridle.conf)"
