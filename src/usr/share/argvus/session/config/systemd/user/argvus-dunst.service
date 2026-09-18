@@ -2,9 +2,12 @@
 Description=ARGVUS notification daemon
 PartOf=argvus-session.target graphical-session.target
 After=argvus-session-prepare.service graphical-session.target
+Before=dunst.service
+Conflicts=dunst.service
 
 [Service]
 Type=simple
+ExecStartPre=-/usr/bin/argvus-notifications theme restore
 ExecStart=/usr/bin/argvus-sessionctl run dunst
 ExecStartPost=-/usr/bin/argvus-notifications dnd restore
 Restart=on-failure
