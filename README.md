@@ -35,6 +35,7 @@ Hyprland
         v
 hyprland.start readiness bridge
         |
+        |
         v
 argvus-session.target
         |
