@@ -342,8 +342,28 @@ run_hyprpaper_wallpaper() {
   exit "$_status"
 }
 
+persisted_wallpaper() {
+  _custom_state="$CONFIG_HOME/argvus/.wallpaper-custom"
+  if [ -f "$_custom_state" ]; then
+    sed -n '1p' "$_custom_state"
+    return 0
+  fi
+
+  # Compatibility fallback for selections made before the explicit state
+  # marker existed. The managed ARGVUS config is the durable source used by
+  # both the picker and the Control Center.
+  _config="$CONFIG_HOME/argvus/hypr/hyprpaper.conf"
+  [ -f "$_config" ] || _config="$CONFIG_HOME/hypr/hyprpaper.conf"
+  [ -f "$_config" ] || return 1
+  sed -n \
+    -e "s|^[[:space:]]*path[[:space:]]*=[[:space:]]*~|$HOME|p" \
+    -e 's|^[[:space:]]*path[[:space:]]*=[[:space:]]*\(/.*\)|\1|p' \
+    "$_config" | head -n1
+}
+
 run_wallpaper() {
-  _wallpaper="${WALLPAPER_PATH:-}"
+  _wallpaper="$(persisted_wallpaper 2>/dev/null || true)"
+  [ -n "$_wallpaper" ] || _wallpaper="${WALLPAPER_PATH:-}"
   if [ -z "$_wallpaper" ] || [ ! -f "$_wallpaper" ]; then
     _fallback="$(default_wallpaper)"
     if [ -n "$_fallback" ]; then
