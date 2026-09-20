@@ -162,6 +162,13 @@ start_session() {
   fi
 
   systemctl --user start graphical-session.target argvus-session.target
+  if [ "$_start_mode" = ready ]; then
+    # The handoff overlay is intentionally independent of desktop components:
+    # it remains mapped until Hyprland reaches its existing ready bridge, then
+    # systemd sends SIGTERM through the splash's normal fade-out path.
+    systemctl --user stop argvus-session-loading.service >/dev/null 2>&1 || true
+    log "stopped session loading overlay after graphical readiness"
+  fi
   start_widget_telemetry_if_enabled
 }
 

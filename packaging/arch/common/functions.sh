@@ -31,7 +31,7 @@ arch_normalize_source_tree() {
 arch_check_payload() {
 	local source_root="${srcdir}/${pkgname}-${pkgver}"
 
-	for executable in argvus-session argvus-sessionctl argvus-start argvus-tty; do
+	for executable in argvus-session argvus-sessionctl argvus-start argvus-tty argvus-session-loading; do
 		test -x "${source_root}/src/usr/bin/${executable}"
 	done
 	test -f "${source_root}/src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop"
@@ -41,7 +41,7 @@ arch_check_payload() {
 arch_package_payload() {
 	local source_root="${srcdir}/${pkgname}-${pkgver}"
 
-	for executable in argvus-session argvus-sessionctl argvus-start argvus-tty; do
+	for executable in argvus-session argvus-sessionctl argvus-start argvus-tty argvus-session-loading; do
 		install -Dm755 "${source_root}/src/usr/bin/${executable}" \
 			"${pkgdir}/usr/bin/${executable}"
 	done

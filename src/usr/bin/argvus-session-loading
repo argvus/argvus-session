@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+
+# Attach the Wayland backend of the single ARGVUS session spinner as soon as
+# the user compositor publishes its socket. The native DRM backend covers the
+# preceding VT handoff; this process keeps the same visual spinner alive while
+# user services become ready.
+set -eu
+
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+socket_path() {
+  if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+    case "$WAYLAND_DISPLAY" in
+      /*) _candidate="$WAYLAND_DISPLAY" ;;
+      *) _candidate="$RUNTIME_DIR/$WAYLAND_DISPLAY" ;;
+    esac
+    [ -S "$_candidate" ] && {
+      printf '%s\n' "$_candidate"
+      return 0
+    }
+  fi
+  for _candidate in "$RUNTIME_DIR"/wayland-*; do
+    [ -S "$_candidate" ] || continue
+    printf '%s\n' "$_candidate"
+    return 0
+  done
+  return 1
+}
+
+while :; do
+  if _socket="$(socket_path 2>/dev/null)"; then
+    export WAYLAND_DISPLAY="${_socket##*/}"
+    exec /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only
+  fi
+  sleep 0.05
+done

@@ -1,0 +1,8 @@
+[Unit]
+Description=ARGVUS session handoff spinner
+PartOf=argvus-session.target graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/argvus-session-loading
+Restart=no

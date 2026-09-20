@@ -19,6 +19,16 @@ log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
 }
 
+log_monotonic() {
+  # Arch's base Perl exposes clock_gettime(3) through Time::HiRes, avoiding
+  # wall-clock adjustments in transition timing without a new project helper.
+  _monotonic_ns="$(perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e \
+    'printf "%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000000000' 2>/dev/null || true)"
+  log "monotonic_ns=${_monotonic_ns:-unavailable} $*"
+}
+
+log_monotonic "argvus-start entered"
+
 sync_session_environment() {
   if command -v argvus-sessionctl >/dev/null 2>&1; then
     argvus-sessionctl import-environment >/dev/null 2>&1 || true
@@ -168,41 +178,22 @@ stop_session_target() {
   fi
 }
 
-handoff_command() {
-  [ -S /run/argvus-greeter/handoff.sock ] || return 1
-  command -v socat >/dev/null 2>&1 || return 1
-  printf '%s\n' "$1" |
-    socat -T 1 - UNIX-CONNECT:/run/argvus-greeter/handoff.sock >/dev/null 2>&1
-}
-
-release_greeter_handoff() {
-  _theme='argvus-dark-aether'
-  if [ -f "$CONFIG_HOME/argvus/.active-theme" ]; then
-    _theme="$(sed -n '1p' "$CONFIG_HOME/argvus/.active-theme" 2>/dev/null || true)"
+start_loading_overlay() {
+  # Start the socket-waiting helper before Hyprland. It performs no synchronous
+  # connection attempt here: as soon as the compositor publishes Wayland, GTK
+  # can initialize concurrently with desktop startup.
+  if command -v systemctl >/dev/null 2>&1 \
+    && systemctl --user start argvus-session-loading.service >/dev/null 2>&1; then
+    log "started session loading overlay before Hyprland launch"
+  else
+    log "session loading overlay unit was unavailable; continuing"
   fi
-  [ -n "$_theme" ] || _theme='argvus-dark-aether'
-  _tries=0
-  while [ "$_tries" -lt 300 ]; do
-    if handoff_command "theme=$_theme"; then
-      _release_tries=0
-      while [ "$_release_tries" -lt 40 ]; do
-        handoff_command release && return 0
-        _release_tries=$((_release_tries + 1))
-        sleep 0.05
-      done
-      log "DRM greeter handoff did not accept the release command"
-      return 1
-    fi
-    _tries=$((_tries + 1))
-    sleep 0.05
-  done
-  log "DRM greeter handoff was unavailable; continuing with Wayland startup"
 }
 
 run_hyprland() {
-  # Release the DRM handoff only when the real session is ready to launch its
-  # compositor. The KMS splash remains visible until this exact boundary.
-  release_greeter_handoff
+  # The overlay helper waits asynchronously for the new Wayland socket.
+  start_loading_overlay
+  log_monotonic "argvus-start final Hyprland launch"
   "$@" >> "$LOG" 2>&1 &
   HYPRLAND_PID=$!
 

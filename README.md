@@ -29,6 +29,7 @@ argvus-start
         |
         |-- verify user Hyprland config or packaged fallback
         |-- apply VM workarounds
+        |-- start the socket-waiting session loading overlay
         v
 Hyprland
         |
@@ -51,6 +52,12 @@ argvus-session.target
         |-- argvus-clipboard-image.service
         `-- argvus-keyboard-layout.service
 ```
+
+`argvus-start` starts `argvus-session-loading.service` before launching
+Hyprland. The helper waits for the new Wayland socket without delaying the
+compositor, then starts the normal `--spinner-only` GTK layer-shell overlay.
+The existing `hyprland.start` readiness bridge stops that unit, so SIGTERM
+remains the sole mechanism that removes the spinner after desktop startup.
 
 Hyprland remains launched by `argvus-start` instead of being moved under
 `systemd --user` directly. This preserves the current greetd/display-manager/TTY
