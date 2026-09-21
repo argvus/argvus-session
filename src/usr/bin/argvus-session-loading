@@ -8,7 +8,8 @@ set -eu
 
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
-socket_path() {
+socket_paths() {
+  _preferred=''
   if [ -n "${WAYLAND_DISPLAY:-}" ]; then
     case "$WAYLAND_DISPLAY" in
       /*) _candidate="$WAYLAND_DISPLAY" ;;
@@ -16,19 +17,20 @@ socket_path() {
     esac
     [ -S "$_candidate" ] && {
       printf '%s\n' "$_candidate"
-      return 0
+      _preferred="$_candidate"
     }
   fi
   for _candidate in "$RUNTIME_DIR"/wayland-*; do
     [ -S "$_candidate" ] || continue
+    [ "$_candidate" = "$_preferred" ] && continue
     printf '%s\n' "$_candidate"
-    return 0
   done
-  return 1
 }
 
 while :; do
-  if _socket="$(socket_path 2>/dev/null)"; then
+  _found_socket=0
+  for _socket in $(socket_paths 2>/dev/null); do
+    _found_socket=1
     export WAYLAND_DISPLAY="${_socket##*/}"
     _accent_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.accent-color"
     _accent=""
@@ -48,9 +50,21 @@ while :; do
       *) _accent='' ;;
     esac
     if [ -n "$_accent" ]; then
-      exec /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --accent "$_accent"
+      if /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --accent "$_accent"; then
+        exit 0
+      fi
+    elif /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only; then
+      exit 0
     fi
-    exec /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only
+  done
+
+  # A persistent systemd --user manager can retain a stale WAYLAND_DISPLAY
+  # from the preceding session. A socket path alone does not prove that a
+  # compositor is accepting clients, so try every available socket and retry
+  # until the new Hyprland socket can actually host the splash.
+  if [ "$_found_socket" = 1 ]; then
+    sleep 0.1
+  else
+    sleep 0.05
   fi
-  sleep 0.05
 done
