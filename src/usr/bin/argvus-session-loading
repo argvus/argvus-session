@@ -30,6 +30,26 @@ socket_path() {
 while :; do
   if _socket="$(socket_path 2>/dev/null)"; then
     export WAYLAND_DISPLAY="${_socket##*/}"
+    _accent_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.accent-color"
+    _accent=""
+    if [ -s "$_accent_file" ]; then
+      _accent="$(sed -n '1{s/\r$//;s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "$_accent_file")"
+    fi
+    case "$_accent" in
+      \#*) _accent="${_accent#\#}" ;;
+    esac
+    case "$_accent" in
+      ??????)
+        case "$_accent" in
+          *[!0-9A-Fa-f]*) _accent='' ;;
+          *) _accent="#$_accent" ;;
+        esac
+        ;;
+      *) _accent='' ;;
+    esac
+    if [ -n "$_accent" ]; then
+      exec /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --accent "$_accent"
+    fi
     exec /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only
   fi
   sleep 0.05
