@@ -5,7 +5,11 @@ ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}
 . "$ARGVUS_BOOTSTRAP"
 ARGVUS_MUTABLE_CONFIG=1
 
-STATE_FILE="$(paths_state effects)"
+LEGACY_STATE_FILE="$(paths_state effects)"
+
+state_file() {
+  paths_state "$1"
+}
 
 detect_vm() {
   if command -v systemd-detect-virt >/dev/null 2>&1; then
@@ -33,6 +37,22 @@ apply_taskbar_surface() {
   else
     sed -i 's/^@define-color th-background-effective .*/@define-color th-background-effective @th-background-rgba;/' "$_css"
     sed -i 's/^@define-color th-mpris-bg-effective .*/@define-color th-mpris-bg-effective @th-mpris-bg;/' "$_css"
+  fi
+
+  if [ "${2:-enabled}" = "disabled" ]; then
+    if ! grep -q '^/\* ARGVUS animations disabled \*/$' "$_css"; then
+      printf '%s\n' \
+        '/* ARGVUS animations disabled */' \
+        '#workspaces button, #right-2, #custom-expand-icon {' \
+        '  transition: none;' \
+        '}' \
+        '#mpris, #custom-spotify-mpris, #custom-recording.recording {' \
+        '  animation: none;' \
+        '}' \
+        '/* ARGVUS animations disabled end */' >> "$_css"
+    fi
+  else
+    sed -i '/^\/\* ARGVUS animations disabled \*\//,/^\/\* ARGVUS animations disabled end \*\//d' "$_css"
   fi
 }
 
@@ -152,13 +172,15 @@ apply_hyprlock_effects() {
 }
 
 apply_surfaces() {
-  apply_taskbar_surface "$1"
-  apply_widget_telemetry_surface "$1"
-  apply_launcher_surface "$1"
-  apply_dunst_surface "$1"
-  apply_calendar_surface "$1"
-  apply_foot_surface "$1"
-  apply_superfile_surface "$1"
+  _transparency_status="$1"
+  _animations_status="${2:-enabled}"
+  apply_taskbar_surface "$_transparency_status" "$_animations_status"
+  apply_widget_telemetry_surface "$_transparency_status"
+  apply_launcher_surface "$_transparency_status"
+  apply_dunst_surface "$_transparency_status"
+  apply_calendar_surface "$_transparency_status"
+  apply_foot_surface "$_transparency_status"
+  apply_superfile_surface "$_transparency_status"
   apply_hyprlock_effects
 }
 
@@ -170,11 +192,19 @@ default_status() {
   fi
 }
 
-status() {
-  case "$(sed -n '1p' "$STATE_FILE" 2>/dev/null || true)" in
-    enabled) printf 'enabled\n' ;;
-    disabled) printf 'disabled\n' ;;
+legacy_status() {
+  case "$(sed -n '1p' "$LEGACY_STATE_FILE" 2>/dev/null || true)" in
+    enabled|disabled) sed -n '1p' "$LEGACY_STATE_FILE" ;;
     *) default_status ;;
+  esac
+}
+
+status() {
+  _component="$1"
+  _state_file="$(state_file "$_component")"
+  case "$(sed -n '1p' "$_state_file" 2>/dev/null || true)" in
+    enabled|disabled) sed -n '1p' "$_state_file" ;;
+    *) legacy_status ;;
   esac
 }
 
@@ -208,36 +238,86 @@ apply_runtime() {
 }
 
 set_status() {
-  _status="$1"
-  mkdir -p "${STATE_FILE%/*}"
-  printf '%s\n' "$_status" > "$STATE_FILE"
-  apply_surfaces "$_status"
+  _component="$1"
+  _status="$2"
+  _state_file="$(state_file "$_component")"
+  mkdir -p "${_state_file%/*}"
+  printf '%s\n' "$_status" > "$_state_file"
+  apply_surfaces "$(status transparency)" "$(status animations)"
   printf '%s\n' "$_status"
   apply_runtime >/dev/null 2>&1 &
 }
 
+set_legacy_status() {
+  _status="$1"
+  mkdir -p "${LEGACY_STATE_FILE%/*}"
+  printf '%s\n' "$_status" > "$(state_file animations)"
+  printf '%s\n' "$_status" > "$(state_file transparency)"
+  apply_surfaces "$_status" "$_status"
+  printf '%s\n' "$_status"
+  apply_runtime >/dev/null 2>&1 &
+}
+
+toggle_component() {
+  _component="$1"
+  case "$(status "$_component")" in
+    enabled) set_status "$_component" disabled ;;
+    *) set_status "$_component" enabled ;;
+  esac
+}
+
+component_command() {
+  _component="$1"
+  case "${2:-status}" in
+    status)
+      status "$_component"
+      ;;
+    enable|on|enabled)
+      set_status "$_component" enabled
+      ;;
+    disable|off|disabled)
+      set_status "$_component" disabled
+      ;;
+    toggle)
+      toggle_component "$_component"
+      ;;
+    *)
+      argvus_tr session usage.effects "command=${0##*/}" >&2
+      exit 64
+      ;;
+  esac
+}
+
 case "${1:-status}" in
+  animations|transparency)
+    component_command "$1" "${2:-status}"
+    ;;
   status)
-    status
+    # Legacy aggregate status: enabled only when both independent settings are
+    # enabled. New callers should request a component explicitly.
+    if [ "$(status animations)" = enabled ] && [ "$(status transparency)" = enabled ]; then
+      printf 'enabled\n'
+    else
+      printf 'disabled\n'
+    fi
     ;;
   enable|on|enabled)
-    set_status enabled
+    set_legacy_status enabled
     ;;
   disable|off|disabled)
-    set_status disabled
+    set_legacy_status disabled
     ;;
   toggle)
-    case "$(status)" in
-      enabled) set_status disabled ;;
-      *) set_status enabled ;;
-    esac
+    # Keep the legacy shortcut semantic focused on animations. Explicit old
+    # enable/disable commands above still update both settings.
+    toggle_component animations
     ;;
   apply)
     # theme-switch invokes this while argvus-session-prepare is still a
     # required dependency of Waybar, Quickshell, and the other desktop units.
     # Restarting any of them here creates a systemd job cycle: preparation
     # waits for the restart while those services wait for preparation.
-    apply_surfaces "$(status)"
+    apply_surfaces "$(status transparency)" "$(status animations)"
     ;;
   *)
     argvus_tr session usage.effects "command=${0##*/}" >&2
