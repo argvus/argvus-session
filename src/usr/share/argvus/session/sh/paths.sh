@@ -64,7 +64,7 @@ paths_generated_config() {
 paths_cache() { echo "${ARGVUS_CACHE_HOME}/${1}"; }
 paths_state() { echo "${ARGVUS_STATE_HOME}/${1}"; }
 paths_argvus_config() { echo "${ARGVUS_CONFIG_HOME}/argvus/${1}"; }
-paths_backgrounds() { echo "/usr/share/backgrounds/${1}"; }
+paths_backgrounds() { echo "${ARGVUS_BACKGROUNDS_DIR:-/usr/share/backgrounds}/${1}"; }
 
 paths_read_config() {
   _relative_path="$1"

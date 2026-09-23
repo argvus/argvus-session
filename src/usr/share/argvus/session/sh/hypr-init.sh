@@ -28,8 +28,8 @@ active_theme_name() {
 
 gtk_theme_name_for_theme() {
   case "$1" in
-    argvus-light-veil|argvus-light-veil-float) printf '%s\n' "Adwaita" ;;
-    argvus-dark-*) printf '%s\n' "Adwaita-dark" ;;
+    argvus-light-veil|argvus-light-veil-float|argvus-frost|argvus-frost-float|argvus-catppuccin-latte|argvus-catppuccin-latte-float) printf '%s\n' "Adwaita" ;;
+    argvus-dark-*|argvus-onedark*) printf '%s\n' "Adwaita-dark" ;;
     *) printf '%s\n' "${GTK_THEME:-Adwaita-dark}" ;;
   esac
 }
@@ -74,7 +74,7 @@ set_gsettings() {
   _default_font="$(font_default_value)"
   _monospace_font="$(font_monospace_value)"
   case "$_theme" in
-    argvus-light-veil|argvus-light-veil-float) _scheme="prefer-light" ;;
+    argvus-light-veil|argvus-light-veil-float|argvus-frost|argvus-frost-float|argvus-catppuccin-latte|argvus-catppuccin-latte-float) _scheme="prefer-light" ;;
   esac
 
   # GTK Theme

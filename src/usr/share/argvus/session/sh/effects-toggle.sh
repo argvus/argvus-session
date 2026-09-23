@@ -58,9 +58,14 @@ apply_taskbar_surface() {
 
 theme_background() {
   case "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)" in
+    argvus-dracula|argvus-dracula-float) printf '#282A36\n' ;;
     argvus-dark-slate|argvus-dark-slate-float) printf '#2f3541\n' ;;
     argvus-light-veil|argvus-light-veil-float) printf '#f7f7f7\n' ;;
+    argvus-frost|argvus-frost-float) printf '#f6f8fa\n' ;;
+    argvus-catppuccin-latte|argvus-catppuccin-latte-float) printf '#EFF1F5\n' ;;
     argvus-dark-universe|argvus-dark-universe-float) printf '#000000\n' ;;
+    argvus-gruvbox-dark-medium|argvus-gruvbox-dark-medium-float) printf '#282828\n' ;;
+    argvus-onedark|argvus-onedark-float) printf '#282C34\n' ;;
     *) printf '#111316\n' ;;
   esac
 }
