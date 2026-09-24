@@ -71,6 +71,7 @@ theme_background() {
     argvus-dark-solitude|argvus-dark-solitude-float) printf '#101315\n' ;;
     argvus-dark-sunset|argvus-dark-sunset-float) printf '#0F0F0F\n' ;;
     argvus-dark-hackerman|argvus-dark-hackerman-float) printf '#0B0C16\n' ;;
+    argvus-dark-monokai|argvus-dark-monokai-float) printf '#2D2A2E\n' ;;
     argvus-onedark|argvus-onedark-float) printf '#282C34\n' ;;
     *) printf '#111316\n' ;;
   esac
