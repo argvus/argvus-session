@@ -68,6 +68,8 @@ theme_background() {
     argvus-dark-universe|argvus-dark-universe-float) printf '#000000\n' ;;
     argvus-dark-gruvbox-high|argvus-dark-gruvbox-high-float|argvus-dark-gruvbox|argvus-dark-gruvbox-float) printf '#282828\n' ;;
     argvus-dark-solitude|argvus-dark-solitude-float) printf '#101315\n' ;;
+    argvus-dark-sunset|argvus-dark-sunset-float) printf '#0F0F0F\n' ;;
+    argvus-dark-hackerman|argvus-dark-hackerman-float) printf '#0B0C16\n' ;;
     argvus-onedark|argvus-onedark-float) printf '#282C34\n' ;;
     *) printf '#111316\n' ;;
   esac
