@@ -33,6 +33,12 @@ while :; do
     _found_socket=1
     export WAYLAND_DISPLAY="${_socket##*/}"
     _accent_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.accent-color"
+    _theme_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.active-theme"
+    _theme="argvus-dark-aether"
+    if [ -s "$_theme_file" ]; then
+      _theme="$(sed -n '1{s/\r$//;s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "$_theme_file")"
+      [ -n "$_theme" ] || _theme="argvus-dark-aether"
+    fi
     _accent=""
     if [ -s "$_accent_file" ]; then
       _accent="$(sed -n '1{s/\r$//;s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "$_accent_file")"
@@ -50,10 +56,10 @@ while :; do
       *) _accent='' ;;
     esac
     if [ -n "$_accent" ]; then
-      if /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --accent "$_accent"; then
+      if /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --theme "$_theme" --accent "$_accent"; then
         exit 0
       fi
-    elif /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only; then
+    elif /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --theme "$_theme"; then
       exit 0
     fi
   done
