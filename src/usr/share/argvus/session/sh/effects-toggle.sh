@@ -65,6 +65,7 @@ theme_background() {
     argvus-light-solarized|argvus-light-solarized-float) printf '#FDF6E3\n' ;;
     argvus-light-frost|argvus-light-frost-float) printf '#f6f8fa\n' ;;
     argvus-light-catppuccin-latte|argvus-light-catppuccin-latte-float) printf '#EFF1F5\n' ;;
+    argvus-light-gruvbox|argvus-light-gruvbox-float) printf '#FBF1C7\n' ;;
     argvus-dark-universe|argvus-dark-universe-float) printf '#000000\n' ;;
     argvus-dark-gruvbox-high|argvus-dark-gruvbox-high-float|argvus-dark-gruvbox|argvus-dark-gruvbox-float) printf '#282828\n' ;;
     argvus-dark-solitude|argvus-dark-solitude-float) printf '#101315\n' ;;
