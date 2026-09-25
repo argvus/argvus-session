@@ -540,6 +540,10 @@ run_component() {
       exec dunst -config "$(paths_config notifications/config/dunstrc)"
       ;;
     control-panel|shell|quickshell)
+      control_panel_state="$CONFIG_HOME/argvus/state/control-panel"
+      if [ -r "$control_panel_state" ] && [ "$(sed -n '1p' "$control_panel_state")" = disabled ]; then
+        exit 0
+      fi
       have qs || exit 0
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       mkdir -p "$(paths_cache quickshell)"
