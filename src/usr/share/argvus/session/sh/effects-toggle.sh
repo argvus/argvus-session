@@ -58,21 +58,21 @@ apply_taskbar_surface() {
 
 theme_background() {
   case "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)" in
-    argvus-dark-dracula|argvus-dark-dracula-float) printf '#282A36\n' ;;
-    argvus-dark-slate|argvus-dark-slate-float) printf '#2f3541\n' ;;
-    argvus-light-veil|argvus-light-veil-float) printf '#f7f7f7\n' ;;
-    argvus-github-light|argvus-github-light-float) printf '#ffffff\n' ;;
-    argvus-light-solarized|argvus-light-solarized-float) printf '#FDF6E3\n' ;;
-    argvus-light-frost|argvus-light-frost-float) printf '#f6f8fa\n' ;;
-    argvus-light-catppuccin-latte|argvus-light-catppuccin-latte-float) printf '#EFF1F5\n' ;;
-    argvus-light-gruvbox|argvus-light-gruvbox-float) printf '#FBF1C7\n' ;;
-    argvus-dark-universe|argvus-dark-universe-float) printf '#000000\n' ;;
-    argvus-dark-gruvbox-high|argvus-dark-gruvbox-high-float|argvus-dark-gruvbox|argvus-dark-gruvbox-float) printf '#282828\n' ;;
-    argvus-dark-solitude|argvus-dark-solitude-float) printf '#101315\n' ;;
-    argvus-dark-sunset|argvus-dark-sunset-float) printf '#0F0F0F\n' ;;
-    argvus-dark-hackerman|argvus-dark-hackerman-float) printf '#0B0C16\n' ;;
-    argvus-dark-monokai|argvus-dark-monokai-float) printf '#2D2A2E\n' ;;
-    argvus-onedark|argvus-onedark-float) printf '#282C34\n' ;;
+    dracula|dracula-float) printf '#282A36\n' ;;
+    slate-dark|slate-dark-float) printf '#2f3541\n' ;;
+    argvus-light|argvus-light-float) printf '#f7f7f7\n' ;;
+    github-light|github-light-float) printf '#ffffff\n' ;;
+    solarized-light|solarized-light-float) printf '#FDF6E3\n' ;;
+    frost|frost-float) printf '#f6f8fa\n' ;;
+    catppuccin-latte|catppuccin-latte-float) printf '#EFF1F5\n' ;;
+    gruvbox-light|gruvbox-light-float) printf '#FBF1C7\n' ;;
+    universe|universe-float) printf '#000000\n' ;;
+    gruvbox-high-dark|gruvbox-high-dark-float|gruvbox-dark|gruvbox-dark-float) printf '#282828\n' ;;
+    solitude|solitude-float) printf '#101315\n' ;;
+    sunset|sunset-float) printf '#0F0F0F\n' ;;
+    hackerman|hackerman-float) printf '#0B0C16\n' ;;
+    monokai-dark|monokai-dark-float) printf '#2D2A2E\n' ;;
+    one-dark|one-dark-float) printf '#282C34\n' ;;
     *) printf '#111316\n' ;;
   esac
 }
@@ -138,7 +138,7 @@ apply_calendar_surface() {
 
 apply_foot_surface() {
   _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)"
-  [ -n "$_theme" ] || _theme='argvus-dark-aether'
+  [ -n "$_theme" ] || _theme='argvus-dark'
   _foot_config="$(paths_config app-profiles/config/foot/foot.ini 2>/dev/null || true)"
   _theme_file="${_foot_config%/*}/themes/${_theme}/theme.ini"
   [ -f "$_theme_file" ] || return 0

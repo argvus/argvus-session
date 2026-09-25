@@ -295,8 +295,8 @@ run_waybar() {
 
 default_wallpaper() {
   for _wallpaper in \
-    "$SYSTEM_CONFIG/backgrounds/argvus/default.png" \
-    "/usr/share/backgrounds/argvus/default.png"
+    "$SYSTEM_CONFIG/backgrounds/argvus/argvus-dark.jxl" \
+    "/usr/share/backgrounds/argvus/argvus-dark.jxl"
   do
     [ -f "$_wallpaper" ] || continue
     printf '%s\n' "$_wallpaper"
@@ -376,6 +376,15 @@ run_wallpaper() {
   fi
 
   wait_graphical_runtime wallpaper
+
+  # Official wallpapers use JPEG XL. Prefer hyprpaper for this format before
+  # the low-power swaybg path, whose codec support varies by build.
+  case "$_wallpaper" in
+    *.jxl)
+      run_hyprpaper_wallpaper "$_wallpaper" || run_swaybg_wallpaper "$_wallpaper" || true
+      return 0
+      ;;
+  esac
 
   if low_power_session; then
     run_swaybg_wallpaper "$_wallpaper" || {

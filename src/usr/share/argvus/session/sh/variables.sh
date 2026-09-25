@@ -74,4 +74,4 @@ ARCHIVE_APP="$(get_default_value archive | sed '/^$/d' | head -1)"
 BAR_SIZE="8"
 
 # -- Active theme -------------------------------------------------------------
-ACTIVE_THEME="argvus-dark-aether"
+ACTIVE_THEME="argvus-dark"

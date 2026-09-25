@@ -34,10 +34,10 @@ while :; do
     export WAYLAND_DISPLAY="${_socket##*/}"
     _accent_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.accent-color"
     _theme_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.active-theme"
-    _theme="argvus-dark-aether"
+    _theme="argvus-dark"
     if [ -s "$_theme_file" ]; then
       _theme="$(sed -n '1{s/\r$//;s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "$_theme_file")"
-      [ -n "$_theme" ] || _theme="argvus-dark-aether"
+      [ -n "$_theme" ] || _theme="argvus-dark"
     fi
     _accent=""
     if [ -s "$_accent_file" ]; then

@@ -20,7 +20,11 @@ start_wallpaper() {
 
 active_theme_name() {
   if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme"
+    sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme" | sed \
+      -e 's/^argvus-catppuccin-latte$/catppuccin-latte/' \
+      -e 's/^argvus-light-catppuccin-latte$/catppuccin-latte/' \
+      -e 's/^argvus-catppuccin-latte-float$/catppuccin-latte-float/' \
+      -e 's/^argvus-light-catppuccin-latte-float$/catppuccin-latte-float/'
   else
     printf '%s\n' "$ACTIVE_THEME"
   fi
@@ -28,8 +32,8 @@ active_theme_name() {
 
 gtk_theme_name_for_theme() {
   case "$1" in
-    argvus-light-veil|argvus-light-veil-float|argvus-github-light|argvus-github-light-float|argvus-light-solarized|argvus-light-solarized-float|argvus-light-frost|argvus-light-frost-float|argvus-light-catppuccin-latte|argvus-light-catppuccin-latte-float|argvus-light-gruvbox|argvus-light-gruvbox-float) printf '%s\n' "Adwaita" ;;
-    argvus-dark-*|argvus-onedark*|argvus-dark-solitude|argvus-dark-solitude-float) printf '%s\n' "Adwaita-dark" ;;
+    argvus-light|argvus-light-float|github-light|github-light-float|solarized-light|solarized-light-float|frost|frost-float|catppuccin-latte|catppuccin-latte-float|gruvbox-light|gruvbox-light-float) printf '%s\n' "Adwaita" ;;
+    argvus-dark-*|one-dark*|solitude|solitude-float) printf '%s\n' "Adwaita-dark" ;;
     *) printf '%s\n' "${GTK_THEME:-Adwaita-dark}" ;;
   esac
 }
@@ -74,7 +78,7 @@ set_gsettings() {
   _default_font="$(font_default_value)"
   _monospace_font="$(font_monospace_value)"
   case "$_theme" in
-    argvus-light-veil|argvus-light-veil-float|argvus-github-light|argvus-github-light-float|argvus-light-solarized|argvus-light-solarized-float|argvus-light-frost|argvus-light-frost-float|argvus-light-catppuccin-latte|argvus-light-catppuccin-latte-float|argvus-light-gruvbox|argvus-light-gruvbox-float) _scheme="prefer-light" ;;
+    argvus-light|argvus-light-float|github-light|github-light-float|solarized-light|solarized-light-float|frost|frost-float|catppuccin-latte|catppuccin-latte-float|gruvbox-light|gruvbox-light-float) _scheme="prefer-light" ;;
   esac
 
   # GTK Theme
