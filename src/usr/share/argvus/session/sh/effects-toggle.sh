@@ -62,6 +62,8 @@ theme_background() {
     slate-dark|slate-dark-float) printf '#2f3541\n' ;;
     argvus-light|argvus-light-float) printf '#f7f7f7\n' ;;
     github-light|github-light-float) printf '#ffffff\n' ;;
+    one-light|one-light-float) printf '#FAFAFA\n' ;;
+    everforest-light|everforest-light-float) printf '#FDF6E3\n' ;;
     solarized-light|solarized-light-float) printf '#FDF6E3\n' ;;
     frost|frost-float) printf '#f6f8fa\n' ;;
     catppuccin-latte|catppuccin-latte-float) printf '#EFF1F5\n' ;;

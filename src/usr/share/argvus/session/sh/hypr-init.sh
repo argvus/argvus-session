@@ -32,7 +32,7 @@ active_theme_name() {
 
 gtk_theme_name_for_theme() {
   case "$1" in
-    argvus-light|argvus-light-float|github-light|github-light-float|solarized-light|solarized-light-float|frost|frost-float|catppuccin-latte|catppuccin-latte-float|gruvbox-light|gruvbox-light-float) printf '%s\n' "Adwaita" ;;
+    argvus-light|argvus-light-float|github-light|github-light-float|solarized-light|solarized-light-float|one-light|one-light-float|everforest-light|everforest-light-float|frost|frost-float|catppuccin-latte|catppuccin-latte-float|gruvbox-light|gruvbox-light-float) printf '%s\n' "Adwaita" ;;
     argvus-dark-*|one-dark*|solitude|solitude-float) printf '%s\n' "Adwaita-dark" ;;
     *) printf '%s\n' "${GTK_THEME:-Adwaita-dark}" ;;
   esac
@@ -78,7 +78,7 @@ set_gsettings() {
   _default_font="$(font_default_value)"
   _monospace_font="$(font_monospace_value)"
   case "$_theme" in
-    argvus-light|argvus-light-float|github-light|github-light-float|solarized-light|solarized-light-float|frost|frost-float|catppuccin-latte|catppuccin-latte-float|gruvbox-light|gruvbox-light-float) _scheme="prefer-light" ;;
+    argvus-light|argvus-light-float|github-light|github-light-float|solarized-light|solarized-light-float|one-light|one-light-float|everforest-light|everforest-light-float|frost|frost-float|catppuccin-latte|catppuccin-latte-float|gruvbox-light|gruvbox-light-float) _scheme="prefer-light" ;;
   esac
 
   # GTK Theme
