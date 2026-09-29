@@ -69,9 +69,58 @@ global_effect_enabled() {
   legacy_status
 }
 
+# Canonical config.json effect pointers per surface. The transparency value and
+# every per-surface enabled flag are owned by config.json (the single source of
+# truth); per-surface blur values have no config.json key and stay inside the
+# per-theme effects projection file.
+config_value_key() {
+  case "$1" in
+    taskbar) printf '/effects/transparency_taskbar_value' ;;
+    control-panel) printf '/effects/transparency_control-panel_value' ;;
+    widget-telemetry) printf '/effects/transparency_widget-telemetry_value' ;;
+    terminal) printf '/effects/transparency_terminal_value' ;;
+    launchers) printf '/effects/transparency_launchers_value' ;;
+    *) return 1 ;;
+  esac
+}
+
+config_enabled_key() {
+  case "$1:$2" in
+    taskbar:transparency) printf '/effects/transparency_taskbar_enabled' ;;
+    control-panel:transparency) printf '/effects/transparency_control-panel_enabled' ;;
+    widget-telemetry:transparency) printf '/effects/transparency_widget-telemetry_enabled' ;;
+    terminal:transparency) printf '/effects/transparency_terminal_enabled' ;;
+    launchers:transparency) printf '/effects/transparency_launchers_enabled' ;;
+    taskbar:blur) printf '/effects/blur_taskbar_enabled' ;;
+    control-panel:blur) printf '/effects/blur_control-panel_enabled' ;;
+    widget-telemetry:blur) printf '/effects/blur_widget-telemetry_enabled' ;;
+    terminal:blur) printf '/effects/blur_terminal_enabled' ;;
+    launchers:blur) printf '/effects/blur_launchers_enabled' ;;
+    *) return 1 ;;
+  esac
+}
+
+# Reads a raw effective value straight from config.json. Returns a failure when
+# the tool is unavailable so callers can fall back to the effects projection.
+config_get_raw() {
+  command -v argvus-config >/dev/null 2>&1 || return 1
+  _value="$(argvus-config get "$1" --effective --raw 2>/dev/null || true)"
+  [ -n "$_value" ] || return 1
+  printf '%s\n' "$_value"
+}
+
 effect_value() {
   _key="$1"
   ensure_theme_effects
+  _surface="${_key%%.*}"
+  _kind="${_key#*.}"
+  if [ "$_kind" = transparency ] && _pointer="$(config_value_key "$_surface")"; then
+    _value="$(config_get_raw "$_pointer")"
+    case "$_value" in
+      ''|*[!0-9]*) ;;
+      *) [ "$_value" -le 100 ] && { printf '%s\n' "$_value"; return 0; } ;;
+    esac
+  fi
   _value="$(sed -n "s/^${_key}=//p" "$(theme_effects_file)" | head -n1)"
   case "$_value" in
     ''|*[!0-9]*) _value=0 ;;
@@ -83,6 +132,14 @@ effect_value() {
 effect_enabled() {
   _key="$1.enabled"
   ensure_theme_effects
+  _surface="${1%%.*}"
+  _kind="${1#*.}"
+  if _pointer="$(config_enabled_key "$_surface" "$_kind")" && _value="$(config_get_raw "$_pointer")"; then
+    case "$_value" in
+      true|enabled) printf 'enabled\n'; return 0 ;;
+      false|disabled) printf 'disabled\n'; return 0 ;;
+    esac
+  fi
   _value="$(sed -n "s/^${_key}=//p" "$(theme_effects_file)" | head -n1)"
   case "$_value" in
     enabled|disabled) printf '%s\n' "$_value" ;;
@@ -94,6 +151,23 @@ effect_enabled() {
       esac
       ;;
   esac
+}
+
+# Persists a config.json effect value when the surface owns one. Failures are
+# tolerated so the per-theme projection still works while argvus-config is
+# temporarily unavailable.
+config_set_value() {
+  _pointer="$1"
+  _value="$2"
+  command -v argvus-config >/dev/null 2>&1 || return 0
+  argvus-config set "$_pointer" "$_value" >/dev/null 2>&1 || true
+}
+
+config_set_flag() {
+  _pointer="$1"
+  _status="$2"
+  command -v argvus-config >/dev/null 2>&1 || return 0
+  argvus-config set "$_pointer" "$([ "$_status" = enabled ] && printf true || printf false)" >/dev/null 2>&1 || true
 }
 
 set_effect_value() {
@@ -112,6 +186,11 @@ set_effect_value() {
     { print }
     END { if (!updated) print key "=" value }
   ' "$_file" > "$_tmp" && mv -f "$_tmp" "$_file"
+  _surface="${_key%%.*}"
+  _kind="${_key#*.}"
+  if [ "$_kind" = transparency ] && _pointer="$(config_value_key "$_surface")"; then
+    config_set_value "$_pointer" "$_value"
+  fi
 }
 
 opacity_factor() {
@@ -210,11 +289,11 @@ apply_widget_telemetry_surface() {
   ensure_waybar_namespace "$(paths_config widget-telemetry/config/argvus-widget-telemetry.jsonc 2>/dev/null || true)" argvus-widget-telemetry
   [ -f "$_css" ] || return 0
   if ! grep -q '^@define-color th-window-bg-effective ' "$_css"; then
-    sed -i '/^\/\*  Waybar — Painel vertical/a @define-color th-window-bg-effective @th-window-bg;' "$_css"
+    sed -i '/^\/\*  Waybar — Painel vertical/a @define-color th-window-bg-effective @th-window-bg-rgba;' "$_css"
     sed -i 's/background: @th-window-bg;/background: @th-window-bg-effective;/' "$_css"
   fi
   if [ "$(effect_enabled widget-telemetry.transparency)" = disabled ]; then
-    sed -i 's/^@define-color th-window-bg-effective .*/@define-color th-window-bg-effective @th-background;/' "$_css"
+    sed -i 's/^@define-color th-window-bg-effective .*/@define-color th-window-bg-effective @th-window-bg;/' "$_css"
   else
     _opacity="$(opacity_factor "$(effect_value widget-telemetry.transparency)")"
     sed -i "s|^@define-color th-window-bg-effective .*|@define-color th-window-bg-effective alpha(@th-window-bg, ${_opacity});|" "$_css"
@@ -231,6 +310,8 @@ apply_launcher_surface() {
     _import="$(sed -n 's/^@import "\([^"]*\)".*/\1/p' "$_theme" | head -n1)"
     _color="$(sed -n 's/^[[:space:]]*th-bg:[[:space:]]*\(.*\);/\1/p' "$_import" 2>/dev/null | head -n1)"
     _channels="$(printf '%s\n' "$_color" | sed -E 's/rgba?[[:space:]]*\(|\)|%//g; s/,/ /g')"
+    # Intentional word splitting: the channel components must become $1..$n.
+    # shellcheck disable=SC2086
     set -- $_channels
     case "$#" in
       3|4)
@@ -501,6 +582,8 @@ surface_apply_command() {
     command -v argvus-config >/dev/null 2>&1 || exit 64
     argvus-config set /effects/transparency_terminal_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
     argvus-config set /effects/transparency_terminal_value "$_transparency_value" || exit 1
+    _pointer="$(config_enabled_key terminal blur)"
+    [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_blur_enabled"
     _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)"
     command -v argvus-terminal >/dev/null 2>&1 && argvus-terminal --apply "$_theme" >/dev/null 2>&1 || true
     for _pid in $(pgrep -x kitty 2>/dev/null); do kill -USR1 "$_pid" 2>/dev/null || true; done
@@ -529,6 +612,10 @@ surface_apply_command() {
         for (slot = 1; slot <= 2; slot++) if (!seen[slot]) print keys[slot] "=" values[slot]
       }
     ' "$_file" > "$_tmp" && mv -f "$_tmp" "$_file"
+    _pointer="$(config_enabled_key launchers transparency)"
+    [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_transparency_enabled"
+    _pointer="$(config_value_key launchers)"
+    [ -n "$_pointer" ] && config_set_value "$_pointer" "$_transparency_value"
     apply_launcher_surface
     printf '%s\n' "$_transparency_value"
     exit 0
@@ -557,6 +644,12 @@ surface_apply_command() {
       for (slot = 1; slot <= 4; slot++) if (!seen[slot]) print keys[slot] "=" values[slot]
     }
   ' "$_file" > "$_tmp" && mv -f "$_tmp" "$_file"
+  _pointer="$(config_enabled_key "$_surface" transparency)"
+  [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_transparency_enabled"
+  _pointer="$(config_value_key "$_surface")"
+  [ -n "$_pointer" ] && config_set_value "$_pointer" "$_transparency_value"
+  _pointer="$(config_enabled_key "$_surface" blur)"
+  [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_blur_enabled"
   apply_taskbar_surface "$(status animations)"
   apply_widget_telemetry_surface
   if command -v hyprctl >/dev/null 2>&1; then hyprctl reload >/dev/null 2>&1 || true; fi
