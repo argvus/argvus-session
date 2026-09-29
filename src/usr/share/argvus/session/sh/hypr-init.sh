@@ -231,53 +231,6 @@ apply_display() {
   sh "$(paths_config display/sh/monitor-switch.sh)" "$_legacy_mode"
 }
 
-should_manage_foot_config() {
-  _conf="$1"
-  [ -f "$_conf" ] || return 0
-  grep -q 'argvus.*/foot/themes' "$_conf"
-}
-
-sync_foot_config() {
-  _theme="$ACTIVE_THEME"
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
-  fi
-
-  _foot_dir="$(paths_user_config foot)"
-  _system_foot="$(paths_system_config app-profiles/config/foot)"
-
-  if [ ! -d "$_foot_dir" ] && [ -d "$_system_foot" ]; then
-    mkdir -p "$_foot_dir"
-    cp -R "$_system_foot/." "$_foot_dir/"
-  elif [ -d "$_system_foot" ]; then
-    mkdir -p "$_foot_dir"
-    if [ -f "$_system_foot/foot.ini" ] && [ ! -e "$_foot_dir/foot.ini" ]; then
-      cp "$_system_foot/foot.ini" "$_foot_dir/foot.ini"
-    fi
-    if [ -d "$_system_foot/themes/${_theme}" ]; then
-      mkdir -p "$_foot_dir/themes/${_theme}"
-      cp -R "$_system_foot/themes/${_theme}/." "$_foot_dir/themes/${_theme}/"
-    fi
-  fi
-
-  if [ -f "$_foot_dir/foot.ini" ] && [ -f "$_foot_dir/themes/${_theme}/theme.ini" ]; then
-    sed -i "s|^include = .*/foot/themes/.*/theme.ini|include = ${_foot_dir}/themes/${_theme}/theme.ini|" "$_foot_dir/foot.ini"
-  fi
-
-  _native_foot="$ARGVUS_CONFIG_HOME/foot/foot.ini"
-  if should_manage_foot_config "$_native_foot" && [ -f "$_foot_dir/themes/${_theme}/theme.ini" ]; then
-    mkdir -p "${_native_foot%/*}"
-    if [ ! -f "$_native_foot" ] && [ -f "$_foot_dir/foot.ini" ]; then
-      cp "$_foot_dir/foot.ini" "$_native_foot"
-    fi
-    sed -i "s|^include = .*/foot/themes/.*/theme.ini|include = ${_foot_dir}/themes/${_theme}/theme.ini|" "$_native_foot"
-  fi
-
-  for _pid in $(pgrep -x foot 2>/dev/null) $(pgrep -x footclient 2>/dev/null); do
-    kill -USR1 "$_pid" 2>/dev/null || true
-  done
-}
-
 sync_btop_config() {
   _theme="$ACTIVE_THEME"
   if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
@@ -382,7 +335,6 @@ prepare_session() {
     fi
     set_gsettings
     sync_rofi_config
-    sync_foot_config
     sync_btop_config
     sync_yazi_config
 
@@ -406,7 +358,6 @@ prepare_session() {
 reload_config() {
     sh "$(paths_config lock/sh/hyprlock-theme.sh)" --invalidate >/dev/null 2>&1 || true
     sync_rofi_config
-    sync_foot_config
     sync_btop_config
     sync_yazi_config
 

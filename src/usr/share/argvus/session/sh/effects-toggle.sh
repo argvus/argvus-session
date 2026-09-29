@@ -276,33 +276,6 @@ apply_calendar_surface() {
   fi
 }
 
-apply_foot_surface() {
-  _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)"
-  [ -n "$_theme" ] || _theme='argvus-dark'
-  _foot_config="$(paths_config app-profiles/config/foot/foot.ini 2>/dev/null || true)"
-  _theme_file="${_foot_config%/*}/themes/${_theme}/theme.ini"
-  [ -f "$_theme_file" ] || return 0
-  _backup="$(paths_state "effects-foot-background-${_theme}")"
-
-  if [ "$1" = "disabled" ]; then
-    _background="$(sed -n 's/^[[:space:]]*background[[:space:]]*=[[:space:]]*\([^[:space:]#;]*\).*/\1/p' "$_theme_file" | head -n1)"
-    _hex="${_background#\#}"
-    case "$_hex" in
-      ???????? )
-        if [ ! -f "$_backup" ]; then
-          mkdir -p "${_backup%/*}"
-          printf '%s\n' "$_background" > "$_backup"
-        fi
-        sed -i "s/^[[:space:]]*background[[:space:]]*=.*/background = ${_hex%??}/" "$_theme_file"
-        ;;
-    esac
-  elif [ -f "$_backup" ]; then
-    _background="$(sed -n '1p' "$_backup")"
-    [ -n "$_background" ] && sed -i "s/^[[:space:]]*background[[:space:]]*=.*/background = ${_background}/" "$_theme_file"
-    rm -f "$_backup"
-  fi
-}
-
 apply_superfile_surface() {
   _config="$(paths_config app-profiles/config/superfile/config.toml 2>/dev/null || true)"
   [ -f "$_config" ] || return 0
@@ -331,7 +304,6 @@ apply_surfaces() {
   apply_launcher_surface
   apply_dunst_surface "$_transparency_status"
   apply_calendar_surface "$_transparency_status"
-  apply_foot_surface "$_transparency_status"
   apply_superfile_surface "$_transparency_status"
   apply_hyprlock_effects
 }
@@ -393,10 +365,14 @@ apply_runtime() {
       kill -USR1 "$_pid" 2>/dev/null || true
     done
   fi
+}
 
-  # Foot reads its background alpha only when a new terminal starts. SIGUSR1
-  # asks existing instances to reload the generated active theme.
-  for _pid in $(pgrep -x foot 2>/dev/null) $(pgrep -x footclient 2>/dev/null); do
+# Regenerates the dedicated Kitty backing store for the Control Center TUI and
+# asks running instances to reload it. Kitty rebuilds the generated config on
+# SIGUSR1, so the transparency and blur settings apply live.
+rematerialize_control_center() {
+  command -v argvus-tui-terminal >/dev/null 2>&1 && argvus-tui-terminal --materialize-kitty --profile control-center --class argvus-control-center >/dev/null 2>&1 || true
+  for _pid in $(pgrep -x kitty 2>/dev/null); do
     kill -USR1 "$_pid" 2>/dev/null || true
   done
 }
@@ -435,9 +411,32 @@ surface_value_command() {
   _surface="$2"
   _operation="${3:-get}"
   case "$_surface" in
-    taskbar|control-panel|widget-telemetry|terminal|launcher) ;;
+    taskbar|control-panel|widget-telemetry|terminal|launcher|control-center) ;;
     *) exit 64 ;;
   esac
+  if [ "$_surface" = control-center ]; then
+    [ "$_kind" = transparency ] || exit 64
+    case "$_operation" in
+      get)
+        command -v argvus-config >/dev/null 2>&1 || exit 64
+        _value="$(argvus-config get /effects/transparency_control-center_value --effective --raw 2>/dev/null || true)"
+        case "$_value" in
+          ''|*[!0-9]*) printf '50\n' ;;
+          *) [ "$_value" -le 100 ] && printf '%s\n' "$_value" || printf '50\n' ;;
+        esac
+        ;;
+      set)
+        case "${4:-}" in ''|*[!0-9]*) exit 64 ;; esac
+        [ "${4:-}" -le 100 ] || exit 64
+        command -v argvus-config >/dev/null 2>&1 || exit 64
+        argvus-config set /effects/transparency_control-center_value "${4:-}" || exit 1
+        rematerialize_control_center
+        printf '%s\n' "${4:-}"
+        ;;
+      *) exit 64 ;;
+    esac
+    return 0
+  fi
   _key="${_surface}.${_kind}"
   case "$_operation" in
     get) effect_value "$_key" ;;
@@ -477,7 +476,7 @@ surface_apply_command() {
   _blur_enabled="$4"
   _blur_value="$5"
   case "$_surface" in
-    taskbar|control-panel|widget-telemetry|terminal|launcher) ;;
+    taskbar|control-panel|widget-telemetry|terminal|launcher|control-center) ;;
     *) exit 64 ;;
   esac
   case "$_transparency_enabled" in enabled|disabled) ;; *) exit 64 ;; esac
@@ -486,6 +485,15 @@ surface_apply_command() {
   case "$_blur_value" in ''|*[!0-9]*) exit 64 ;; esac
   [ "$_transparency_value" -le 100 ] || exit 64
   [ "$_blur_value" -le 100 ] || exit 64
+  if [ "$_surface" = control-center ]; then
+    command -v argvus-config >/dev/null 2>&1 || exit 64
+    argvus-config set /effects/transparency_control-center_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
+    argvus-config set /effects/transparency_control-center_value "$_transparency_value" || exit 1
+    argvus-config set /effects/blur_control-center_enabled "$([ "$_blur_enabled" = enabled ] && printf true || printf false)" || exit 1
+    rematerialize_control_center
+    printf '%s\n' "$_transparency_value"
+    exit 0
+  fi
   if [ "$_surface" = terminal ]; then
     command -v argvus-config >/dev/null 2>&1 || exit 64
     argvus-config set /effects/transparency_terminal_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
@@ -584,6 +592,15 @@ case "${1:-status}" in
   effect-enabled)
     case "${2:-}" in
       taskbar|control-panel|widget-telemetry|terminal|launcher) effect_enabled "${2}.${3:-}" ;;
+      control-center)
+        command -v argvus-config >/dev/null 2>&1 || exit 64
+        _value="$(argvus-config get "/effects/${3:-}_control-center_enabled" --effective --raw 2>/dev/null || true)"
+        case "$_value" in
+          true|enabled) printf 'enabled\n' ;;
+          false|disabled) printf 'disabled\n' ;;
+          *) printf 'enabled\n' ;;
+        esac
+        ;;
       *) exit 64 ;;
     esac
     ;;
