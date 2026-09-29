@@ -69,9 +69,9 @@ global_effect_enabled() {
   legacy_status
 }
 
-# Canonical config.json effect pointers per surface. The transparency value and
-# every per-surface enabled flag are owned by config.json (the single source of
-# truth); per-surface blur values have no config.json key and stay inside the
+# Canonical modular effect pointers per surface. The transparency value and
+# every per-surface enabled flag are owned by the modular store (the single source of
+# truth); per-surface blur values have no module key and stay inside the
 # per-theme effects projection file.
 config_value_key() {
   case "$1" in
@@ -100,7 +100,7 @@ config_enabled_key() {
   esac
 }
 
-# Reads a raw effective value straight from config.json. Returns a failure when
+# Reads a raw effective value straight from the modular store. Returns a failure when
 # the tool is unavailable so callers can fall back to the effects projection.
 config_get_raw() {
   command -v argvus-config >/dev/null 2>&1 || return 1
@@ -153,7 +153,7 @@ effect_enabled() {
   esac
 }
 
-# Persists a config.json effect value when the surface owns one. Failures are
+# Persists a modular effect value when the surface owns one. Failures are
 # tolerated so the per-theme projection still works while argvus-config is
 # temporarily unavailable.
 config_set_value() {
@@ -439,7 +439,7 @@ canonical_explicit_status() {
 status() {
   _component="$1"
   [ "$_component" = blur ] && { global_effect_enabled; return; }
-  # Animations are canonical in config.json. The legacy state file remains a
+  # Animations are canonical in the modular store. The legacy state file remains a
   # migration fallback only, so a stale generated marker can never override
   # the Control Center/Control Panel setting.
   if [ "$_component" = animations ] && canonical_explicit_status "$_component"; then

@@ -219,7 +219,7 @@ reload_runtime_configuration() {
     warn "$(argvus_tr session error.reload_missing "path=$script")"
     return 78
   }
-  # A theme transaction already committed and projected config.json while it
+  # A theme transaction already committed and projected modular configuration while it
   # owns theme-switch.lock. Reuse the same runtime half as SUPER+Shift+R,
   # including hyprctl reload and Rofi synchronization, without re-entering
   # argvus-config project and acquiring the lock in the opposite order.
@@ -230,8 +230,33 @@ reload_runtime_configuration() {
 apply_config_runtime() {
   require_systemd
   import_environment
-  reload_runtime_configuration || return $?
-  restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit
+  _manifest="$STATE_DIR/config-projection.json"
+  _reload_plan="full"
+  if [ -f "$_manifest" ]; then
+    _reload_plan="$(sed -n 's/.*\"reload_plan\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p' "$_manifest" | tail -n 1)"
+    [ -n "$_reload_plan" ] || _reload_plan="full"
+  fi
+  case "$_reload_plan" in
+    full)
+      reload_runtime_configuration || return $?
+      restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit
+      ;;
+    hyprland)
+      script="$(prepare_script)"
+      [ -f "$script" ] || return 78
+      ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+        sh "$script" --reload-config
+      ;;
+    hypridle)
+      restart_components hypridle
+      ;;
+    none)
+      ;;
+    *)
+      warn "unknown configuration reload plan: $_reload_plan"
+      return 65
+      ;;
+  esac
 }
 
 restart_units() {
