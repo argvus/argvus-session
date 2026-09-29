@@ -19,22 +19,51 @@ theme_effects_file() {
 
 ensure_theme_effects() {
   _file="$(theme_effects_file)"
-  [ -f "$_file" ] && return 0
   mkdir -p "${_file%/*}"
-  {
-    printf '%s\n' 'taskbar.transparency=50'
-    printf '%s\n' 'control-panel.transparency=50'
-    printf '%s\n' 'widget-telemetry.transparency=50'
-    printf '%s\n' 'taskbar.transparency.enabled=enabled'
-    printf '%s\n' 'control-panel.transparency.enabled=enabled'
-    printf '%s\n' 'widget-telemetry.transparency.enabled=enabled'
-    printf '%s\n' 'taskbar.blur=50'
-    printf '%s\n' 'control-panel.blur=50'
-    printf '%s\n' 'widget-telemetry.blur=50'
-    printf '%s\n' 'taskbar.blur.enabled=enabled'
-    printf '%s\n' 'control-panel.blur.enabled=enabled'
-    printf '%s\n' 'widget-telemetry.blur.enabled=enabled'
-  } > "$_file"
+  [ -f "$_file" ] || : > "$_file"
+  for _entry in \
+    'taskbar.transparency=50' \
+    'control-panel.transparency=50' \
+    'widget-telemetry.transparency=50' \
+    'taskbar.transparency.enabled=enabled' \
+    'control-panel.transparency.enabled=enabled' \
+    'widget-telemetry.transparency.enabled=enabled' \
+    'taskbar.blur=50' \
+    'control-panel.blur=50' \
+    'widget-telemetry.blur=50' \
+    'taskbar.blur.enabled=enabled' \
+    'control-panel.blur.enabled=enabled' \
+    'widget-telemetry.blur.enabled=enabled' \
+    'terminal.transparency=50' \
+    'terminal.transparency.enabled=enabled' \
+    'launcher.transparency=50' \
+    'launcher.transparency.enabled=enabled'; do
+    _entry_key="${_entry%%=*}"
+    grep -q "^${_entry_key}=" "$_file" || printf '%s\n' "$_entry" >> "$_file"
+  done
+}
+
+global_effect_value() {
+  _key="$1"
+  if command -v argvus-config >/dev/null 2>&1; then
+    _value="$(argvus-config get "/effects/${_key}" --effective --raw 2>/dev/null || true)"
+    case "$_value" in
+      ''|*[!0-9]*) ;;
+      *) [ "$_value" -le 100 ] && { printf '%s\n' "$_value"; return 0; } ;;
+    esac
+  fi
+  printf '50\n'
+}
+
+global_effect_enabled() {
+  if command -v argvus-config >/dev/null 2>&1; then
+    _value="$(argvus-config get /effects/blur_global_enabled --effective --raw 2>/dev/null || true)"
+    case "$_value" in
+      true|enabled) printf 'enabled\n'; return 0 ;;
+      false|disabled) printf 'disabled\n'; return 0 ;;
+    esac
+  fi
+  legacy_status
 }
 
 effect_value() {
@@ -192,10 +221,23 @@ apply_widget_telemetry_surface() {
 apply_launcher_surface() {
   _theme="$(paths_config launcher/config/theme.rasi 2>/dev/null || true)"
   [ -f "$_theme" ] || return 0
-  if [ "$1" = "disabled" ]; then
+  if [ "$(effect_enabled launcher.transparency)" = disabled ]; then
     _background="$(theme_background)"
   else
-    _background='@th-bg'
+    _opacity="$(opacity_factor "$(effect_value launcher.transparency)")"
+    _import="$(sed -n 's/^@import "\([^"]*\)".*/\1/p' "$_theme" | head -n1)"
+    _color="$(sed -n 's/^[[:space:]]*th-bg:[[:space:]]*\(.*\);/\1/p' "$_import" 2>/dev/null | head -n1)"
+    _channels="$(printf '%s\n' "$_color" | sed -E 's/rgba?[[:space:]]*\(|\)|%//g; s/,/ /g')"
+    set -- $_channels
+    case "$#" in
+      3|4)
+        _alpha="$(awk -v opacity="$_opacity" 'BEGIN { printf "%.0f", opacity * 100 }')"
+        _background="rgba($1, $2, $3, ${_alpha}%)"
+        ;;
+      *)
+        _background='@th-bg'
+        ;;
+    esac
   fi
   sed -i "s|^[[:space:]]*bg:[[:space:]].*;|    bg:               ${_background};|" "$_theme"
 }
@@ -286,7 +328,7 @@ apply_surfaces() {
   _animations_status="${2:-enabled}"
   apply_taskbar_surface "$_animations_status"
   apply_widget_telemetry_surface
-  apply_launcher_surface "$_transparency_status"
+  apply_launcher_surface
   apply_dunst_surface "$_transparency_status"
   apply_calendar_surface "$_transparency_status"
   apply_foot_surface "$_transparency_status"
@@ -322,6 +364,7 @@ canonical_status() {
 
 status() {
   _component="$1"
+  [ "$_component" = blur ] && { global_effect_enabled; return; }
   _state_file="$(state_file "$_component")"
   case "$(sed -n '1p' "$_state_file" 2>/dev/null || true)" in
     enabled|disabled) sed -n '1p' "$_state_file" ;;
@@ -361,6 +404,13 @@ apply_runtime() {
 set_status() {
   _component="$1"
   _status="$2"
+  if [ "$_component" = blur ] && command -v argvus-config >/dev/null 2>&1; then
+    argvus-config set /effects/blur_global_enabled "$([ "$_status" = enabled ] && printf true || printf false)"
+    apply_surfaces "$(status transparency)" "$(status animations)"
+    printf '%s\n' "$_status"
+    apply_runtime >/dev/null 2>&1 &
+    return 0
+  fi
   _state_file="$(state_file "$_component")"
   mkdir -p "${_state_file%/*}"
   printf '%s\n' "$_status" > "$_state_file"
@@ -385,7 +435,7 @@ surface_value_command() {
   _surface="$2"
   _operation="${3:-get}"
   case "$_surface" in
-    taskbar|control-panel|widget-telemetry) ;;
+    taskbar|control-panel|widget-telemetry|terminal|launcher) ;;
     *) exit 64 ;;
   esac
   _key="${_surface}.${_kind}"
@@ -401,6 +451,25 @@ surface_value_command() {
   esac
 }
 
+global_value_command() {
+  _key="$1"
+  _operation="${2:-get}"
+  case "$_key" in blur_global_value) ;; *) exit 64 ;; esac
+  case "$_operation" in
+    get) global_effect_value "$_key" ;;
+    set)
+      _value="${3:-}"
+      case "$_value" in ''|*[!0-9]*) exit 64 ;; esac
+      [ "$_value" -le 100 ] || exit 64
+      command -v argvus-config >/dev/null 2>&1 || exit 64
+      argvus-config set "/effects/${_key}" "$_value" || exit 1
+      printf '%s\n' "$_value"
+      apply_runtime >/dev/null 2>&1 &
+      ;;
+    *) exit 64 ;;
+  esac
+}
+
 surface_apply_command() {
   _surface="$1"
   _transparency_enabled="$2"
@@ -408,7 +477,7 @@ surface_apply_command() {
   _blur_enabled="$4"
   _blur_value="$5"
   case "$_surface" in
-    taskbar|control-panel|widget-telemetry) ;;
+    taskbar|control-panel|widget-telemetry|terminal|launcher) ;;
     *) exit 64 ;;
   esac
   case "$_transparency_enabled" in enabled|disabled) ;; *) exit 64 ;; esac
@@ -417,6 +486,24 @@ surface_apply_command() {
   case "$_blur_value" in ''|*[!0-9]*) exit 64 ;; esac
   [ "$_transparency_value" -le 100 ] || exit 64
   [ "$_blur_value" -le 100 ] || exit 64
+  if [ "$_surface" = terminal ]; then
+    command -v argvus-config >/dev/null 2>&1 || exit 64
+    argvus-config set /effects/transparency_terminal_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
+    argvus-config set /effects/transparency_terminal_value "$_transparency_value" || exit 1
+    _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)"
+    command -v argvus-terminal >/dev/null 2>&1 && argvus-terminal --apply "$_theme" >/dev/null 2>&1 || true
+    for _pid in $(pgrep -x kitty 2>/dev/null); do kill -USR1 "$_pid" 2>/dev/null || true; done
+    printf '%s\n' "$_transparency_value"
+    exit 0
+  fi
+  if [ "$_surface" = launcher ]; then
+    command -v argvus-config >/dev/null 2>&1 || exit 64
+    argvus-config set /effects/transparency_launchers_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
+    argvus-config set /effects/transparency_launchers_value "$_transparency_value" || exit 1
+    apply_launcher_surface
+    printf '%s\n' "$_transparency_value"
+    exit 0
+  fi
   ensure_theme_effects
   _file="$(theme_effects_file)"
   _tmp="${_file}.tmp.$$"
@@ -488,12 +575,15 @@ case "${1:-status}" in
   transparency-value|blur-value)
     surface_value_command "${1%-value}" "${2:-}" "${3:-get}" "${4:-}"
     ;;
+  global-value)
+    global_value_command "${2:-}" "${3:-get}" "${4:-}"
+    ;;
   surface-apply)
     surface_apply_command "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}"
     ;;
   effect-enabled)
     case "${2:-}" in
-      taskbar|control-panel|widget-telemetry) effect_enabled "${2}.${3:-}" ;;
+      taskbar|control-panel|widget-telemetry|terminal|launcher) effect_enabled "${2}.${3:-}" ;;
       *) exit 64 ;;
     esac
     ;;
