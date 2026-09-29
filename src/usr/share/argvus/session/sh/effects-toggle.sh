@@ -418,9 +418,26 @@ canonical_status() {
   esac
 }
 
+canonical_explicit_status() {
+  _component="$1"
+  command -v argvus-config >/dev/null 2>&1 || return 1
+  _value="$(argvus-config get "/effects/${_component}" --raw 2>/dev/null || true)"
+  case "$_value" in
+    true|enabled) printf 'enabled\n' ;;
+    false|disabled) printf 'disabled\n' ;;
+    *) return 1 ;;
+  esac
+}
+
 status() {
   _component="$1"
   [ "$_component" = blur ] && { global_effect_enabled; return; }
+  # Animations are canonical in config.json. The legacy state file remains a
+  # migration fallback only, so a stale generated marker can never override
+  # the Control Center/Control Panel setting.
+  if [ "$_component" = animations ] && canonical_explicit_status "$_component"; then
+    return 0
+  fi
   _state_file="$(state_file "$_component")"
   case "$(sed -n '1p' "$_state_file" 2>/dev/null || true)" in
     enabled|disabled) sed -n '1p' "$_state_file" ;;
@@ -471,6 +488,16 @@ set_status() {
     apply_runtime >/dev/null 2>&1 &
     return 0
   fi
+  if [ "$_component" = animations ] && command -v argvus-config >/dev/null 2>&1; then
+    argvus-config set /effects/animations "$([ "$_status" = enabled ] && printf true || printf false)"
+    _state_file="$(state_file "$_component")"
+    mkdir -p "${_state_file%/*}"
+    printf '%s\n' "$_status" > "$_state_file"
+    apply_surfaces "$(status transparency)" "$_status"
+    printf '%s\n' "$_status"
+    apply_runtime >/dev/null 2>&1 &
+    return 0
+  fi
   _state_file="$(state_file "$_component")"
   mkdir -p "${_state_file%/*}"
   printf '%s\n' "$_status" > "$_state_file"
@@ -485,6 +512,7 @@ set_legacy_status() {
   printf '%s\n' "$_status" > "$(state_file animations)"
   printf '%s\n' "$_status" > "$(state_file transparency)"
   printf '%s\n' "$_status" > "$(state_file blur)"
+  config_set_flag /effects/animations "$_status"
   apply_surfaces "$_status" "$_status"
   printf '%s\n' "$_status"
   apply_runtime >/dev/null 2>&1 &
