@@ -297,7 +297,7 @@ sync_yazi_config() {
 migrate_monitor_state() {
   _legacy_monitors="$ARGVUS_CONFIG_HOME/hypr/monitors.conf"
   _old_user_lua="$ARGVUS_CONFIG_HOME/argvus/hypr/monitors.lua"
-  _generated_lua="$ARGVUS_CONFIG_HOME/argvus/generated/hypr/monitors.lua"
+  _generated_lua="$ARGVUS_CONFIG_HOME/argvus/data/generated/hypr/monitors.lua"
 
   # Migrate legacy monitors.lua from user override to generated path
   if [ -f "$_old_user_lua" ] && [ ! -f "$_generated_lua" ]; then

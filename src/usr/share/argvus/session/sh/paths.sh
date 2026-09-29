@@ -59,7 +59,7 @@ paths_override_config() {
 paths_system_config() { echo "${ARGVUS_SYSTEM_CONFIG}/${1}"; }
 paths_generated_config() {
   _legacy_relative_path="$(paths_legacy_relative "$1")"
-  echo "${ARGVUS_CONFIG_HOME}/argvus/generated/${_legacy_relative_path}"
+  echo "${ARGVUS_CONFIG_HOME}/argvus/data/generated/${_legacy_relative_path}"
 }
 paths_cache() { echo "${ARGVUS_CACHE_HOME}/${1}"; }
 paths_state() { echo "${ARGVUS_STATE_HOME}/${1}"; }
@@ -78,7 +78,7 @@ paths_read_config() {
   for _candidate in \
     "$_override_path" "$ARGVUS_CONFIG_HOME/$_relative_path" \
     "$_user_path" "$ARGVUS_CONFIG_HOME/argvus/$_relative_path" \
-    "$_generated_path" "$ARGVUS_CONFIG_HOME/argvus/generated/$_relative_path"; do
+    "$_generated_path" "$ARGVUS_CONFIG_HOME/argvus/data/generated/$_relative_path"; do
     if [ -e "$_candidate" ] || [ -L "$_candidate" ]; then
       printf '%s\n' "$_candidate"
       return 0
@@ -110,7 +110,7 @@ paths_ensure_generated_copy() {
   # Read-only lookup also accepts component-shaped generated files. Promote
   # those through the same migration/shim handling rather than losing edits.
   if [ ! -e "$_generated_path" ] && [ ! -L "$_generated_path" ]; then
-    _component_generated_path="$ARGVUS_CONFIG_HOME/argvus/generated/$_relative_path"
+    _component_generated_path="$ARGVUS_CONFIG_HOME/argvus/data/generated/$_relative_path"
     if [ -e "$_component_generated_path" ] || [ -L "$_component_generated_path" ]; then
       _generated_path="$_component_generated_path"
     fi
