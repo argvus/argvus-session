@@ -309,12 +309,23 @@ legacy_status() {
   esac
 }
 
+canonical_status() {
+  _component="$1"
+  command -v argvus-config >/dev/null 2>&1 || return 1
+  _value="$(argvus-config get "/effects/${_component}" --effective --raw 2>/dev/null || true)"
+  case "$_value" in
+    true|enabled) printf 'enabled\n' ;;
+    false|disabled) printf 'disabled\n' ;;
+    *) return 1 ;;
+  esac
+}
+
 status() {
   _component="$1"
   _state_file="$(state_file "$_component")"
   case "$(sed -n '1p' "$_state_file" 2>/dev/null || true)" in
     enabled|disabled) sed -n '1p' "$_state_file" ;;
-    *) legacy_status ;;
+    *) canonical_status "$_component" || legacy_status ;;
   esac
 }
 

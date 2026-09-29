@@ -10,6 +10,40 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReloadTests(unittest.TestCase):
+    def test_theme_transaction_runs_runtime_reload_without_recursive_projection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = base / "bin"
+            mockbin.mkdir()
+            systemctl = mockbin / "systemctl"
+            systemctl.write_text(
+                '#!/bin/sh\n'
+                'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
+            systemctl.chmod(0o755)
+            system = base / "system"
+            scripts = system / "session/sh"
+            scripts.mkdir(parents=True)
+            marker = base / "projection-ran"
+            (scripts / "hypr-init.sh").write_text(
+                f'printf touched > "{marker}"\nexit 0\n')
+            (scripts / "bootstrap.sh").write_text(
+                'paths_cache() { printf "%s/%s\\n" "$XDG_CACHE_HOME" "$1"; }\n')
+            log = base / "commands.log"
+            result = subprocess.run(
+                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "reload"],
+                env=os.environ | {
+                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
+                    "ARGVUS_SYSTEM_CONFIG": str(system),
+                    "ARGVUS_CONFIG_HOME": str(base / "config"),
+                    "XDG_CACHE_HOME": str(base / "cache"),
+                    "XDG_STATE_HOME": str(base / "state"),
+                    "ARGVUS_THEME_SWITCH": "1",
+                    "TEST_LOG": str(log),
+                }, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(marker.exists())
+            self.assertIn("--user restart", log.read_text())
+
     def test_components_restart_after_success_failed_or_missing_config_sync(self):
         for status in (0, 42, None):
             with self.subTest(config_status=status), tempfile.TemporaryDirectory() as directory:

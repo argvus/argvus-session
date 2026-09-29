@@ -136,14 +136,21 @@ wayland_socket_ready() {
 }
 
 wait_graphical_runtime() {
-  _tries=0
-  while [ "$_tries" -lt 50 ]; do
+  # The socket path can remain while Hyprland is being replaced. A path check
+  # alone would let Qt or hypridle connect to a stale endpoint.
+  while :; do
     adopt_systemd_environment
-    wayland_socket_ready && return 0
-    _tries=$((_tries + 1))
+    if wayland_socket_ready; then
+      if have hyprctl && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        timeout 1s hyprctl instances >/dev/null 2>&1 || {
+          sleep 0.1
+          continue
+        }
+      fi
+      return 0
+    fi
     sleep 0.1
   done
-  log "Wayland socket not confirmed before starting ${1:-component}; continuing"
 }
 
 start_session() {
@@ -187,6 +194,10 @@ prepare_script() {
 }
 
 prepare_session() {
+  if have argvus-config; then
+    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+      argvus-config project || return $?
+  fi
   script="$(prepare_script)"
   [ -f "$script" ] || {
     warn "$(argvus_tr session error.prepare_missing "path=$script")"
@@ -197,11 +208,29 @@ prepare_session() {
 }
 
 reload_configuration() {
+  if have argvus-config; then
+    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+      argvus-config project || return $?
+  fi
   script="$(prepare_script)"
   [ -f "$script" ] || {
     warn "$(argvus_tr session error.reload_missing "path=$script")"
     return 78
   }
+  ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+    sh "$script" --reload-config
+}
+
+reload_runtime_configuration() {
+  script="$(prepare_script)"
+  [ -f "$script" ] || {
+    warn "$(argvus_tr session error.reload_missing "path=$script")"
+    return 78
+  }
+  # A theme transaction already committed and projected config.json while it
+  # owns theme-switch.lock. Reuse the same runtime half as SUPER+Shift+R,
+  # including hyprctl reload and Rofi synchronization, without re-entering
+  # argvus-config project and acquiring the lock in the opposite order.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     sh "$script" --reload-config
 }
@@ -349,6 +378,20 @@ persisted_wallpaper() {
     return 0
   fi
 
+  # The canonical document is authoritative after argvus-config projection.
+  # Keep the file-based fallback below for older installations and custom
+  # layouts, but do not let a stale generated hyprpaper.conf win over a newer
+  # theme wallpaper.
+  if have argvus-config; then
+    _canonical_wallpaper="$(
+      ARGVUS_CONFIG_HOME="$CONFIG_HOME" argvus-config get /appearance/wallpaper --raw 2>/dev/null || true
+    )"
+    if [ -n "$_canonical_wallpaper" ] && [ -f "$_canonical_wallpaper" ]; then
+      printf '%s\n' "$_canonical_wallpaper"
+      return 0
+    fi
+  fi
+
   # Compatibility fallback for selections made before the explicit state
   # marker existed. The managed ARGVUS config is the durable source used by
   # both the picker and the Control Center.
@@ -486,7 +529,14 @@ reload_session() {
   require_systemd
   import_environment
   _reload_status=0
-  reload_configuration || _reload_status=$?
+  # A theme transaction has already projected its files while holding the
+  # appearance lock. Run the same runtime half as the keyboard reload, but
+  # skip only the recursive canonical projection that would deadlock here.
+  if [ "${ARGVUS_THEME_SWITCH:-0}" = 1 ]; then
+    reload_runtime_configuration || _reload_status=$?
+  else
+    reload_configuration || _reload_status=$?
+  fi
   # A failed config sync must not strand components stopped by theme switching.
   restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit || _reload_status=$?
   return "$_reload_status"
@@ -530,6 +580,7 @@ run_component() {
       if [ -f "$KEEP_AWAKE_FILE" ] && [ "$(sed -n '1p' "$KEEP_AWAKE_FILE")" = enabled ]; then
         exit 0
       fi
+      wait_graphical_runtime hypridle
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       export ARGVUS_MUTABLE_CONFIG=1
       exec hypridle -c "$(paths_config power/config/hypridle.conf)"
@@ -545,6 +596,7 @@ run_component() {
         exit 0
       fi
       have qs || exit 0
+      wait_graphical_runtime control-panel
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       mkdir -p "$(paths_cache quickshell)"
       exec qs -c argvus-control-panel
