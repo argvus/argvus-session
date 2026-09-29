@@ -10,6 +10,43 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReloadTests(unittest.TestCase):
+    def test_prepare_uses_systemd_dependency_without_waiting_on_itself(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = base / "bin"
+            mockbin.mkdir()
+            systemctl = mockbin / "systemctl"
+            systemctl.write_text(
+                '#!/bin/sh\n'
+                'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
+                'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
+            systemctl.chmod(0o755)
+            system = base / "system"
+            scripts = system / "session/sh"
+            scripts.mkdir(parents=True)
+            (scripts / "hypr-init.sh").write_text(
+                '#!/bin/sh\n'
+                'printf prepared > "$TEST_MARKER"\n')
+            (scripts / "hypr-init.sh").chmod(0o755)
+            log = base / "commands.log"
+            marker = base / "prepared"
+            result = subprocess.run(
+                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "prepare"],
+                env=os.environ | {
+                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
+                    "ARGVUS_SYSTEM_CONFIG": str(system),
+                    "ARGVUS_CONFIG_HOME": str(base / "config"),
+                    "XDG_STATE_HOME": str(base / "state"),
+                    "TEST_LOG": str(log),
+                    "TEST_MARKER": str(marker),
+                }, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(marker.exists())
+            self.assertNotIn(
+                "start --wait argvus-config.service",
+                log.read_text() if log.exists() else "",
+            )
+
     def test_theme_transaction_runs_runtime_reload_without_recursive_projection(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
@@ -66,7 +103,7 @@ class ReloadTests(unittest.TestCase):
                 state.parent.mkdir(parents=True)
                 state.write_text("enabled\n")
                 result = subprocess.run(
-                    ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "reload"],
+                    ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "apply-config-runtime"],
                     env=os.environ | {
                         "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
                         "ARGVUS_SYSTEM_CONFIG": str(system),
@@ -78,10 +115,11 @@ class ReloadTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 78 if status is None else status, result.stderr)
                 restarts = [line for line in log.read_text().splitlines()
                             if line.startswith("--user restart ")]
-                self.assertEqual(len(restarts), 1)
-                for component in ("wallpaper", "hypridle", "taskbar", "widget-telemetry",
-                                  "dunst", "control-panel", "snappy-switcher", "polkit"):
-                    self.assertIn(f"argvus-{component}.service", restarts[0])
+                self.assertEqual(len(restarts), 1 if status == 0 else 0)
+                if status == 0:
+                    for component in ("wallpaper", "hypridle", "taskbar", "widget-telemetry",
+                                      "dunst", "control-panel", "snappy-switcher", "polkit"):
+                        self.assertIn(f"argvus-{component}.service", restarts[0])
 
 
 if __name__ == "__main__":

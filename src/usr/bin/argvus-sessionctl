@@ -194,10 +194,9 @@ prepare_script() {
 }
 
 prepare_session() {
-  if have argvus-config; then
-    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-      argvus-config project || return $?
-  fi
+  # argvus-session-prepare.service already Requires/After argvus-config.service.
+  # Starting it again here would make this process wait on its own transaction.
+  require_systemd
   script="$(prepare_script)"
   [ -f "$script" ] || {
     warn "$(argvus_tr session error.prepare_missing "path=$script")"
@@ -208,17 +207,10 @@ prepare_session() {
 }
 
 reload_configuration() {
-  if have argvus-config; then
-    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-      argvus-config project || return $?
-  fi
-  script="$(prepare_script)"
-  [ -f "$script" ] || {
-    warn "$(argvus_tr session error.reload_missing "path=$script")"
-    return 78
-  }
-  ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    sh "$script" --reload-config
+  require_systemd
+  import_environment
+  systemctl --user start --wait argvus-config.service || return $?
+  systemctl --user reload argvus-config.service
 }
 
 reload_runtime_configuration() {
@@ -233,6 +225,13 @@ reload_runtime_configuration() {
   # argvus-config project and acquiring the lock in the opposite order.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     sh "$script" --reload-config
+}
+
+apply_config_runtime() {
+  require_systemd
+  import_environment
+  reload_runtime_configuration || return $?
+  restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit
 }
 
 restart_units() {
@@ -534,11 +533,10 @@ reload_session() {
   # skip only the recursive canonical projection that would deadlock here.
   if [ "${ARGVUS_THEME_SWITCH:-0}" = 1 ]; then
     reload_runtime_configuration || _reload_status=$?
+    restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit || _reload_status=$?
   else
     reload_configuration || _reload_status=$?
   fi
-  # A failed config sync must not strand components stopped by theme switching.
-  restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit || _reload_status=$?
   return "$_reload_status"
 }
 
@@ -688,6 +686,9 @@ case "${1:-}" in
     ;;
   reload)
     reload_session
+    ;;
+  apply-config-runtime)
+    apply_config_runtime
     ;;
   status)
     status_session

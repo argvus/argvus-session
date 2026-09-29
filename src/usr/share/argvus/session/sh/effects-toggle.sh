@@ -170,6 +170,13 @@ config_set_flag() {
   argvus-config set "$_pointer" "$([ "$_status" = enabled ] && printf true || printf false)" >/dev/null 2>&1 || true
 }
 
+request_config_reload() {
+  [ "${ARGVUS_CONFIG_SERVICE:-0}" = 1 ] && return 0
+  [ "${ARGVUS_PROJECTING:-0}" = 1 ] && return 0
+  command -v systemctl >/dev/null 2>&1 || return 0
+  systemctl --user reload argvus-config.service
+}
+
 set_effect_value() {
   _key="$1"
   _value="$2"
@@ -483,6 +490,7 @@ set_status() {
   _status="$2"
   if [ "$_component" = blur ] && command -v argvus-config >/dev/null 2>&1; then
     argvus-config set /effects/blur_global_enabled "$([ "$_status" = enabled ] && printf true || printf false)"
+    request_config_reload || return 1
     apply_surfaces "$(status transparency)" "$(status animations)"
     printf '%s\n' "$_status"
     apply_runtime >/dev/null 2>&1 &
@@ -490,6 +498,7 @@ set_status() {
   fi
   if [ "$_component" = animations ] && command -v argvus-config >/dev/null 2>&1; then
     argvus-config set /effects/animations "$([ "$_status" = enabled ] && printf true || printf false)"
+    request_config_reload || return 1
     _state_file="$(state_file "$_component")"
     mkdir -p "${_state_file%/*}"
     printf '%s\n' "$_status" > "$_state_file"
@@ -513,6 +522,7 @@ set_legacy_status() {
   printf '%s\n' "$_status" > "$(state_file transparency)"
   printf '%s\n' "$_status" > "$(state_file blur)"
   config_set_flag /effects/animations "$_status"
+  request_config_reload || return 1
   apply_surfaces "$_status" "$_status"
   printf '%s\n' "$_status"
   apply_runtime >/dev/null 2>&1 &
@@ -542,6 +552,7 @@ surface_value_command() {
         [ "${4:-}" -le 100 ] || exit 64
         command -v argvus-config >/dev/null 2>&1 || exit 64
         argvus-config set /effects/transparency_control-center_value "${4:-}" || exit 1
+        request_config_reload || exit 1
         rematerialize_control_center
         printf '%s\n' "${4:-}"
         ;;
@@ -554,6 +565,7 @@ surface_value_command() {
     get) effect_value "$_key" ;;
     set)
       set_effect_value "$_key" "${4:-}" || exit 64
+      request_config_reload || exit 1
       apply_surfaces "$(status transparency)" "$(status animations)"
       printf '%s\n' "$(effect_value "$_key")"
       apply_runtime >/dev/null 2>&1 &
@@ -574,6 +586,7 @@ global_value_command() {
       [ "$_value" -le 100 ] || exit 64
       command -v argvus-config >/dev/null 2>&1 || exit 64
       argvus-config set "/effects/${_key}" "$_value" || exit 1
+      request_config_reload || exit 1
       printf '%s\n' "$_value"
       apply_runtime >/dev/null 2>&1 &
       ;;
@@ -602,6 +615,7 @@ surface_apply_command() {
     argvus-config set /effects/transparency_control-center_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
     argvus-config set /effects/transparency_control-center_value "$_transparency_value" || exit 1
     argvus-config set /effects/blur_control-center_enabled "$([ "$_blur_enabled" = enabled ] && printf true || printf false)" || exit 1
+    request_config_reload || exit 1
     rematerialize_control_center
     printf '%s\n' "$_transparency_value"
     exit 0
@@ -615,6 +629,7 @@ surface_apply_command() {
     _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)"
     command -v argvus-terminal >/dev/null 2>&1 && argvus-terminal --apply "$_theme" >/dev/null 2>&1 || true
     for _pid in $(pgrep -x kitty 2>/dev/null); do kill -USR1 "$_pid" 2>/dev/null || true; done
+    request_config_reload || exit 1
     printf '%s\n' "$_transparency_value"
     exit 0
   fi
@@ -644,6 +659,7 @@ surface_apply_command() {
     [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_transparency_enabled"
     _pointer="$(config_value_key launchers)"
     [ -n "$_pointer" ] && config_set_value "$_pointer" "$_transparency_value"
+    request_config_reload || exit 1
     apply_launcher_surface
     printf '%s\n' "$_transparency_value"
     exit 0
@@ -678,6 +694,7 @@ surface_apply_command() {
   [ -n "$_pointer" ] && config_set_value "$_pointer" "$_transparency_value"
   _pointer="$(config_enabled_key "$_surface" blur)"
   [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_blur_enabled"
+  request_config_reload || return 1
   apply_taskbar_surface "$(status animations)"
   apply_widget_telemetry_surface
   if command -v hyprctl >/dev/null 2>&1; then hyprctl reload >/dev/null 2>&1 || true; fi
