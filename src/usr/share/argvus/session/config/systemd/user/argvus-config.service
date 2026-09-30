@@ -10,5 +10,4 @@ Type=oneshot
 RemainAfterExit=yes
 Environment=ARGVUS_CONFIG_SERVICE=1
 ExecStart=/usr/bin/argvus-config project
-ExecReload=/usr/bin/argvus-config project
-ExecReload=/usr/bin/argvus-sessionctl apply-config-runtime
+ExecReload=/usr/bin/argvus-sessionctl reload-config-transaction

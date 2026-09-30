@@ -152,6 +152,47 @@ class ReloadTests(unittest.TestCase):
                                       "dunst", "control-panel", "snappy-switcher", "polkit"):
                         self.assertIn(f"argvus-{component}.service", restarts[0])
 
+    def test_modular_power_reload_restarts_only_hypridle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = base / "bin"
+            mockbin.mkdir()
+            systemctl = mockbin / "systemctl"
+            systemctl.write_text(
+                '#!/bin/sh\n'
+                'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
+                'printf "%s\\n" "$*" >> "$TEST_LOG"\n'
+            )
+            systemctl.chmod(0o755)
+            system = base / "system"
+            scripts = system / "session/sh"
+            scripts.mkdir(parents=True)
+            (scripts / "bootstrap.sh").write_text(
+                'paths_cache() { printf "%s/%s\\n" "$XDG_CACHE_HOME" "$1"; }\n'
+            )
+            manifest = base / "state/argvus/config-projection.json"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text('{"reload_targets":{"hypridle":true}}\n')
+            log = base / "commands.log"
+            result = subprocess.run(
+                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "apply-config-runtime"],
+                env=os.environ | {
+                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
+                    "ARGVUS_SYSTEM_CONFIG": str(system),
+                    "ARGVUS_CONFIG_HOME": str(base / "config"),
+                    "XDG_CACHE_HOME": str(base / "cache"),
+                    "XDG_STATE_HOME": str(base / "state"),
+                    "TEST_LOG": str(log),
+                },
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            commands = log.read_text().splitlines()
+            self.assertIn("--user restart argvus-hypridle.service", commands)
+            self.assertEqual(len([line for line in commands if " restart " in line]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
