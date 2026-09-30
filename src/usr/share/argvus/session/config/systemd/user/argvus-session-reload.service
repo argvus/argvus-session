@@ -1,0 +1,12 @@
+[Unit]
+Description=Reload ARGVUS compositor configuration
+Documentation=man:systemd.service(5)
+PartOf=argvus-session.target graphical-session.target
+Requires=argvus-session-prepare.service
+After=argvus-config.service argvus-session-prepare.service
+Before=argvus-wallpaper.service argvus-control-panel.service argvus-taskbar.service argvus-widget-telemetry.service argvus-dunst.service argvus-hypridle.service argvus-polkit.service argvus-snappy-switcher.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/argvus-sessionctl reload-desktop

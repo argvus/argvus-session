@@ -36,6 +36,7 @@ arch_check_payload() {
 	done
 	test -f "${source_root}/src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop"
 	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-session.target"
+	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-session-reload.service"
 	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-config.service"
 }
 

@@ -50,6 +50,7 @@ for executable in argvus-session argvus-sessionctl argvus-start argvus-tty; do
 done
 [[ -f src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop ]] || die "missing Wayland session desktop entry"
 [[ -f src/usr/share/argvus/session/config/systemd/user/argvus-session.target ]] || die "missing session target"
+[[ -f src/usr/share/argvus/session/config/systemd/user/argvus-session-reload.service ]] || die "missing session reload service"
 
 git diff --check
 printf 'Validation OK\n'

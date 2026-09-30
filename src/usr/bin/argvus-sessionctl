@@ -209,8 +209,15 @@ prepare_session() {
 reload_configuration() {
   require_systemd
   import_environment
-  systemctl --user start --wait argvus-config.service || return $?
-  systemctl --user reload argvus-config.service
+  # Starting the active config service with --wait can leave the Hyprland
+  # exec child blocked indefinitely while systemd is processing the same
+  # transaction.  reload-or-restart handles both inactive and active units
+  # without nesting a wait on the canonical service transaction.
+  timeout 30s systemctl --user reload-or-restart argvus-config.service || {
+    _status=$?
+    warn "canonical configuration reload failed (status ${_status})"
+    return "$_status"
+  }
 }
 
 reload_runtime_configuration() {
@@ -225,6 +232,21 @@ reload_runtime_configuration() {
   # argvus-config project and acquiring the lock in the opposite order.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     sh "$script" --reload-config
+}
+
+reload_desktop() {
+  require_systemd
+  import_environment
+  script="$(prepare_script)"
+  [ -f "$script" ] || {
+    warn "$(argvus_tr session error.reload_missing "path=$script")"
+    return 78
+  }
+  # argvus-session.target owns the Waybar and Quickshell lifecycle through
+  # PartOf/Wants. This command performs the compositor half once; restarting
+  # the target then stops and starts each surface exactly once.
+  ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+    timeout 30s sh "$script" --reload-config
 }
 
 apply_config_runtime() {
@@ -552,17 +574,7 @@ widget_telemetry_command() {
 reload_session() {
   require_systemd
   import_environment
-  _reload_status=0
-  # A theme transaction has already projected its files while holding the
-  # appearance lock. Run the same runtime half as the keyboard reload, but
-  # skip only the recursive canonical projection that would deadlock here.
-  if [ "${ARGVUS_THEME_SWITCH:-0}" = 1 ]; then
-    reload_runtime_configuration || _reload_status=$?
-    restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit || _reload_status=$?
-  else
-    reload_configuration || _reload_status=$?
-  fi
-  return "$_reload_status"
+  reload_configuration
 }
 
 status_session() {
@@ -711,6 +723,9 @@ case "${1:-}" in
     ;;
   reload)
     reload_session
+    ;;
+  reload-desktop)
+    reload_desktop
     ;;
   apply-config-runtime)
     apply_config_runtime

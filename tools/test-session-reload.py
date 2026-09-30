@@ -42,12 +42,9 @@ class ReloadTests(unittest.TestCase):
                 }, capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(marker.exists())
-            self.assertNotIn(
-                "start --wait argvus-config.service",
-                log.read_text() if log.exists() else "",
-            )
+            self.assertNotIn("start --wait argvus-config.service", log.read_text() if log.exists() else "")
 
-    def test_theme_transaction_runs_runtime_reload_without_recursive_projection(self):
+    def test_reload_delegates_to_config_service_without_nested_projection(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             mockbin = base / "bin"
@@ -78,8 +75,42 @@ class ReloadTests(unittest.TestCase):
                     "TEST_LOG": str(log),
                 }, capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue(marker.exists())
-            self.assertIn("--user restart", log.read_text())
+            self.assertIn("--user reload-or-restart argvus-config.service", log.read_text())
+            self.assertFalse(marker.exists())
+
+    def test_reload_desktop_only_reloads_hyprland(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = base / "bin"
+            mockbin.mkdir()
+            for name in ("systemctl", "dbus-update-activation-environment"):
+                command = mockbin / name
+                command.write_text(
+                    '#!/bin/sh\n'
+                    'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
+                    'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
+                command.chmod(0o755)
+            system = base / "system"
+            scripts = system / "session/sh"
+            scripts.mkdir(parents=True)
+            (scripts / "hypr-init.sh").write_text(
+                '#!/bin/sh\nprintf reload > "$TEST_MARKER"\n')
+            (scripts / "hypr-init.sh").chmod(0o755)
+            log = base / "commands.log"
+            marker = base / "reloaded"
+            result = subprocess.run(
+                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "reload-desktop"],
+                env=os.environ | {
+                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
+                    "ARGVUS_SYSTEM_CONFIG": str(system),
+                    "ARGVUS_CONFIG_HOME": str(base / "config"),
+                    "XDG_STATE_HOME": str(base / "state"),
+                    "TEST_LOG": str(log),
+                    "TEST_MARKER": str(marker),
+                }, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(marker.read_text(), "reload")
+            self.assertNotIn("restart argvus-taskbar.service", log.read_text())
 
     def test_components_restart_after_success_failed_or_missing_config_sync(self):
         for status in (0, 42, None):
