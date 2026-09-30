@@ -47,7 +47,7 @@ class PathsTests(unittest.TestCase):
             source = self.write(self.config / "argvus" / rel, "edited by user")
             self.assertEqual(self.resolve(rel), source)
             target = self.resolve(rel, mutable=True)
-            self.assertEqual(target, self.config / "argvus/hypr" / filename)
+            self.assertEqual(target, self.config / "argvus/data/hypr" / filename)
             self.assertEqual(target.read_text(), "edited by user")
             self.assertTrue(source.is_file())
             self.assertEqual(self.resolve(rel), target)
@@ -76,7 +76,8 @@ class PathsTests(unittest.TestCase):
         self.assertTrue(Path(str(shim) + ".retired").is_file())
 
     def test_get_default_honors_separate_argvus_root(self):
-        self.write(self.config / "argvus/defaults.json", '{"terminal":"custom-terminal"}')
+        self.write(self.config / "argvus/data/control-center/defaults.json",
+                  '{"terminal":"custom-terminal"}')
         result = subprocess.check_output(
             ["sh", str(PATHS.with_name("get-default.sh")), "terminal"],
             env=self.env | {"XDG_CONFIG_HOME": str(self.base / "native")}, text=True)

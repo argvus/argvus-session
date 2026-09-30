@@ -8,7 +8,7 @@ ARGVUS_MUTABLE_CONFIG=1
 LEGACY_STATE_FILE="$(paths_state effects)"
 
 active_theme() {
-  _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)"
+  _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)"
   [ -n "$_theme" ] || _theme=argvus-dark
   printf '%s\n' "$_theme"
 }
@@ -269,7 +269,7 @@ apply_taskbar_surface() {
 }
 
 theme_background() {
-  case "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)" in
+  case "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)" in
     dracula|dracula-float) printf '#282A36\n' ;;
     slate-dark|slate-dark-float) printf '#2f3541\n' ;;
     argvus-light|argvus-light-float) printf '#f7f7f7\n' ;;
@@ -468,7 +468,7 @@ apply_runtime() {
   # Kitty keeps its own background alpha in the generated config. Rebuild it
   # after changing the shared effects state and ask running instances to reload.
   if command -v argvus-terminal >/dev/null 2>&1; then
-    argvus-terminal --apply "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)" >/dev/null 2>&1 || true
+    argvus-terminal --apply "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)" >/dev/null 2>&1 || true
     for _pid in $(pgrep -x kitty 2>/dev/null); do
       kill -USR1 "$_pid" 2>/dev/null || true
     done
@@ -626,7 +626,7 @@ surface_apply_command() {
     argvus-config set /effects/transparency_terminal_value "$_transparency_value" || exit 1
     _pointer="$(config_enabled_key terminal blur)"
     [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_blur_enabled"
-    _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/.active-theme" 2>/dev/null || true)"
+    _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)"
     command -v argvus-terminal >/dev/null 2>&1 && argvus-terminal --apply "$_theme" >/dev/null 2>&1 || true
     for _pid in $(pgrep -x kitty 2>/dev/null); do kill -USR1 "$_pid" 2>/dev/null || true; done
     request_config_reload || exit 1

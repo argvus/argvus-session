@@ -555,7 +555,7 @@ run_hyprpaper_wallpaper() {
 }
 
 persisted_wallpaper() {
-  _custom_state="$CONFIG_HOME/argvus/.wallpaper-custom"
+  _custom_state="$CONFIG_HOME/argvus/data/.wallpaper-custom"
   if [ -f "$_custom_state" ]; then
     sed -n '1p' "$_custom_state"
     return 0
@@ -578,7 +578,7 @@ persisted_wallpaper() {
   # Compatibility fallback for selections made before the explicit state
   # marker existed. The managed ARGVUS config is the durable source used by
   # both the picker and the Control Center.
-  _config="$CONFIG_HOME/argvus/hypr/hyprpaper.conf"
+  _config="$CONFIG_HOME/argvus/data/hypr/hyprpaper.conf"
   [ -f "$_config" ] || _config="$CONFIG_HOME/hypr/hyprpaper.conf"
   [ -f "$_config" ] || return 1
   sed -n \
@@ -748,7 +748,7 @@ run_component() {
       ;;
     hypridle)
       have hypridle || exit 0
-      KEEP_AWAKE_FILE="${ARGVUS_CONFIG_HOME}/argvus/.keep-awake"
+      KEEP_AWAKE_FILE="${ARGVUS_CONFIG_HOME}/argvus/data/power/.keep-awake"
       if [ -f "$KEEP_AWAKE_FILE" ] && [ "$(sed -n '1p' "$KEEP_AWAKE_FILE")" = enabled ]; then
         exit 0
       fi
@@ -763,7 +763,7 @@ run_component() {
       exec dunst -config "$(paths_config notifications/config/dunstrc)"
       ;;
     control-panel|shell|quickshell)
-      control_panel_state="$CONFIG_HOME/argvus/state/control-panel"
+      control_panel_state="$CONFIG_HOME/argvus/data/state/control-panel"
       if [ -r "$control_panel_state" ] && [ "$(sed -n '1p' "$control_panel_state")" = disabled ]; then
         exit 0
       fi

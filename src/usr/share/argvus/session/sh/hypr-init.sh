@@ -19,8 +19,8 @@ start_wallpaper() {
 }
 
 active_theme_name() {
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme" | sed \
+  if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+    sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" | sed \
       -e 's/^argvus-catppuccin-latte$/catppuccin-latte/' \
       -e 's/^argvus-light-catppuccin-latte$/catppuccin-latte/' \
       -e 's/^argvus-catppuccin-latte-float$/catppuccin-latte-float/' \
@@ -41,7 +41,7 @@ gtk_theme_name_for_theme() {
 font_state_value() {
   _key="$1"
   _fallback="$2"
-  _fonts_file="${ARGVUS_CONFIG_HOME}/argvus/fonts.conf"
+  _fonts_file="${ARGVUS_CONFIG_HOME}/argvus/data/generated/fonts.conf"
 
   if [ -f "$_fonts_file" ]; then
     awk -F= -v key="$_key" '
@@ -182,7 +182,7 @@ theme_startup_fingerprint() {
 theme_startup_materialized() {
   _theme="$1"
 
-  [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || return 1
+  [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || return 1
   for _relative in \
     taskbar/config/argvus-taskbar.jsonc taskbar/config/argvus-taskbar.css \
     "taskbar/config/themes/${_theme}/theme.css" \
@@ -233,8 +233,8 @@ apply_display() {
 
 sync_btop_config() {
   _theme="$ACTIVE_THEME"
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
+  if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme")"
   fi
 
   command -v argvus-system-monitor >/dev/null 2>&1 && argvus-system-monitor --apply "$_theme" >/dev/null 2>&1 || true
@@ -242,8 +242,8 @@ sync_btop_config() {
 
 sync_yazi_config() {
   _theme="$ACTIVE_THEME"
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
+  if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme")"
   fi
 
   _yazi_dir="$(paths_user_config yazi)"
@@ -320,8 +320,8 @@ prepare_session() {
 
     migrate_monitor_state
 
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-      _argvus_active_theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+      _argvus_active_theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme")"
       apply_startup_theme "$_argvus_active_theme"
     else
       # First login for this user: apply the packaged default theme so the
@@ -330,7 +330,7 @@ prepare_session() {
       # argvus --setup --copy-all needed for the DE to be fully themed.
       apply_startup_theme "$ACTIVE_THEME"
     fi
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.accent-color" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.accent-color" ]; then
       sh "$(paths_config appearance/sh/accent-switch.sh)" --startup
     fi
     set_gsettings
@@ -339,10 +339,10 @@ prepare_session() {
     sync_yazi_config
 
     # Apply current spacing (mode defaults or Control Panel overrides) before bars start.
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.spaces" ]; then
       sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static
     fi
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.borders" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.borders" ]; then
       sh "$(paths_config hyprland/sh/borders-switch.sh)" --apply-static
     fi
 
@@ -362,10 +362,10 @@ reload_config() {
     sync_yazi_config
 
     # Apply current spacing before hyprctl reload.
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.spaces" ]; then
       sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static || return $?
     fi
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.borders" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.borders" ]; then
       sh "$(paths_config hyprland/sh/borders-switch.sh)" --apply-static || return $?
     fi
 
