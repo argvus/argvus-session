@@ -61,10 +61,10 @@ while :; do
       *) _accent='' ;;
     esac
     if [ -n "$_accent" ]; then
-      if /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --theme "$_theme" --accent "$_accent"; then
+      if /usr/lib/argvus/loading-theme/splash --session-handoff --spinner-only --theme "$_theme" --accent "$_accent"; then
         exit 0
       fi
-    elif /usr/lib/argvus/theme-splash/splash --session-handoff --spinner-only --theme "$_theme"; then
+    elif /usr/lib/argvus/loading-theme/splash --session-handoff --spinner-only --theme "$_theme"; then
       exit 0
     fi
   done

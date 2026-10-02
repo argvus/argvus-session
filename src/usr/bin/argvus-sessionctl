@@ -250,7 +250,7 @@ reload_desktop() {
 }
 
 reload_splash_pid_file() {
-  printf '%s/argvus-theme-splash.pid\n' "${XDG_RUNTIME_DIR:-/tmp}"
+  printf '%s/argvus-loading-theme.pid\n' "${XDG_RUNTIME_DIR:-/tmp}"
 }
 
 reload_splash_active() {
@@ -268,7 +268,7 @@ reload_splash_active() {
 
 reload_splash_start() {
   reload_splash_active && return 0
-  _splash_bin="${ARGVUS_THEME_SPLASH_BIN:-/usr/lib/argvus/theme-splash/splash}"
+  _splash_bin="${ARGVUS_LOADING_THEME_BIN:-/usr/lib/argvus/loading-theme/splash}"
   [ -x "$_splash_bin" ] || return 0
   # The splash is an optional cover, not a reason to block a config reload
   # while the compositor is still starting (or has already stopped). Keep the
@@ -294,7 +294,7 @@ reload_splash_start() {
   done
   _theme="$(argvus-config get /appearance/theme --effective --raw 2>/dev/null || true)"
   [ -n "$_theme" ] || _theme="argvus-dark"
-  _ready_file="${XDG_RUNTIME_DIR:-/tmp}/argvus-theme-splash-ready.$$"
+  _ready_file="${XDG_RUNTIME_DIR:-/tmp}/argvus-loading-theme-ready.$$"
   rm -f "$_ready_file"
   "$_splash_bin" --theme "$_theme" --ready-file "$_ready_file" &
   _pid=$!
