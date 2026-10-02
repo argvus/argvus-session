@@ -32,8 +32,13 @@ while :; do
   for _socket in $(socket_paths 2>/dev/null); do
     _found_socket=1
     export WAYLAND_DISPLAY="${_socket##*/}"
-    _accent_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.accent-color"
-    _theme_file="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus/.active-theme"
+    _argvus_home="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}/argvus"
+    # Markers are projected under data/; the root copy only exists for profiles
+    # that have not migrated yet.
+    _theme_file="$_argvus_home/data/.active-theme"
+    [ -s "$_theme_file" ] || _theme_file="$_argvus_home/.active-theme"
+    _accent_file="$_argvus_home/data/.accent-color"
+    [ -s "$_accent_file" ] || _accent_file="$_argvus_home/.accent-color"
     _theme="argvus-dark"
     if [ -s "$_theme_file" ]; then
       _theme="$(sed -n '1{s/\r$//;s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "$_theme_file")"

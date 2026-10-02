@@ -36,7 +36,7 @@ class PathsTests(unittest.TestCase):
         rel = "launcher/config/config.rasi"
         expected = self.write(self.system / rel)
         self.assertEqual(self.resolve(rel), expected)
-        for sub in ("argvus/generated/rofi/config.rasi", "argvus/rofi/config.rasi",
+        for sub in ("argvus/data/generated/rofi/config.rasi", "argvus/rofi/config.rasi",
                     "launcher/config/config.rasi", "rofi/config.rasi"):
             expected = self.write(self.config / sub)
             self.assertEqual(self.resolve(rel), expected)
@@ -47,7 +47,7 @@ class PathsTests(unittest.TestCase):
             source = self.write(self.config / "argvus" / rel, "edited by user")
             self.assertEqual(self.resolve(rel), source)
             target = self.resolve(rel, mutable=True)
-            self.assertEqual(target, self.config / "argvus/hypr" / filename)
+            self.assertEqual(target, self.config / "argvus/data/hypr" / filename)
             self.assertEqual(target.read_text(), "edited by user")
             self.assertTrue(source.is_file())
             self.assertEqual(self.resolve(rel), target)
@@ -62,7 +62,7 @@ class PathsTests(unittest.TestCase):
 
     def test_component_generated_edits_are_promoted(self):
         rel = "lock/config/hyprlock.conf"
-        source = self.write(self.config / "argvus/generated" / rel, "generated edit")
+        source = self.write(self.config / "argvus/data/generated" / rel, "generated edit")
         self.write(self.system / rel, "packaged")
         self.assertEqual(self.resolve(rel), source)
         self.assertEqual(self.resolve(rel, True).read_text(), "generated edit")
@@ -70,13 +70,14 @@ class PathsTests(unittest.TestCase):
     def test_generated_css_shim_uses_packaged_css(self):
         rel = "taskbar/config/argvus-taskbar.css"
         self.write(self.system / rel, "/* complete packaged style */")
-        shim = self.write(self.config / "argvus/generated/waybar/argvus-taskbar.css",
+        shim = self.write(self.config / "argvus/data/generated/waybar/argvus-taskbar.css",
                           '@import url("/usr/share/argvus/taskbar/config/argvus-taskbar.css");')
         self.assertEqual(self.resolve(rel, True).read_text(), "/* complete packaged style */")
         self.assertTrue(Path(str(shim) + ".retired").is_file())
 
     def test_get_default_honors_separate_argvus_root(self):
-        self.write(self.config / "argvus/defaults.json", '{"terminal":"custom-terminal"}')
+        self.write(self.config / "argvus/data/control-center/defaults.json",
+                  '{"terminal":"custom-terminal"}')
         result = subprocess.check_output(
             ["sh", str(PATHS.with_name("get-default.sh")), "terminal"],
             env=self.env | {"XDG_CONFIG_HOME": str(self.base / "native")}, text=True)

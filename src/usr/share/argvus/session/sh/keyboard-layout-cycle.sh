@@ -14,7 +14,7 @@ LOCALE_GEN="${ARGVUS_LOCALE_GEN:-/etc/locale.gen}"
 HOMEDIR="${HOME:-/tmp}"
 
 CONFIG_HOME="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOMEDIR/.config}}"
-GENERATED_INPUT="${CONFIG_HOME}/argvus/generated/hypr/input.lua"
+GENERATED_INPUT="${CONFIG_HOME}/argvus/data/generated/hypr/input.lua"
 
 available_layouts() {
   if [ -n "${ARGVUS_XKB_LAYOUTS:-}" ]; then

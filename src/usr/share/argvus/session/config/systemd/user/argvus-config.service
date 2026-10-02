@@ -1,0 +1,13 @@
+[Unit]
+Description=Apply ARGVUS canonical configuration
+Documentation=man:systemd.service(5)
+PartOf=argvus-session.target graphical-session.target
+After=graphical-session.target
+Before=argvus-session-prepare.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=ARGVUS_CONFIG_SERVICE=1
+ExecStart=/usr/bin/argvus-config project
+ExecReload=/usr/bin/argvus-sessionctl reload-config-transaction

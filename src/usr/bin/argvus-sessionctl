@@ -194,10 +194,9 @@ prepare_script() {
 }
 
 prepare_session() {
-  if have argvus-config; then
-    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-      argvus-config project || return $?
-  fi
+  # argvus-session-prepare.service already Requires/After argvus-config.service.
+  # Starting it again here would make this process wait on its own transaction.
+  require_systemd
   script="$(prepare_script)"
   [ -f "$script" ] || {
     warn "$(argvus_tr session error.prepare_missing "path=$script")"
@@ -208,17 +207,17 @@ prepare_session() {
 }
 
 reload_configuration() {
-  if have argvus-config; then
-    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-      argvus-config project || return $?
-  fi
-  script="$(prepare_script)"
-  [ -f "$script" ] || {
-    warn "$(argvus_tr session error.reload_missing "path=$script")"
-    return 78
+  require_systemd
+  import_environment
+  # Starting the active config service with --wait can leave the Hyprland
+  # exec child blocked indefinitely while systemd is processing the same
+  # transaction.  reload-or-restart handles both inactive and active units
+  # without nesting a wait on the canonical service transaction.
+  timeout 30s systemctl --user reload-or-restart argvus-config.service || {
+    _status=$?
+    warn "canonical configuration reload failed (status ${_status})"
+    return "$_status"
   }
-  ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    sh "$script" --reload-config
 }
 
 reload_runtime_configuration() {
@@ -227,12 +226,196 @@ reload_runtime_configuration() {
     warn "$(argvus_tr session error.reload_missing "path=$script")"
     return 78
   }
-  # A theme transaction already committed and projected config.json while it
+  # A theme transaction already committed and projected modular configuration while it
   # owns theme-switch.lock. Reuse the same runtime half as SUPER+Shift+R,
   # including hyprctl reload and Rofi synchronization, without re-entering
   # argvus-config project and acquiring the lock in the opposite order.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     sh "$script" --reload-config
+}
+
+reload_desktop() {
+  require_systemd
+  import_environment
+  script="$(prepare_script)"
+  [ -f "$script" ] || {
+    warn "$(argvus_tr session error.reload_missing "path=$script")"
+    return 78
+  }
+  # argvus-session.target owns the Waybar and Quickshell lifecycle through
+  # PartOf/Wants. This command performs the compositor half once; restarting
+  # the target then stops and starts each surface exactly once.
+  ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+    timeout 30s sh "$script" --reload-config
+}
+
+reload_splash_pid_file() {
+  printf '%s/argvus-theme-splash.pid\n' "${XDG_RUNTIME_DIR:-/tmp}"
+}
+
+reload_splash_active() {
+  _pid_file="$(reload_splash_pid_file)"
+  _pid="$(sed -n '1p' "$_pid_file" 2>/dev/null || true)"
+  case "$_pid" in
+    ''|*[!0-9]*) rm -f "$_pid_file"; return 1 ;;
+  esac
+  if kill -0 "$_pid" 2>/dev/null; then
+    return 0
+  fi
+  rm -f "$_pid_file"
+  return 1
+}
+
+reload_splash_start() {
+  reload_splash_active && return 0
+  _splash_bin="${ARGVUS_THEME_SPLASH_BIN:-/usr/lib/argvus/theme-splash/splash}"
+  [ -x "$_splash_bin" ] || return 0
+  # The splash is an optional cover, not a reason to block a config reload
+  # while the compositor is still starting (or has already stopped). Keep the
+  # handshake bounded; the actual runtime consumers still report their own
+  # readiness/failure below.
+  _runtime_wait=0
+  while :; do
+    adopt_systemd_environment
+    if wayland_socket_ready; then
+      if have hyprctl && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        timeout 1s hyprctl instances >/dev/null 2>&1 || {
+          sleep 0.1
+          _runtime_wait=$((_runtime_wait + 1))
+          [ "$_runtime_wait" -ge 50 ] && return 0
+          continue
+        }
+      fi
+      break
+    fi
+    [ "$_runtime_wait" -ge 50 ] && return 0
+    sleep 0.1
+    _runtime_wait=$((_runtime_wait + 1))
+  done
+  _theme="$(argvus-config get /appearance/theme --effective --raw 2>/dev/null || true)"
+  [ -n "$_theme" ] || _theme="argvus-dark"
+  _ready_file="${XDG_RUNTIME_DIR:-/tmp}/argvus-theme-splash-ready.$$"
+  rm -f "$_ready_file"
+  "$_splash_bin" --theme "$_theme" --ready-file "$_ready_file" &
+  _pid=$!
+  _wait=0
+  while [ ! -s "$_ready_file" ] && kill -0 "$_pid" 2>/dev/null; do
+    [ "$_wait" -ge 40 ] && break
+    sleep 0.05
+    _wait=$((_wait + 1))
+  done
+  _ready=0
+  [ -s "$_ready_file" ] && _ready=1
+  rm -f "$_ready_file"
+  if [ "$_ready" -ne 1 ]; then
+    kill -TERM "$_pid" 2>/dev/null || true
+    wait "$_pid" 2>/dev/null || true
+    return 0
+  fi
+  printf '%s\n' "$_pid" >"$(reload_splash_pid_file)"
+}
+
+reload_splash_stop() {
+  _pid_file="$(reload_splash_pid_file)"
+  _pid="$(sed -n '1p' "$_pid_file" 2>/dev/null || true)"
+  rm -f "$_pid_file"
+  case "$_pid" in
+    ''|*[!0-9]*) return 0 ;;
+  esac
+  kill -TERM "$_pid" 2>/dev/null || true
+  wait "$_pid" 2>/dev/null || true
+}
+
+apply_config_runtime() {
+  require_systemd
+  import_environment
+  _manifest="$STATE_DIR/config-projection.json"
+  _has_reload_targets=0
+  if [ -f "$_manifest" ] && grep -q '"reload_targets"[[:space:]]*:' "$_manifest"; then
+    _has_reload_targets=1
+  fi
+  if [ "$_has_reload_targets" -eq 1 ]; then
+    _target_enabled() {
+      _target="$1"
+      grep -Eq "\"${_target}\"[[:space:]]*:[[:space:]]*true" "$_manifest"
+    }
+
+    _overlay_owner=0
+    if _target_enabled hyprland || _target_enabled wallpaper ||
+      _target_enabled taskbar || _target_enabled widget_telemetry ||
+      _target_enabled control_panel || _target_enabled notifications ||
+      _target_enabled snappy_switcher || _target_enabled polkit; then
+      if ! reload_splash_active; then
+        reload_splash_start
+        reload_splash_active && _overlay_owner=1 || true
+      fi
+    fi
+
+    _status=0
+    if _target_enabled hyprland; then
+      reload_runtime_configuration || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled wallpaper; then
+      restart_components wallpaper || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled taskbar; then
+      restart_components taskbar || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled widget_telemetry; then
+      restart_components widget-telemetry || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled control_panel; then
+      restart_components control-panel || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled notifications; then
+      restart_components dunst || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled snappy_switcher; then
+      restart_components snappy-switcher || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled polkit; then
+      restart_components polkit || _status=$?
+    fi
+    if [ "$_status" -eq 0 ] && _target_enabled hypridle; then
+      restart_components hypridle || _status=$?
+    fi
+    [ "$_overlay_owner" -eq 1 ] && reload_splash_stop
+    return "$_status"
+  fi
+  _reload_plan="full"
+  if [ -f "$_manifest" ]; then
+    _reload_plan="$(sed -n 's/.*\"reload_plan\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p' "$_manifest" | tail -n 1)"
+    [ -n "$_reload_plan" ] || _reload_plan="full"
+  fi
+  case "$_reload_plan" in
+    full)
+      reload_runtime_configuration || return $?
+      restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit
+      ;;
+    hyprland)
+      script="$(prepare_script)"
+      [ -f "$script" ] || return 78
+      ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+        sh "$script" --reload-config
+      ;;
+    hypridle)
+      restart_components hypridle
+      ;;
+    none)
+      ;;
+    *)
+      warn "unknown configuration reload plan: $_reload_plan"
+      return 65
+      ;;
+  esac
+}
+
+reload_config_transaction() {
+  require_systemd
+  import_environment
+  ARGVUS_CONFIG_SERVICE=1 ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" argvus-config project
+  apply_config_runtime
 }
 
 restart_units() {
@@ -372,7 +555,7 @@ run_hyprpaper_wallpaper() {
 }
 
 persisted_wallpaper() {
-  _custom_state="$CONFIG_HOME/argvus/.wallpaper-custom"
+  _custom_state="$CONFIG_HOME/argvus/data/.wallpaper-custom"
   if [ -f "$_custom_state" ]; then
     sed -n '1p' "$_custom_state"
     return 0
@@ -395,7 +578,7 @@ persisted_wallpaper() {
   # Compatibility fallback for selections made before the explicit state
   # marker existed. The managed ARGVUS config is the durable source used by
   # both the picker and the Control Center.
-  _config="$CONFIG_HOME/argvus/hypr/hyprpaper.conf"
+  _config="$CONFIG_HOME/argvus/data/hypr/hyprpaper.conf"
   [ -f "$_config" ] || _config="$CONFIG_HOME/hypr/hyprpaper.conf"
   [ -f "$_config" ] || return 1
   sed -n \
@@ -528,18 +711,7 @@ widget_telemetry_command() {
 reload_session() {
   require_systemd
   import_environment
-  _reload_status=0
-  # A theme transaction has already projected its files while holding the
-  # appearance lock. Run the same runtime half as the keyboard reload, but
-  # skip only the recursive canonical projection that would deadlock here.
-  if [ "${ARGVUS_THEME_SWITCH:-0}" = 1 ]; then
-    reload_runtime_configuration || _reload_status=$?
-  else
-    reload_configuration || _reload_status=$?
-  fi
-  # A failed config sync must not strand components stopped by theme switching.
-  restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit || _reload_status=$?
-  return "$_reload_status"
+  reload_configuration
 }
 
 status_session() {
@@ -576,7 +748,7 @@ run_component() {
       ;;
     hypridle)
       have hypridle || exit 0
-      KEEP_AWAKE_FILE="${ARGVUS_CONFIG_HOME}/argvus/.keep-awake"
+      KEEP_AWAKE_FILE="${ARGVUS_CONFIG_HOME}/argvus/data/power/.keep-awake"
       if [ -f "$KEEP_AWAKE_FILE" ] && [ "$(sed -n '1p' "$KEEP_AWAKE_FILE")" = enabled ]; then
         exit 0
       fi
@@ -591,7 +763,7 @@ run_component() {
       exec dunst -config "$(paths_config notifications/config/dunstrc)"
       ;;
     control-panel|shell|quickshell)
-      control_panel_state="$CONFIG_HOME/argvus/state/control-panel"
+      control_panel_state="$CONFIG_HOME/argvus/data/state/control-panel"
       if [ -r "$control_panel_state" ] && [ "$(sed -n '1p' "$control_panel_state")" = disabled ]; then
         exit 0
       fi
@@ -688,6 +860,15 @@ case "${1:-}" in
     ;;
   reload)
     reload_session
+    ;;
+  reload-desktop)
+    reload_desktop
+    ;;
+  apply-config-runtime)
+    apply_config_runtime
+    ;;
+  reload-config-transaction)
+    reload_config_transaction
     ;;
   status)
     status_session

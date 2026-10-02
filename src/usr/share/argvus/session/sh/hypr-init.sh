@@ -19,8 +19,8 @@ start_wallpaper() {
 }
 
 active_theme_name() {
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme" | sed \
+  if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+    sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" | sed \
       -e 's/^argvus-catppuccin-latte$/catppuccin-latte/' \
       -e 's/^argvus-light-catppuccin-latte$/catppuccin-latte/' \
       -e 's/^argvus-catppuccin-latte-float$/catppuccin-latte-float/' \
@@ -41,7 +41,7 @@ gtk_theme_name_for_theme() {
 font_state_value() {
   _key="$1"
   _fallback="$2"
-  _fonts_file="${ARGVUS_CONFIG_HOME}/argvus/fonts.conf"
+  _fonts_file="${ARGVUS_CONFIG_HOME}/argvus/data/generated/fonts.conf"
 
   if [ -f "$_fonts_file" ]; then
     awk -F= -v key="$_key" '
@@ -182,7 +182,7 @@ theme_startup_fingerprint() {
 theme_startup_materialized() {
   _theme="$1"
 
-  [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || return 1
+  [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || return 1
   for _relative in \
     taskbar/config/argvus-taskbar.jsonc taskbar/config/argvus-taskbar.css \
     "taskbar/config/themes/${_theme}/theme.css" \
@@ -231,57 +231,10 @@ apply_display() {
   sh "$(paths_config display/sh/monitor-switch.sh)" "$_legacy_mode"
 }
 
-should_manage_foot_config() {
-  _conf="$1"
-  [ -f "$_conf" ] || return 0
-  grep -q 'argvus.*/foot/themes' "$_conf"
-}
-
-sync_foot_config() {
-  _theme="$ACTIVE_THEME"
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
-  fi
-
-  _foot_dir="$(paths_user_config foot)"
-  _system_foot="$(paths_system_config app-profiles/config/foot)"
-
-  if [ ! -d "$_foot_dir" ] && [ -d "$_system_foot" ]; then
-    mkdir -p "$_foot_dir"
-    cp -R "$_system_foot/." "$_foot_dir/"
-  elif [ -d "$_system_foot" ]; then
-    mkdir -p "$_foot_dir"
-    if [ -f "$_system_foot/foot.ini" ] && [ ! -e "$_foot_dir/foot.ini" ]; then
-      cp "$_system_foot/foot.ini" "$_foot_dir/foot.ini"
-    fi
-    if [ -d "$_system_foot/themes/${_theme}" ]; then
-      mkdir -p "$_foot_dir/themes/${_theme}"
-      cp -R "$_system_foot/themes/${_theme}/." "$_foot_dir/themes/${_theme}/"
-    fi
-  fi
-
-  if [ -f "$_foot_dir/foot.ini" ] && [ -f "$_foot_dir/themes/${_theme}/theme.ini" ]; then
-    sed -i "s|^include = .*/foot/themes/.*/theme.ini|include = ${_foot_dir}/themes/${_theme}/theme.ini|" "$_foot_dir/foot.ini"
-  fi
-
-  _native_foot="$ARGVUS_CONFIG_HOME/foot/foot.ini"
-  if should_manage_foot_config "$_native_foot" && [ -f "$_foot_dir/themes/${_theme}/theme.ini" ]; then
-    mkdir -p "${_native_foot%/*}"
-    if [ ! -f "$_native_foot" ] && [ -f "$_foot_dir/foot.ini" ]; then
-      cp "$_foot_dir/foot.ini" "$_native_foot"
-    fi
-    sed -i "s|^include = .*/foot/themes/.*/theme.ini|include = ${_foot_dir}/themes/${_theme}/theme.ini|" "$_native_foot"
-  fi
-
-  for _pid in $(pgrep -x foot 2>/dev/null) $(pgrep -x footclient 2>/dev/null); do
-    kill -USR1 "$_pid" 2>/dev/null || true
-  done
-}
-
 sync_btop_config() {
   _theme="$ACTIVE_THEME"
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
+  if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme")"
   fi
 
   command -v argvus-system-monitor >/dev/null 2>&1 && argvus-system-monitor --apply "$_theme" >/dev/null 2>&1 || true
@@ -289,8 +242,8 @@ sync_btop_config() {
 
 sync_yazi_config() {
   _theme="$ACTIVE_THEME"
-  if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
+  if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+    _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme")"
   fi
 
   _yazi_dir="$(paths_user_config yazi)"
@@ -344,7 +297,7 @@ sync_yazi_config() {
 migrate_monitor_state() {
   _legacy_monitors="$ARGVUS_CONFIG_HOME/hypr/monitors.conf"
   _old_user_lua="$ARGVUS_CONFIG_HOME/argvus/hypr/monitors.lua"
-  _generated_lua="$ARGVUS_CONFIG_HOME/argvus/generated/hypr/monitors.lua"
+  _generated_lua="$ARGVUS_CONFIG_HOME/argvus/data/generated/hypr/monitors.lua"
 
   # Migrate legacy monitors.lua from user override to generated path
   if [ -f "$_old_user_lua" ] && [ ! -f "$_generated_lua" ]; then
@@ -367,8 +320,8 @@ prepare_session() {
 
     migrate_monitor_state
 
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ]; then
-      _argvus_active_theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/.active-theme")"
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ]; then
+      _argvus_active_theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme")"
       apply_startup_theme "$_argvus_active_theme"
     else
       # First login for this user: apply the packaged default theme so the
@@ -377,20 +330,19 @@ prepare_session() {
       # argvus --setup --copy-all needed for the DE to be fully themed.
       apply_startup_theme "$ACTIVE_THEME"
     fi
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.accent-color" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.accent-color" ]; then
       sh "$(paths_config appearance/sh/accent-switch.sh)" --startup
     fi
     set_gsettings
     sync_rofi_config
-    sync_foot_config
     sync_btop_config
     sync_yazi_config
 
     # Apply current spacing (mode defaults or Control Panel overrides) before bars start.
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.spaces" ]; then
       sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static
     fi
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.borders" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.borders" ]; then
       sh "$(paths_config hyprland/sh/borders-switch.sh)" --apply-static
     fi
 
@@ -406,15 +358,14 @@ prepare_session() {
 reload_config() {
     sh "$(paths_config lock/sh/hyprlock-theme.sh)" --invalidate >/dev/null 2>&1 || true
     sync_rofi_config
-    sync_foot_config
     sync_btop_config
     sync_yazi_config
 
     # Apply current spacing before hyprctl reload.
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.spaces" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.spaces" ]; then
       sh "$(paths_config hyprland/sh/spaces-switch.sh)" --apply-static || return $?
     fi
-    if [ -f "$ARGVUS_CONFIG_HOME/argvus/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/.borders" ]; then
+    if [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme" ] || [ -f "$ARGVUS_CONFIG_HOME/argvus/data/.borders" ]; then
       sh "$(paths_config hyprland/sh/borders-switch.sh)" --apply-static || return $?
     fi
 
