@@ -1,0 +1,24 @@
+---
+title: Graphical session
+description: Start ARGVUS through a graphical login flow.
+---
+
+The graphical entry point is `/usr/bin/argvus-session`. It imports the session environment and delegates to `argvus-start`, which validates the packaged or user Hyprland Lua configuration, applies detected graphics compatibility settings, launches Hyprland and waits for compositor readiness.
+
+After Hyprland is ready, `argvus-sessionctl` starts `argvus-session.target`. This target starts the taskbar, Control Panel, notifications, wallpaper, idle handling, clipboard and related services. It is stopped when Hyprland exits, so these surfaces do not remain as orphaned processes after logout.
+
+The session also imports its Wayland and desktop-environment variables into the systemd user manager. To inspect or reload a running session:
+
+```sh
+argvus-sessionctl status
+argvus-sessionctl logs
+argvus-sessionctl reload
+```
+
+`reload` applies the generation that was already committed. If a command such as `argvus-config apply-theme`, `accent`, `set`/`patch` or a widget-telemetry block change just projected the change, the reload restores the affected consumers from the projection manifest instead of projecting again. It only projects when no pending plan exists, for example at session startup. If no runtime-relevant section changed, it exits successfully without reloading Hyprland, restarting services or showing the splash. When changes exist, it reapplies session integration and reloads only the affected compositor and desktop surfaces. Repeated reloads are serialized and unchanged sections do not restart their consumers. `apply-config` is an explicit alias for this operation. The direct reload overlay is static and opaque while the work is in progress, so the intermediate desktop is not exposed. It is not a replacement for logging out when the compositor or login environment must be restarted.
+
+If the projection cannot be completed, the reload stops before restarting desktop surfaces. Check `argvus-sessionctl logs` and run `argvus-config validate` before trying again; this prevents a failed theme projection from leaving Waybar, notifications, or the Control Panel running with a stale mixture of themes.
+
+The default login integration is greetd. See [Greeter](./greeter/) and [session troubleshooting](../troubleshooting/session-startup/).
+
+For service ownership and the startup sequence, see [Runtime lifecycle](../../developer-guide/architecture/runtime-lifecycle/).
