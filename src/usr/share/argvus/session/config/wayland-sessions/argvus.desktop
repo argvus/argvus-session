@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Argvus
+Name=ARGVUS
 Comment=Argvus Hyprland session
 Exec=argvus-session
 TryExec=argvus-session
