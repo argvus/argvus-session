@@ -13,6 +13,19 @@ log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
 }
 
+# Append the greeter's pre-login log (written by argvus-greeter-session) to the
+# user's session.log. The greeter truncates this file at each run, so it is
+# not removed here: the sticky /run/argvus-greeter directory forbids deleting
+# files owned by the greeter user.
+GREETER_LOG="/run/argvus-greeter/session.log"
+if [ -s "$GREETER_LOG" ]; then
+  {
+    printf '%s\n' "--- greeter (pre-login) ---"
+    cat "$GREETER_LOG"
+    printf '%s\n' "--- end greeter ---"
+  } >> "$LOG" 2>/dev/null || true
+fi
+
 log "running argvus-session"
 
 # Ensure PATH includes standard system directories for subprocess discovery.
