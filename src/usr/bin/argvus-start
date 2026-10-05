@@ -29,6 +29,12 @@ log_monotonic() {
 
 log_monotonic "argvus-start entered"
 
+# Ensure PATH includes standard system directories for subprocess discovery.
+# The login manager (e.g., greetd with source_profile=false) may not export PATH
+# or may provide only a partial PATH, breaking utilities such as hyprland-dialog
+# that Hyprland requires at startup.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin${PATH:+:$PATH}"
+
 sync_session_environment() {
   if command -v argvus-sessionctl >/dev/null 2>&1; then
     argvus-sessionctl import-environment >/dev/null 2>&1 || true

@@ -14,6 +14,13 @@ log() {
 }
 
 log "running argvus-session"
+
+# Ensure PATH includes standard system directories for subprocess discovery.
+# The login manager (e.g., greetd with source_profile=false) may not export PATH
+# or may provide only a partial PATH, breaking utilities such as hyprland-dialog
+# that Hyprland requires at startup.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin${PATH:+:$PATH}"
+
 export XDG_CONFIG_HOME="$CONFIG_HOME"
 case ":${XDG_CONFIG_DIRS:-/etc/xdg}:" in
   *":$SYSTEM_CONFIG:") ;;
