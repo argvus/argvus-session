@@ -6,6 +6,8 @@ slug: pt/0.4.0/docs/user-guide/sessions/graphical-session
 
 O ponto de entrada gráfico é `/usr/bin/argvus-session`. Ele importa o ambiente da sessão e delega para `argvus-start`, que valida a configuração Lua do Hyprland fornecida pelo pacote ou pelo usuário, aplica ajustes gráficos detectados, inicia o Hyprland e aguarda o compositor ficar pronto.
 
+A sessão garante que a variável de ambiente `PATH` do shell esteja definida para um padrão sensato, mesmo quando o gerenciador de login (como greetd com `source_profile=false`) não exporta nenhum. Isso garante que utilitários como `hyprland-dialog`, usados pelo Hyprland na inicialização, sejam descobertos pelos processos filhos.
+
 Depois que o Hyprland está pronto, `argvus-sessionctl` inicia `argvus-session.target`. Esse target inicia taskbar, Control Panel, notificações, wallpaper, idle, clipboard e serviços relacionados. Ele é encerrado quando o Hyprland termina, evitando processos órfãos após o logout.
 
 A sessão também importa as variáveis Wayland e do ambiente desktop para o gerenciador systemd do usuário. Para inspecionar ou recarregar uma sessão ativa:

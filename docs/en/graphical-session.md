@@ -5,6 +5,8 @@ description: Start ARGVUS through a graphical login flow.
 
 The graphical entry point is `/usr/bin/argvus-session`. It imports the session environment and delegates to `argvus-start`, which validates the packaged or user Hyprland Lua configuration, applies detected graphics compatibility settings, launches Hyprland and waits for compositor readiness.
 
+The session ensures that the shell `PATH` environment variable is set to a sensible default even when the login manager (such as greetd with `source_profile=false`) does not export one. This guarantees that utilities like `hyprland-dialog`, used by Hyprland at startup, are discoverable by child processes.
+
 After Hyprland is ready, `argvus-sessionctl` starts `argvus-session.target`. This target starts the taskbar, Control Panel, notifications, wallpaper, idle handling, clipboard and related services. It is stopped when Hyprland exits, so these surfaces do not remain as orphaned processes after logout.
 
 The session also imports its Wayland and desktop-environment variables into the systemd user manager. To inspect or reload a running session:
