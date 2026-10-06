@@ -352,6 +352,18 @@ prepare_session() {
 
     # PolicyKit agent and Quickshell inherit these through systemd user env.
     export QT_QPA_PLATFORM=wayland QT_QPA_PLATFORMTHEME=qt6ct QT_QUICK_CONTROLS_STYLE=org.hyprland.style
+    export EDITOR="$TERMINAL_EDITOR" VISUAL="$TERMINAL_EDITOR"
+    for _dev_bin in "$HOME/.local/bin" "$HOME/.cargo/bin"; do
+      [ -d "$_dev_bin" ] || continue
+      case ":$PATH:" in
+        *":$_dev_bin:"*) ;;
+        *) PATH="$_dev_bin:$PATH" ;;
+      esac
+    done
+    export PATH
+    command -v hyprctl >/dev/null 2>&1 && hyprctl setenv "EDITOR,$EDITOR" >/dev/null 2>&1 || true
+    command -v hyprctl >/dev/null 2>&1 && hyprctl setenv "VISUAL,$VISUAL" >/dev/null 2>&1 || true
+    command -v hyprctl >/dev/null 2>&1 && hyprctl setenv "PATH,$PATH" >/dev/null 2>&1 || true
     sessionctl import-environment >/dev/null 2>&1 || true
 }
 

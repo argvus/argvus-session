@@ -10,7 +10,9 @@ Os logs são gravados em `~/.local/state/argvus/session.log`. O greeter roda com
 
 A sessão garante que a variável de ambiente `PATH` do shell esteja definida para um padrão sensato, mesmo quando o gerenciador de login (como greetd com `source_profile=false`) não exporta nenhum. Isso garante que utilitários como `hyprland-dialog`, usados pelo Hyprland na inicialização, sejam descobertos pelos processos filhos.
 
-Depois que o Hyprland está pronto, `argvus-sessionctl` inicia `argvus-session.target`. Esse target inicia taskbar, Control Panel, notificações, wallpaper, idle, clipboard e serviços relacionados. Ele é encerrado quando o Hyprland termina, evitando processos órfãos após o logout.
+Depois que o Hyprland está pronto, `argvus-sessionctl` inicia `argvus-session.target`. Esse target inicia taskbar, Control Panel, notificações, wallpaper, idle, clipboard, o agente SSH e serviços relacionados.
+
+`PATH` também recebe `~/.local/bin` e `~/.cargo/bin` no início, quando esses diretórios existem, para que ferramentas instaladas ali fiquem visíveis ao compositor e aos serviços. `EDITOR` e `VISUAL` recebem o editor de terminal padrão configurado nos aplicativos padrão do Control Center (`TERMINAL_EDITOR`) e são exportados para o gerenciador systemd do usuário, para a ativação via D-Bus e para o Hyprland, de modo que terminais e serviços iniciados pela sessão os herdem. O agente SSH (`argvus-ssh-agent.service`, do pacote `openssh`) escuta em `$XDG_RUNTIME_DIR/ssh-agent.socket` e publica `SSH_AUTH_SOCK` no gerenciador do usuário. Ao iniciar, o agente do ARGVUS substitui `SSH_AUTH_SOCK` no gerenciador do usuário. Se outro agente, como gnome-keyring ou gcr, deve ser o dono do socket, desative a unit do ARGVUS com `systemctl --user mask argvus-ssh-agent.service`. Ele é encerrado quando o Hyprland termina, evitando processos órfãos após o logout.
 
 A sessão também importa as variáveis Wayland e do ambiente desktop para o gerenciador systemd do usuário. Para inspecionar ou recarregar uma sessão ativa:
 

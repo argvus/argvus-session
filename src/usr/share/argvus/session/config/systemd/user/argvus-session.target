@@ -12,6 +12,7 @@ Wants=argvus-widget-telemetry.service
 Wants=argvus-dunst.service
 Wants=argvus-hypridle.service
 Wants=argvus-polkit.service
+Wants=argvus-ssh-agent.service
 Wants=argvus-snappy-switcher.service
 Wants=argvus-clipboard-text.service
 Wants=argvus-clipboard-image.service

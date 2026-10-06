@@ -9,7 +9,9 @@ Logs are written to `~/.local/state/argvus/session.log`. The greeter runs as its
 
 The session ensures that the shell `PATH` environment variable is set to a sensible default even when the login manager (such as greetd with `source_profile=false`) does not export one. This guarantees that utilities like `hyprland-dialog`, used by Hyprland at startup, are discoverable by child processes.
 
-After Hyprland is ready, `argvus-sessionctl` starts `argvus-session.target`. This target starts the taskbar, Control Panel, notifications, wallpaper, idle handling, clipboard and related services. It is stopped when Hyprland exits, so these surfaces do not remain as orphaned processes after logout.
+After Hyprland is ready, `argvus-sessionctl` starts `argvus-session.target`. This target starts the taskbar, Control Panel, notifications, wallpaper, idle handling, clipboard, the SSH agent and related services.
+
+`PATH` also gets `~/.local/bin` and `~/.cargo/bin` at the front when those directories exist, so tools installed there are visible to the compositor and services. `EDITOR` and `VISUAL` are set to the default terminal editor from the Control Center default apps (`TERMINAL_EDITOR`), and they are exported to the systemd user manager, D-Bus activation and Hyprland, so terminals and services launched from the session inherit them. The SSH agent (`argvus-ssh-agent.service`, from `openssh`) listens on `$XDG_RUNTIME_DIR/ssh-agent.socket` and publishes `SSH_AUTH_SOCK` to the user manager. When the ARGVUS agent starts, it replaces `SSH_AUTH_SOCK` in the user manager. If another agent such as gnome-keyring or gcr should own the socket, disable the ARGVUS unit with `systemctl --user mask argvus-ssh-agent.service`. It is stopped when Hyprland exits, so these surfaces do not remain as orphaned processes after logout.
 
 The session also imports its Wayland and desktop-environment variables into the systemd user manager. To inspect or reload a running session:
 
