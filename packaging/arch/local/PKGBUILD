@@ -1,7 +1,7 @@
 # Maintainer: William C. Canin
 pkgname=argvus-session
-pkgver=0.3.0
-pkgrel=2
+pkgver=0.1.0
+pkgrel=1
 pkgdesc="Session lifecycle and supervision infrastructure for the Argvus desktop."
 arch=('any')
 url="https://github.com/argvus/argvus-session"
