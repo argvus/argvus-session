@@ -7,7 +7,7 @@ slug: pt/0.4.0/docs/user-guide/sessions/tty-session
 Depois de fazer login em um TTY:
 
 ```sh
-argvus-tty
+argvus --start-desktop
 ```
 
 Esse é o ponto de entrada manual de `argvus-session` e usa o mesmo ciclo de vida de `argvus-start` e dos serviços de usuário. Consulte `argvus-sessionctl status`, `reload` e `logs`.
