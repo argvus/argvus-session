@@ -46,16 +46,92 @@ ensure_theme_effects() {
   done
 }
 
-global_effect_value() {
+# Hyprland blur parameters stored in config.json under effects.blur_*.
+# One entry per line: <key> <minimum> <maximum> <integer|number> <default>.
+# Keys must match effects.json and the schema in argvus-config.
+BLUR_SETTINGS='blur_size 1 64 integer 6
+blur_passes 1 8 integer 2
+blur_brightness 0 2 number 1
+blur_noise 0 1 number 0
+blur_contrast 0 2 number 0.9
+blur_vibrancy 0 1 number 0.1
+blur_vibrancy_darkness 0 1 number 0'
+
+blur_setting_field() {
+  printf '%s\n' "$BLUR_SETTINGS" | awk -v key="$1" -v column="$2" '
+    $1 == key { print $column; found = 1 }
+    END { exit !found }
+  '
+}
+
+# Prints the effective value of a blur parameter when it is a valid number for
+# its field. A missing key (argvus-config prints `null`), a non-number or an
+# out-of-range value falls back to the field's default.
+blur_setting_read() {
   _key="$1"
   if command -v argvus-config >/dev/null 2>&1; then
     _value="$(argvus-config get "/effects/${_key}" --effective --raw 2>/dev/null || true)"
-    case "$_value" in
-      ''|*[!0-9]*) ;;
-      *) [ "$_value" -le 100 ] && { printf '%s\n' "$_value"; return 0; } ;;
-    esac
+    _kind="$(blur_setting_field "$_key" 4)" || return 1
+    _minimum="$(blur_setting_field "$_key" 2)" || return 1
+    _maximum="$(blur_setting_field "$_key" 3)" || return 1
+    if blur_setting_valid "$_kind" "$_minimum" "$_maximum" "$_value"; then
+      printf '%s\n' "$_value"
+      return 0
+    fi
   fi
-  printf '50\n'
+  blur_setting_field "$_key" 5
+}
+
+blur_setting_valid() {
+  _kind="$1"
+  _minimum="$2"
+  _maximum="$3"
+  _value="$4"
+  # JSON rejects leading zeros, and the value is written into a JSON patch.
+  case "$_value" in 0[0-9]*) return 1 ;; esac
+  case "$_kind" in
+    integer) case "$_value" in ''|*[!0-9]*) return 1 ;; esac ;;
+    number) case "$_value" in ''|*[!0-9.]*|.*|*.|*.*.*) return 1 ;; esac ;;
+    *) return 1 ;;
+  esac
+  awk -v v="$_value" -v lo="$_minimum" -v hi="$_maximum" \
+    'BEGIN { exit !(v + 0 >= lo && v + 0 <= hi) }'
+}
+
+# `get` prints key=value lines for every blur parameter. `set key=value ...`
+# validates each pair first and then writes all of them in one config patch, so
+# the Control Center's Apply produces a single reload.
+blur_settings_command() {
+  _operation="${1:-get}"
+  if [ "$#" -gt 0 ]; then shift; fi
+  case "$_operation" in
+    get)
+      printf '%s\n' "$BLUR_SETTINGS" | while read -r _key _minimum _maximum _kind _default; do
+        printf '%s=%s\n' "${_key#blur_}" "$(blur_setting_read "$_key")"
+      done
+      ;;
+    set)
+      [ "$#" -gt 0 ] || exit 64
+      command -v argvus-config >/dev/null 2>&1 || exit 64
+      _json=''
+      for _arg in "$@"; do
+        _name="${_arg%%=*}"
+        _value="${_arg#*=}"
+        [ "$_name" != "$_arg" ] || exit 64
+        _key="blur_${_name}"
+        _kind="$(blur_setting_field "$_key" 4)" || exit 64
+        _minimum="$(blur_setting_field "$_key" 2)" || exit 64
+        _maximum="$(blur_setting_field "$_key" 3)" || exit 64
+        blur_setting_valid "$_kind" "$_minimum" "$_maximum" "$_value" || exit 64
+        _json="${_json:+$_json,}\"/effects/${_key}\":${_value}"
+      done
+      argvus-config patch "{${_json}}" >/dev/null || exit 1
+      request_config_reload || exit 1
+      blur_settings_command get
+      apply_runtime >/dev/null 2>&1 &
+      ;;
+    *) exit 64 ;;
+  esac
 }
 
 global_effect_enabled() {
@@ -569,26 +645,6 @@ surface_value_command() {
   esac
 }
 
-global_value_command() {
-  _key="$1"
-  _operation="${2:-get}"
-  case "$_key" in blur_global_value) ;; *) exit 64 ;; esac
-  case "$_operation" in
-    get) global_effect_value "$_key" ;;
-    set)
-      _value="${3:-}"
-      case "$_value" in ''|*[!0-9]*) exit 64 ;; esac
-      [ "$_value" -le 100 ] || exit 64
-      command -v argvus-config >/dev/null 2>&1 || exit 64
-      argvus-config set "/effects/${_key}" "$_value" || exit 1
-      request_config_reload || exit 1
-      printf '%s\n' "$_value"
-      apply_runtime >/dev/null 2>&1 &
-      ;;
-    *) exit 64 ;;
-  esac
-}
-
 surface_apply_command() {
   _surface="$1"
   _transparency_enabled="$2"
@@ -733,8 +789,9 @@ case "${1:-status}" in
   transparency-value|blur-value)
     surface_value_command "${1%-value}" "${2:-}" "${3:-get}" "${4:-}"
     ;;
-  global-value)
-    global_value_command "${2:-}" "${3:-get}" "${4:-}"
+  blur-settings)
+    shift
+    blur_settings_command "$@"
     ;;
   surface-apply)
     surface_apply_command "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}"
