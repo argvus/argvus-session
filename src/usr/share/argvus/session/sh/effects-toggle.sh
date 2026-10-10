@@ -91,11 +91,6 @@ config_enabled_key() {
     widget-telemetry:transparency) printf '/effects/transparency_widget-telemetry_enabled' ;;
     terminal:transparency) printf '/effects/transparency_terminal_enabled' ;;
     launchers:transparency) printf '/effects/transparency_launchers_enabled' ;;
-    taskbar:blur) printf '/effects/blur_taskbar_enabled' ;;
-    control-panel:blur) printf '/effects/blur_control-panel_enabled' ;;
-    widget-telemetry:blur) printf '/effects/blur_widget-telemetry_enabled' ;;
-    terminal:blur) printf '/effects/blur_terminal_enabled' ;;
-    launchers:blur) printf '/effects/blur_launchers_enabled' ;;
     *) return 1 ;;
   esac
 }
@@ -624,8 +619,6 @@ surface_apply_command() {
     command -v argvus-config >/dev/null 2>&1 || exit 64
     argvus-config set /effects/transparency_terminal_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
     argvus-config set /effects/transparency_terminal_value "$_transparency_value" || exit 1
-    _pointer="$(config_enabled_key terminal blur)"
-    [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_blur_enabled"
     _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)"
     command -v argvus-terminal >/dev/null 2>&1 && argvus-terminal --apply "$_theme" >/dev/null 2>&1 || true
     for _pid in $(pgrep -x kitty 2>/dev/null); do kill -USR1 "$_pid" 2>/dev/null || true; done
@@ -692,8 +685,6 @@ surface_apply_command() {
   [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_transparency_enabled"
   _pointer="$(config_value_key "$_surface")"
   [ -n "$_pointer" ] && config_set_value "$_pointer" "$_transparency_value"
-  _pointer="$(config_enabled_key "$_surface" blur)"
-  [ -n "$_pointer" ] && config_set_flag "$_pointer" "$_blur_enabled"
   request_config_reload || return 1
   apply_taskbar_surface "$(status animations)"
   apply_widget_telemetry_surface
