@@ -46,9 +46,10 @@ ensure_theme_effects() {
   done
 }
 
-# Hyprland blur parameters stored in config.json under effects.blur_*.
-# One entry per line: <key> <minimum> <maximum> <integer|number> <default>.
-# Keys must match effects.json and the schema in argvus-config.
+# Parameter tables for the Blur and Animations pages. One entry per line:
+# <key> <minimum> <maximum> <kind> <default>, where kind is integer, number,
+# boolean or enum:<comma-separated values>. Keys must match effects.json and the
+# schema in argvus-config. Booleans and enums have no bounds (`-`).
 BLUR_SETTINGS='blur_size 1 64 integer 6
 blur_passes 1 8 integer 2
 blur_brightness 0 2 number 1
@@ -57,57 +58,134 @@ blur_contrast 0 2 number 0.9
 blur_vibrancy 0 1 number 0.1
 blur_vibrancy_darkness 0 1 number 0'
 
-blur_setting_field() {
-  printf '%s\n' "$BLUR_SETTINGS" | awk -v key="$1" -v column="$2" '
+ANIMATION_SETTINGS='animation_opening_enabled - - boolean true
+animation_opening_style - - enum:slide,popin,slidefade,slidevert,slidefadevert,gnomed popin
+animation_opening_speed 1 10 number 4.1
+animation_opening_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_opening_popin 1 100 integer 87
+animation_closing_style - - enum:slide,popin,slidefade,slidevert,slidefadevert,gnomed popin
+animation_closing_speed 1 10 number 1.49
+animation_closing_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_closing_popin 1 100 integer 87
+animation_moving_enabled - - boolean true
+animation_moving_speed 1 10 number 4.79
+animation_moving_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_switching_style - - enum:slide,fade,slidefade,slidevert,slidefadevert fade
+animation_switching_speed 1 10 number 1.94
+animation_switching_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_workspace_in_style - - enum:slide,fade,slidefade,slidevert,slidefadevert fade
+animation_workspace_in_speed 1 10 number 1.21
+animation_workspace_in_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_workspace_out_style - - enum:slide,fade,slidefade,slidevert,slidefadevert fade
+animation_workspace_out_speed 1 10 number 1.94
+animation_workspace_out_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_special_workspace_style - - enum:slide,fade,slidefade,slidevert,slidefadevert slide
+animation_special_workspace_speed 1 10 number 5
+animation_special_workspace_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_layers_enabled - - boolean true
+animation_layers_speed 1 10 number 3.81
+animation_layers_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_layers_in_style - - enum:slide,popin,fade,slidefade,slidevert,slidefadevert fade
+animation_layers_in_speed 1 10 number 4
+animation_layers_in_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_layers_out_style - - enum:slide,popin,fade,slidefade,slidevert,slidefadevert fade
+animation_layers_out_speed 1 10 number 1.5
+animation_layers_out_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_fade_enabled - - boolean true
+animation_fade_speed 1 10 number 3.03
+animation_fade_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_fade_in_enabled - - boolean true
+animation_fade_in_speed 1 10 number 1.73
+animation_fade_in_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_fade_out_enabled - - boolean true
+animation_fade_out_speed 1 10 number 1.46
+animation_fade_out_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_border_enabled - - boolean true
+animation_border_speed 1 10 number 5.39
+animation_border_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_border_angle_enabled - - boolean true
+animation_border_angle_speed 1 10 number 5
+animation_border_angle_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_zoom_enabled - - boolean true
+animation_zoom_speed 1 10 number 7
+animation_zoom_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_monitor_added_enabled - - boolean true
+animation_monitor_added_speed 1 10 number 5
+animation_monitor_added_curve - - enum:default,bezier,spring,linear,ease_out default
+animation_bezier_x1 0 1 number 0.23
+animation_bezier_y1 -2 3 number 1
+animation_bezier_x2 0 1 number 0.32
+animation_bezier_y2 -2 3 number 1
+animation_spring_mass 0.5 10 number 1
+animation_spring_stiffness 0.5 2000 number 238.1191
+animation_spring_dampening 0.5 200 number 24.21279333'
+
+# Prints one column of the table row whose key is $2. $1 is the table.
+settings_field() {
+  printf '%s\n' "$1" | awk -v key="$2" -v column="$3" '
     $1 == key { print $column; found = 1 }
     END { exit !found }
   '
 }
 
-# Prints the effective value of a blur parameter when it is a valid number for
-# its field. A missing key (argvus-config prints `null`), a non-number or an
-# out-of-range value falls back to the field's default.
-blur_setting_read() {
-  _key="$1"
+# Prints the effective value of a setting when it is valid for its kind. A
+# missing key (argvus-config prints `null`), a malformed value or one out of
+# range falls back to the default in the table.
+settings_read() {
+  _table="$1"
+  _key="$2"
   if command -v argvus-config >/dev/null 2>&1; then
     _value="$(argvus-config get "/effects/${_key}" --effective --raw 2>/dev/null || true)"
-    _kind="$(blur_setting_field "$_key" 4)" || return 1
-    _minimum="$(blur_setting_field "$_key" 2)" || return 1
-    _maximum="$(blur_setting_field "$_key" 3)" || return 1
-    if blur_setting_valid "$_kind" "$_minimum" "$_maximum" "$_value"; then
+    _kind="$(settings_field "$_table" "$_key" 4)" || return 1
+    _minimum="$(settings_field "$_table" "$_key" 2)" || return 1
+    _maximum="$(settings_field "$_table" "$_key" 3)" || return 1
+    if settings_valid "$_kind" "$_minimum" "$_maximum" "$_value"; then
       printf '%s\n' "$_value"
       return 0
     fi
   fi
-  blur_setting_field "$_key" 5
+  settings_field "$_table" "$_key" 5
 }
 
-blur_setting_valid() {
+settings_valid() {
   _kind="$1"
   _minimum="$2"
   _maximum="$3"
   _value="$4"
-  # JSON rejects leading zeros, and the value is written into a JSON patch.
-  case "$_value" in 0[0-9]*) return 1 ;; esac
   case "$_kind" in
-    integer) case "$_value" in ''|*[!0-9]*) return 1 ;; esac ;;
-    number) case "$_value" in ''|*[!0-9.]*|.*|*.|*.*.*) return 1 ;; esac ;;
+    boolean)
+      case "$_value" in true|false) return 0 ;; *) return 1 ;; esac
+      ;;
+    enum:*)
+      case ",${_kind#enum:}," in *",${_value},"*) return 0 ;; esac
+      return 1
+      ;;
+  esac
+  # JSON rejects leading zeros, and the value is written into a JSON patch.
+  case "$_value" in 0[0-9]*|-0[0-9]*) return 1 ;; esac
+  _digits="${_value#-}"
+  case "$_kind" in
+    integer) case "$_digits" in ''|*[!0-9]*) return 1 ;; esac ;;
+    number) case "$_digits" in ''|*[!0-9.]*|.*|*.|*.*.*) return 1 ;; esac ;;
     *) return 1 ;;
   esac
   awk -v v="$_value" -v lo="$_minimum" -v hi="$_maximum" \
     'BEGIN { exit !(v + 0 >= lo && v + 0 <= hi) }'
 }
 
-# `get` prints key=value lines for every blur parameter. `set key=value ...`
-# validates each pair first and then writes all of them in one config patch, so
-# the Control Center's Apply produces a single reload.
-blur_settings_command() {
+# `get` prints name=value lines for every row of the table, where name is the
+# key without its prefix. `set name=value ...` validates each pair first and then
+# writes all of them in one config patch, so Apply produces a single reload.
+settings_command() {
+  _table="$1"
+  _prefix="$2"
+  shift 2
   _operation="${1:-get}"
   if [ "$#" -gt 0 ]; then shift; fi
   case "$_operation" in
     get)
-      printf '%s\n' "$BLUR_SETTINGS" | while read -r _key _minimum _maximum _kind _default; do
-        printf '%s=%s\n' "${_key#blur_}" "$(blur_setting_read "$_key")"
+      printf '%s\n' "$_table" | while read -r _key _minimum _maximum _kind _default; do
+        printf '%s=%s\n' "${_key#"$_prefix"}" "$(settings_read "$_table" "$_key")"
       done
       ;;
     set)
@@ -118,16 +196,20 @@ blur_settings_command() {
         _name="${_arg%%=*}"
         _value="${_arg#*=}"
         [ "$_name" != "$_arg" ] || exit 64
-        _key="blur_${_name}"
-        _kind="$(blur_setting_field "$_key" 4)" || exit 64
-        _minimum="$(blur_setting_field "$_key" 2)" || exit 64
-        _maximum="$(blur_setting_field "$_key" 3)" || exit 64
-        blur_setting_valid "$_kind" "$_minimum" "$_maximum" "$_value" || exit 64
-        _json="${_json:+$_json,}\"/effects/${_key}\":${_value}"
+        _key="${_prefix}${_name}"
+        _kind="$(settings_field "$_table" "$_key" 4)" || exit 64
+        _minimum="$(settings_field "$_table" "$_key" 2)" || exit 64
+        _maximum="$(settings_field "$_table" "$_key" 3)" || exit 64
+        settings_valid "$_kind" "$_minimum" "$_maximum" "$_value" || exit 64
+        case "$_kind" in
+          enum:*) _literal="\"${_value}\"" ;;
+          *) _literal="$_value" ;;
+        esac
+        _json="${_json:+$_json,}\"/effects/${_key}\":${_literal}"
       done
       argvus-config patch "{${_json}}" >/dev/null || exit 1
       request_config_reload || exit 1
-      blur_settings_command get
+      settings_command "$_table" "$_prefix" get
       apply_runtime >/dev/null 2>&1 &
       ;;
     *) exit 64 ;;
@@ -791,7 +873,11 @@ case "${1:-status}" in
     ;;
   blur-settings)
     shift
-    blur_settings_command "$@"
+    settings_command "$BLUR_SETTINGS" blur_ "$@"
+    ;;
+  animations-settings)
+    shift
+    settings_command "$ANIMATION_SETTINGS" animation_ "$@"
     ;;
   surface-apply)
     surface_apply_command "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}"
