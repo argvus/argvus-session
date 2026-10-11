@@ -437,7 +437,7 @@ theme_background() {
     gruvbox-high-dark|gruvbox-high-dark-float|gruvbox-dark|gruvbox-dark-float) printf '#282828\n' ;;
     solitude|solitude-float) printf '#101315\n' ;;
     sunset|sunset-float) printf '#0F0F0F\n' ;;
-    hackerman|hackerman-float) printf '#0B0C16\n' ;;
+    matrix|matrix-float) printf '#0B0C16\n' ;;
     monokai-dark|monokai-dark-float) printf '#2D2A2E\n' ;;
     one-dark|one-dark-float) printf '#282C34\n' ;;
     *) printf '#111316\n' ;;
