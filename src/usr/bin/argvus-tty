@@ -9,6 +9,8 @@ LOG="$LOG_DIR/tty.log"
 DBUS_SESSION_BUS_ADDRESS_FILE="$STATE_DIR/.dbus-address"
 SESSION_ID_FILE="$STATE_DIR/.logind-session"
 
+ARGVUS_COMMANDS_DIR="${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}"
+
 # shellcheck disable=SC1091
 . /usr/share/argvus/lib/i18n.sh
 
@@ -142,4 +144,4 @@ cleanup() {
 trap cleanup EXIT INT TERM HUP
 
 log "launching argvus-session (VT=${VT:-?})"
-exec argvus-session
+exec "$ARGVUS_COMMANDS_DIR/argvus-session"

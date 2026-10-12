@@ -3,6 +3,7 @@
 # Control the ARGVUS graphical session lifecycle.
 
 set -eu
+ARGVUS_COMMANDS_DIR="${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}"
 
 SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
 CONFIG_HOME="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}"
@@ -229,7 +230,7 @@ reload_runtime_configuration() {
   # A theme transaction already committed and projected modular configuration while it
   # owns theme-switch.lock. Reuse the same runtime half as SUPER+Shift+R,
   # including hyprctl reload and Rofi synchronization, without re-entering
-  # argvus-config project and acquiring the lock in the opposite order.
+  # "$ARGVUS_COMMANDS_DIR/argvus-config" project and acquiring the lock in the opposite order.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     sh "$script" --reload-config
 }
@@ -292,7 +293,7 @@ reload_splash_start() {
     sleep 0.1
     _runtime_wait=$((_runtime_wait + 1))
   done
-  _theme="$(argvus-config get /appearance/theme --effective --raw 2>/dev/null || true)"
+  _theme="$("$ARGVUS_COMMANDS_DIR/argvus-config" get /appearance/theme --effective --raw 2>/dev/null || true)"
   [ -n "$_theme" ] || _theme="argvus-dark"
   _ready_file="${XDG_RUNTIME_DIR:-/tmp}/argvus-loading-theme-ready.$$"
   rm -f "$_ready_file"
@@ -414,7 +415,7 @@ reload_config_transaction() {
   require_systemd
   import_environment
   ARGVUS_CONFIG_SERVICE=1 ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" argvus-config project
+    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" "$ARGVUS_COMMANDS_DIR/argvus-config" project
   apply_config_runtime
 }
 
@@ -561,13 +562,13 @@ persisted_wallpaper() {
     return 0
   fi
 
-  # The canonical document is authoritative after argvus-config projection.
+  # The canonical document is authoritative after "$ARGVUS_COMMANDS_DIR/argvus-config" projection.
   # Keep the file-based fallback below for older installations and custom
   # layouts, but do not let a stale generated hyprpaper.conf win over a newer
   # theme wallpaper.
   if have argvus-config; then
     _canonical_wallpaper="$(
-      ARGVUS_CONFIG_HOME="$CONFIG_HOME" argvus-config get /appearance/wallpaper --raw 2>/dev/null || true
+      ARGVUS_CONFIG_HOME="$CONFIG_HOME" "$ARGVUS_COMMANDS_DIR/argvus-config" get /appearance/wallpaper --raw 2>/dev/null || true
     )"
     if [ -n "$_canonical_wallpaper" ] && [ -f "$_canonical_wallpaper" ]; then
       printf '%s\n' "$_canonical_wallpaper"

@@ -10,8 +10,8 @@ ARGVUS_HYPR_HELPER="${ARGVUS_SYSTEM_CONFIG}/appearance/sh/hypr.sh"
 [ -r "$ARGVUS_HYPR_HELPER" ] && . "$ARGVUS_HYPR_HELPER"
 
 sessionctl() {
-  command -v argvus-sessionctl >/dev/null 2>&1 || return 127
-  argvus-sessionctl "$@"
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ] || return 127
+  "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" "$@"
 }
 
 start_wallpaper() {
@@ -217,8 +217,8 @@ apply_startup_theme() {
 
 apply_display() {
   _mode="$1"
-  if command -v argvus-displayctl >/dev/null 2>&1; then
-    argvus-displayctl "$_mode"
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-displayctl" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-displayctl" "$_mode"
     return $?
   fi
 
@@ -237,7 +237,7 @@ sync_btop_config() {
     _theme="$(sed -n '1p' "$ARGVUS_CONFIG_HOME/argvus/data/.active-theme")"
   fi
 
-  command -v argvus-system-monitor >/dev/null 2>&1 && argvus-system-monitor --apply "$_theme" >/dev/null 2>&1 || true
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-system-monitor" ] && "$ARGVUS_COMMANDS_DIR/argvus-system-monitor" --apply "$_theme" >/dev/null 2>&1 || true
 }
 
 sync_yazi_config() {
@@ -307,10 +307,10 @@ migrate_monitor_state() {
   fi
 
   # Migrate legacy monitors.conf to ARGVUS state (idempotent)
-  if [ -f "$_legacy_monitors" ] && command -v argvus-displayctl >/dev/null 2>&1; then
+  if [ -f "$_legacy_monitors" ] && [ -x "$ARGVUS_COMMANDS_DIR/argvus-displayctl" ]; then
     _state_file="$ARGVUS_CONFIG_HOME/argvus/.monitors"
     if [ ! -f "$_state_file" ] || [ ! -s "$_state_file" ]; then
-      argvus-displayctl --migrate-nwg 2>/dev/null || true
+      "$ARGVUS_COMMANDS_DIR/argvus-displayctl" --migrate-nwg 2>/dev/null || true
     fi
   fi
 }

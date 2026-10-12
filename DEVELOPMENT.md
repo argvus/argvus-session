@@ -48,9 +48,9 @@ make build
 The Arch package installs:
 
 ```text
-/usr/bin/argvus-session
-/usr/bin/argvus-start
-/usr/bin/argvus-tty
+/usr/lib/argvus/commands/argvus-session
+/usr/lib/argvus/commands/argvus-start
+/usr/lib/argvus/commands/argvus-tty
 /usr/share/wayland-sessions/argvus.desktop
 /usr/share/licenses/argvus-session/LICENSE
 ```

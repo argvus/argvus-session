@@ -9,4 +9,4 @@ Before=argvus-wallpaper.service argvus-control-panel.service argvus-taskbar.serv
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/argvus-sessionctl reload-desktop
+ExecStart=/usr/lib/argvus/commands/argvus-sessionctl reload-desktop

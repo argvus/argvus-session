@@ -6,6 +6,9 @@ ARGVUS_CONFIG_HOME="${ARGVUS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}"
 ARGVUS_DATA_HOME="${ARGVUS_DATA_HOME:-${ARGVUS_CONFIG_HOME}/argvus/data}"
 ARGVUS_STATE_HOME="${ARGVUS_STATE_HOME:-${ARGVUS_DATA_HOME}/state}"
 ARGVUS_CACHE_HOME="${ARGVUS_CACHE_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/argvus}"
+# Private ARGVUS executables. Session and login scripts use these absolute
+# paths because they can run before the user PATH is established.
+ARGVUS_COMMANDS_DIR="${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}"
 ENVIRONMENT_ROOT="${ENVIRONMENT_ROOT:-$ARGVUS_SYSTEM_CONFIG/session/sh}"
 
 # -- Cache directories --------------------------------------------------------

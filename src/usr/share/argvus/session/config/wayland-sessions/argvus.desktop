@@ -1,8 +1,8 @@
 [Desktop Entry]
 Name=ARGVUS
 Comment=Argvus Hyprland session
-Exec=argvus-session
-TryExec=argvus-session
+Exec=/usr/lib/argvus/commands/argvus-session
+TryExec=/usr/lib/argvus/commands/argvus-session
 Type=Application
 DesktopNames=Hyprland
 Keywords=tiling;wayland;compositor;

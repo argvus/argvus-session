@@ -45,7 +45,7 @@ arch_package_payload() {
 
 	for executable in argvus-session argvus-sessionctl argvus-start argvus-tty argvus-session-loading; do
 		install -Dm755 "${source_root}/src/usr/bin/${executable}" \
-			"${pkgdir}/usr/bin/${executable}"
+			"${pkgdir}/usr/lib/argvus/commands/${executable}"
 	done
 	install -dm755 "${pkgdir}/usr/share/argvus/session/sh"
 	cp -a "${source_root}/src/usr/share/argvus/session/sh/." \
@@ -59,6 +59,6 @@ arch_package_payload() {
 		"${pkgdir}/usr/share/wayland-sessions/argvus.desktop"
 	install -Dm644 "${source_root}/LICENSE" \
 		"${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
-	find "${pkgdir}/usr/bin" "${pkgdir}/usr/share/argvus/session/sh" \
+	find "${pkgdir}/usr/lib/argvus/commands" "${pkgdir}/usr/share/argvus/session/sh" \
 		-type f -exec chmod 755 {} +
 }

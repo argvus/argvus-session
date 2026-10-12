@@ -8,6 +8,8 @@ LOG="$STATE_DIR/session.log"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 USER_HYPRLAND_LUA="$CONFIG_HOME/hypr/hyprland.lua"
 SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
+
+ARGVUS_COMMANDS_DIR="${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}"
 SYSTEM_HYPRLAND_LUA="$SYSTEM_CONFIG/hyprland/config/hyprland.lua"
 
 # shellcheck disable=SC1091
@@ -36,8 +38,8 @@ log_monotonic "argvus-start entered"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin${PATH:+:$PATH}"
 
 sync_session_environment() {
-  if command -v argvus-sessionctl >/dev/null 2>&1; then
-    argvus-sessionctl import-environment >/dev/null 2>&1 || true
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" import-environment >/dev/null 2>&1 || true
   fi
 }
 
@@ -177,8 +179,8 @@ if ! verify_config "$HYPRLAND_LUA"; then
 fi
 
 stop_session_target() {
-  if command -v argvus-sessionctl >/dev/null 2>&1; then
-    argvus-sessionctl stop >/dev/null 2>&1 || true
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" stop >/dev/null 2>&1 || true
   elif command -v systemctl >/dev/null 2>&1; then
     systemctl --user stop argvus-session.target graphical-session.target >/dev/null 2>&1 || true
   fi

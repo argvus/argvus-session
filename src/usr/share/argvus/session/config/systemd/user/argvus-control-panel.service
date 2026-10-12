@@ -7,6 +7,6 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/argvus-sessionctl run control-panel
+ExecStart=/usr/lib/argvus/commands/argvus-sessionctl run control-panel
 Restart=on-failure
 RestartSec=3s

@@ -7,6 +7,8 @@ STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/argvus"
 LOG="$STATE_DIR/session.log"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 SYSTEM_CONFIG="${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}"
+
+ARGVUS_COMMANDS_DIR="${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}"
 mkdir -p "$STATE_DIR"
 
 log() {
@@ -42,9 +44,9 @@ esac
 export ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG"
 export ARGVUS_CONFIG_HOME="$CONFIG_HOME"
 
-if command -v argvus-sessionctl >/dev/null 2>&1; then
-  argvus-sessionctl import-environment >/dev/null 2>&1 || true
+if [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ]; then
+  "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" import-environment >/dev/null 2>&1 || true
 fi
 
 log "executing argvus-start"
-exec argvus-start
+exec "$ARGVUS_COMMANDS_DIR/argvus-start"

@@ -7,8 +7,8 @@ Conflicts=dunst.service
 
 [Service]
 Type=simple
-ExecStartPre=-/usr/bin/argvus-notifications theme restore
-ExecStart=/usr/bin/argvus-sessionctl run dunst
-ExecStartPost=-/usr/bin/argvus-notifications dnd restore
+ExecStartPre=-/usr/lib/argvus/commands/argvus-notifications theme restore
+ExecStart=/usr/lib/argvus/commands/argvus-sessionctl run dunst
+ExecStartPost=-/usr/lib/argvus/commands/argvus-notifications dnd restore
 Restart=on-failure
 RestartSec=2s

@@ -1,8 +1,9 @@
 # shellcheck shell=sh
+ARGVUS_COMMANDS_DIR="${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}"
 
 locale_detect() {
-  if command -v argvus-i18n >/dev/null 2>&1; then
-    argvus-i18n locale
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-i18n" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-i18n" locale
     return
   fi
   case "$LC_ALL:$LC_MESSAGES:$LANG" in
@@ -19,8 +20,8 @@ locale_is_pt() {
 }
 
 argvus_tr() {
-  if command -v argvus-i18n >/dev/null 2>&1; then
-    argvus-i18n get "$@"
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-i18n" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-i18n" get "$@"
     return
   fi
   printf '%s\n' "$2"

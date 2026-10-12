@@ -25,7 +25,7 @@ argvus-session
         |-- prepare ARGVUS/XDG environment
         |-- synchronize systemd and DBus activation environment
         v
-argvus-start
+argvus start
         |
         |-- verify user Hyprland config or packaged fallback
         |-- apply VM workarounds
@@ -53,32 +53,32 @@ argvus-session.target
         `-- argvus-keyboard-layout.service
 ```
 
-`argvus-start` starts `argvus-session-loading.service` before launching
+`argvus start` starts `argvus-session-loading.service` before launching
 Hyprland. The helper waits for the new Wayland socket without delaying the
 compositor, then starts the normal `--spinner-only` GTK layer-shell overlay.
 The existing `hyprland.start` readiness bridge stops that unit, so SIGTERM
 remains the sole mechanism that removes the spinner after desktop startup.
 
-Hyprland remains launched by `argvus-start` instead of being moved under
+Hyprland remains launched by `argvus start` instead of being moved under
 `systemd --user` directly. This preserves the current greetd/display-manager/TTY
 paths, `start-hyprland` compatibility, Lua config verification, VM detection,
 user config override, and packaged fallback behavior. The Hyprland Lua
 `hyprland.start` event is only a readiness bridge that runs
-`argvus-sessionctl ready`.
+`argvus sessionctl ready`.
 
 `argvus-waybar-sysinfo.service` is intentionally opt-in. It is started by the
 shell/sysinfo toggle only after the user enables it, and future logins start it
 again only while that saved state remains enabled. This avoids a second polling
 Waybar process during default login.
 
-When `argvus-start` detects a virtual machine, it exports `ARGVUS_LOW_POWER=1`
+When `argvus start` detects a virtual machine, it exports `ARGVUS_LOW_POWER=1`
 and software-rendering compatibility variables. The packaged Hyprland config
 uses that mode to disable blur, shadows, and animations for VM sessions. The
 interactive visual settings are persisted independently in
 `$XDG_CONFIG_HOME/argvus/data/state/animations` and
 `$XDG_CONFIG_HOME/argvus/data/state/transparency`.
 
-When Hyprland exits, `argvus-start` stops `argvus-session.target`, asks
+When Hyprland exits, `argvus start` stops `argvus-session.target`, asks
 `graphical-session.target` to stop if active, then exits with Hyprland's exit
 status. Services with `PartOf=argvus-session.target graphical-session.target`
 are stopped as part of logout so ARGVUS-owned panels, daemons, applets, and
@@ -87,21 +87,21 @@ clipboard watchers do not survive the session.
 ## Commands
 
 ```sh
-argvus-sessionctl start
-argvus-sessionctl stop
-argvus-sessionctl restart
-argvus-sessionctl reload
-argvus-sessionctl status
-argvus-sessionctl logs
+argvus sessionctl start
+argvus sessionctl stop
+argvus sessionctl restart
+argvus sessionctl reload
+argvus sessionctl status
+argvus sessionctl logs
 ```
 
 Useful component restarts:
 
 ```sh
-argvus-sessionctl restart waybar
-argvus-sessionctl restart wallpaper
-argvus-sessionctl restart dunst shell snappy-switcher
-argvus-sessionctl restart clipboard keyboard-layout blueman-applet
+argvus sessionctl restart waybar
+argvus sessionctl restart wallpaper
+argvus sessionctl restart dunst shell snappy-switcher
+argvus sessionctl restart clipboard keyboard-layout blueman-applet
 ```
 
 `reload` re-applies mutable ARGVUS state through component-owned one-shot
@@ -115,7 +115,7 @@ Bluetooth power/status is surfaced by `argvus-network` commands consumed by the
 
 ## Environment
 
-`argvus-session` and `argvus-start` preserve the existing ARGVUS environment:
+`argvus-session` and `argvus start` preserve the existing ARGVUS environment:
 
 - `ARGVUS_CONFIG_HOME`
 - `ARGVUS_SYSTEM_CONFIG`
@@ -127,7 +127,7 @@ Bluetooth power/status is surfaced by `argvus-network` commands consumed by the
 - `DESKTOP_SESSION=argvus`
 - `GDMSESSION=argvus`
 
-`argvus-sessionctl import-environment` synchronizes these values, plus Wayland,
+`argvus sessionctl import-environment` synchronizes these values, plus Wayland,
 Hyprland, Qt, cursor, and DBus variables, into `systemd --user` and DBus
 activation with `systemctl --user import-environment` and
 `dbus-update-activation-environment --systemd` when available.
@@ -146,9 +146,9 @@ with the ARGVUS session. ARGVUS does not start a second agent instance.
 ```text
 src/usr/bin/
   argvus-session
-  argvus-start
-  argvus-tty
-  argvus-sessionctl
+  argvus start
+  argvus tty
+  argvus sessionctl
 src/usr/share/argvus/session/
   config/systemd/user/argvus-session.target
   config/wayland-sessions/argvus.desktop

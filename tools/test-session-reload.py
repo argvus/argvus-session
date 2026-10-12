@@ -9,12 +9,21 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+
+def mock_dbus_helper(mockbin):
+    """Stub the real dbus helper; it would export test paths to systemd."""
+    dbus = mockbin / "dbus-update-activation-environment"
+    dbus.write_text("#!/bin/sh\nexit 0\n")
+    dbus.chmod(0o755)
+
+
 class ReloadTests(unittest.TestCase):
     def test_prepare_uses_systemd_dependency_without_waiting_on_itself(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             mockbin = base / "bin"
             mockbin.mkdir()
+            mock_dbus_helper(mockbin)
             systemctl = mockbin / "systemctl"
             systemctl.write_text(
                 '#!/bin/sh\n'
@@ -49,6 +58,7 @@ class ReloadTests(unittest.TestCase):
             base = Path(directory)
             mockbin = base / "bin"
             mockbin.mkdir()
+            mock_dbus_helper(mockbin)
             systemctl = mockbin / "systemctl"
             systemctl.write_text(
                 '#!/bin/sh\n'
@@ -83,6 +93,7 @@ class ReloadTests(unittest.TestCase):
             base = Path(directory)
             mockbin = base / "bin"
             mockbin.mkdir()
+            mock_dbus_helper(mockbin)
             for name in ("systemctl", "dbus-update-activation-environment"):
                 command = mockbin / name
                 command.write_text(
@@ -118,6 +129,7 @@ class ReloadTests(unittest.TestCase):
                 base = Path(directory)
                 mockbin = base / "bin"
                 mockbin.mkdir()
+                mock_dbus_helper(mockbin)
                 for name in ("systemctl", "dbus-update-activation-environment"):
                     command = mockbin / name
                     command.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$TEST_LOG"\n')
@@ -157,6 +169,7 @@ class ReloadTests(unittest.TestCase):
             base = Path(directory)
             mockbin = base / "bin"
             mockbin.mkdir()
+            mock_dbus_helper(mockbin)
             systemctl = mockbin / "systemctl"
             systemctl.write_text(
                 '#!/bin/sh\n'

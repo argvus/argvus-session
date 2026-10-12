@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+ARGVUS_COMMANDS_DIR="${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}"
 
 # shellcheck disable=SC1091
 ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}/session/sh/bootstrap.sh}"
@@ -129,13 +130,13 @@ settings_field() {
 }
 
 # Prints the effective value of a setting when it is valid for its kind. A
-# missing key (argvus-config prints `null`), a malformed value or one out of
+# missing key ("$ARGVUS_COMMANDS_DIR/argvus-config" prints `null`), a malformed value or one out of
 # range falls back to the default in the table.
 settings_read() {
   _table="$1"
   _key="$2"
-  if command -v argvus-config >/dev/null 2>&1; then
-    _value="$(argvus-config get "/effects/${_key}" --effective --raw 2>/dev/null || true)"
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ]; then
+    _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get "/effects/${_key}" --effective --raw 2>/dev/null || true)"
     _kind="$(settings_field "$_table" "$_key" 4)" || return 1
     _minimum="$(settings_field "$_table" "$_key" 2)" || return 1
     _maximum="$(settings_field "$_table" "$_key" 3)" || return 1
@@ -190,7 +191,7 @@ settings_command() {
       ;;
     set)
       [ "$#" -gt 0 ] || exit 64
-      command -v argvus-config >/dev/null 2>&1 || exit 64
+      [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || exit 64
       _json=''
       for _arg in "$@"; do
         _name="${_arg%%=*}"
@@ -207,7 +208,7 @@ settings_command() {
         esac
         _json="${_json:+$_json,}\"/effects/${_key}\":${_literal}"
       done
-      argvus-config patch "{${_json}}" >/dev/null || exit 1
+      "$ARGVUS_COMMANDS_DIR/argvus-config" patch "{${_json}}" >/dev/null || exit 1
       request_config_reload || exit 1
       settings_command "$_table" "$_prefix" get
       apply_runtime >/dev/null 2>&1 &
@@ -217,8 +218,8 @@ settings_command() {
 }
 
 global_effect_enabled() {
-  if command -v argvus-config >/dev/null 2>&1; then
-    _value="$(argvus-config get /effects/blur_global_enabled --effective --raw 2>/dev/null || true)"
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ]; then
+    _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get /effects/blur_global_enabled --effective --raw 2>/dev/null || true)"
     case "$_value" in
       true|enabled) printf 'enabled\n'; return 0 ;;
       false|disabled) printf 'disabled\n'; return 0 ;;
@@ -256,8 +257,8 @@ config_enabled_key() {
 # Reads a raw effective value straight from the modular store. Returns a failure when
 # the tool is unavailable so callers can fall back to the effects projection.
 config_get_raw() {
-  command -v argvus-config >/dev/null 2>&1 || return 1
-  _value="$(argvus-config get "$1" --effective --raw 2>/dev/null || true)"
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || return 1
+  _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get "$1" --effective --raw 2>/dev/null || true)"
   [ -n "$_value" ] || return 1
   printf '%s\n' "$_value"
 }
@@ -307,20 +308,20 @@ effect_enabled() {
 }
 
 # Persists a modular effect value when the surface owns one. Failures are
-# tolerated so the per-theme projection still works while argvus-config is
+# tolerated so the per-theme projection still works while "$ARGVUS_COMMANDS_DIR/argvus-config" is
 # temporarily unavailable.
 config_set_value() {
   _pointer="$1"
   _value="$2"
-  command -v argvus-config >/dev/null 2>&1 || return 0
-  argvus-config set "$_pointer" "$_value" >/dev/null 2>&1 || true
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || return 0
+  "$ARGVUS_COMMANDS_DIR/argvus-config" set "$_pointer" "$_value" >/dev/null 2>&1 || true
 }
 
 config_set_flag() {
   _pointer="$1"
   _status="$2"
-  command -v argvus-config >/dev/null 2>&1 || return 0
-  argvus-config set "$_pointer" "$([ "$_status" = enabled ] && printf true || printf false)" >/dev/null 2>&1 || true
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || return 0
+  "$ARGVUS_COMMANDS_DIR/argvus-config" set "$_pointer" "$([ "$_status" = enabled ] && printf true || printf false)" >/dev/null 2>&1 || true
 }
 
 request_config_reload() {
@@ -569,8 +570,8 @@ legacy_status() {
 
 canonical_status() {
   _component="$1"
-  command -v argvus-config >/dev/null 2>&1 || return 1
-  _value="$(argvus-config get "/effects/${_component}" --effective --raw 2>/dev/null || true)"
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || return 1
+  _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get "/effects/${_component}" --effective --raw 2>/dev/null || true)"
   case "$_value" in
     true|enabled) printf 'enabled\n' ;;
     false|disabled) printf 'disabled\n' ;;
@@ -580,8 +581,8 @@ canonical_status() {
 
 canonical_explicit_status() {
   _component="$1"
-  command -v argvus-config >/dev/null 2>&1 || return 1
-  _value="$(argvus-config get "/effects/${_component}" --raw 2>/dev/null || true)"
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || return 1
+  _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get "/effects/${_component}" --raw 2>/dev/null || true)"
   case "$_value" in
     true|enabled) printf 'enabled\n' ;;
     false|disabled) printf 'disabled\n' ;;
@@ -610,18 +611,18 @@ apply_runtime() {
     hyprctl reload >/dev/null 2>&1 || true
   fi
 
-  if command -v argvus-sessionctl >/dev/null 2>&1; then
-    argvus-sessionctl restart waybar >/dev/null 2>&1 || true
-    argvus-sessionctl restart dunst >/dev/null 2>&1 || true
-    argvus-sessionctl restart control-panel >/dev/null 2>&1 || true
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" restart waybar >/dev/null 2>&1 || true
+    "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" restart dunst >/dev/null 2>&1 || true
+    "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" restart control-panel >/dev/null 2>&1 || true
   fi
 
-  command -v argvus-taskbar-calendar >/dev/null 2>&1 && argvus-taskbar-calendar reload >/dev/null 2>&1 || true
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-taskbar-calendar" ] && "$ARGVUS_COMMANDS_DIR/argvus-taskbar-calendar" reload >/dev/null 2>&1 || true
 
   # Kitty keeps its own background alpha in the generated config. Rebuild it
   # after changing the shared effects state and ask running instances to reload.
-  if command -v argvus-terminal >/dev/null 2>&1; then
-    argvus-terminal --apply "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)" >/dev/null 2>&1 || true
+  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-terminal" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-terminal" --apply "$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)" >/dev/null 2>&1 || true
     for _pid in $(pgrep -x kitty 2>/dev/null); do
       kill -USR1 "$_pid" 2>/dev/null || true
     done
@@ -632,7 +633,7 @@ apply_runtime() {
 # asks running instances to reload it. Kitty rebuilds the generated config on
 # SIGUSR1, so the transparency and blur settings apply live.
 rematerialize_control_center() {
-  command -v argvus-tui-terminal >/dev/null 2>&1 && argvus-tui-terminal --materialize-kitty --profile control-center --class argvus-control-center >/dev/null 2>&1 || true
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-tui-terminal" ] && "$ARGVUS_COMMANDS_DIR/argvus-tui-terminal" --materialize-kitty --profile control-center --class argvus-control-center >/dev/null 2>&1 || true
   for _pid in $(pgrep -x kitty 2>/dev/null); do
     kill -USR1 "$_pid" 2>/dev/null || true
   done
@@ -641,16 +642,16 @@ rematerialize_control_center() {
 set_status() {
   _component="$1"
   _status="$2"
-  if [ "$_component" = blur ] && command -v argvus-config >/dev/null 2>&1; then
-    argvus-config set /effects/blur_global_enabled "$([ "$_status" = enabled ] && printf true || printf false)"
+  if [ "$_component" = blur ] && [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/blur_global_enabled "$([ "$_status" = enabled ] && printf true || printf false)"
     request_config_reload || return 1
     apply_surfaces "$(status transparency)" "$(status animations)"
     printf '%s\n' "$_status"
     apply_runtime >/dev/null 2>&1 &
     return 0
   fi
-  if [ "$_component" = animations ] && command -v argvus-config >/dev/null 2>&1; then
-    argvus-config set /effects/animations "$([ "$_status" = enabled ] && printf true || printf false)"
+  if [ "$_component" = animations ] && [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ]; then
+    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/animations "$([ "$_status" = enabled ] && printf true || printf false)"
     request_config_reload || return 1
     _state_file="$(state_file "$_component")"
     mkdir -p "${_state_file%/*}"
@@ -693,8 +694,8 @@ surface_value_command() {
     [ "$_kind" = transparency ] || exit 64
     case "$_operation" in
       get)
-        command -v argvus-config >/dev/null 2>&1 || exit 64
-        _value="$(argvus-config get /effects/transparency_control-center_value --effective --raw 2>/dev/null || true)"
+        [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || exit 64
+        _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get /effects/transparency_control-center_value --effective --raw 2>/dev/null || true)"
         case "$_value" in
           ''|*[!0-9]*) printf '50\n' ;;
           *) [ "$_value" -le 100 ] && printf '%s\n' "$_value" || printf '50\n' ;;
@@ -703,8 +704,8 @@ surface_value_command() {
       set)
         case "${4:-}" in ''|*[!0-9]*) exit 64 ;; esac
         [ "${4:-}" -le 100 ] || exit 64
-        command -v argvus-config >/dev/null 2>&1 || exit 64
-        argvus-config set /effects/transparency_control-center_value "${4:-}" || exit 1
+        [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || exit 64
+        "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/transparency_control-center_value "${4:-}" || exit 1
         request_config_reload || exit 1
         rematerialize_control_center
         printf '%s\n' "${4:-}"
@@ -744,21 +745,21 @@ surface_apply_command() {
   [ "$_transparency_value" -le 100 ] || exit 64
   [ "$_blur_value" -le 100 ] || exit 64
   if [ "$_surface" = control-center ]; then
-    command -v argvus-config >/dev/null 2>&1 || exit 64
-    argvus-config set /effects/transparency_control-center_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
-    argvus-config set /effects/transparency_control-center_value "$_transparency_value" || exit 1
-    argvus-config set /effects/blur_control-center_enabled "$([ "$_blur_enabled" = enabled ] && printf true || printf false)" || exit 1
+    [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || exit 64
+    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/transparency_control-center_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
+    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/transparency_control-center_value "$_transparency_value" || exit 1
+    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/blur_control-center_enabled "$([ "$_blur_enabled" = enabled ] && printf true || printf false)" || exit 1
     request_config_reload || exit 1
     rematerialize_control_center
     printf '%s\n' "$_transparency_value"
     exit 0
   fi
   if [ "$_surface" = terminal ]; then
-    command -v argvus-config >/dev/null 2>&1 || exit 64
-    argvus-config set /effects/transparency_terminal_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
-    argvus-config set /effects/transparency_terminal_value "$_transparency_value" || exit 1
+    [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || exit 64
+    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/transparency_terminal_enabled "$([ "$_transparency_enabled" = enabled ] && printf true || printf false)" || exit 1
+    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/transparency_terminal_value "$_transparency_value" || exit 1
     _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)"
-    command -v argvus-terminal >/dev/null 2>&1 && argvus-terminal --apply "$_theme" >/dev/null 2>&1 || true
+    [ -x "$ARGVUS_COMMANDS_DIR/argvus-terminal" ] && "$ARGVUS_COMMANDS_DIR/argvus-terminal" --apply "$_theme" >/dev/null 2>&1 || true
     for _pid in $(pgrep -x kitty 2>/dev/null); do kill -USR1 "$_pid" 2>/dev/null || true; done
     request_config_reload || exit 1
     printf '%s\n' "$_transparency_value"
@@ -828,9 +829,9 @@ surface_apply_command() {
   apply_widget_telemetry_surface
   if command -v hyprctl >/dev/null 2>&1; then hyprctl reload >/dev/null 2>&1 || true; fi
   case "$_surface" in
-    taskbar) command -v argvus-sessionctl >/dev/null 2>&1 && argvus-sessionctl restart waybar >/dev/null 2>&1 || true ;;
-    widget-telemetry) command -v argvus-sessionctl >/dev/null 2>&1 && argvus-sessionctl restart widget-telemetry >/dev/null 2>&1 || true ;;
-    control-panel) command -v argvus-sessionctl >/dev/null 2>&1 && argvus-sessionctl restart control-panel >/dev/null 2>&1 || true ;;
+    taskbar) [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ] && "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" restart waybar >/dev/null 2>&1 || true ;;
+    widget-telemetry) [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ] && "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" restart widget-telemetry >/dev/null 2>&1 || true ;;
+    control-panel) [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ] && "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" restart control-panel >/dev/null 2>&1 || true ;;
   esac
 }
 
@@ -886,8 +887,8 @@ case "${1:-status}" in
     case "${2:-}" in
       taskbar|control-panel|widget-telemetry|terminal|launchers) effect_enabled "${2}.${3:-}" ;;
       control-center)
-        command -v argvus-config >/dev/null 2>&1 || exit 64
-        _value="$(argvus-config get "/effects/${3:-}_control-center_enabled" --effective --raw 2>/dev/null || true)"
+        [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || exit 64
+        _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get "/effects/${3:-}_control-center_enabled" --effective --raw 2>/dev/null || true)"
         case "$_value" in
           true|enabled) printf 'enabled\n' ;;
           false|disabled) printf 'disabled\n' ;;
