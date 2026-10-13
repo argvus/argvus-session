@@ -47,6 +47,7 @@ argvus-session.target
         |-- argvus-dunst.service
         |-- argvus-hypridle.service
         |-- argvus-polkit.service
+        |-- argvus-secret-service.service
         |-- argvus-snappy-switcher.service
         |-- argvus-clipboard-text.service
         |-- argvus-clipboard-image.service
@@ -140,6 +141,14 @@ their upstream DBus/systemd activation path.
 PolicyKit is integrated through `argvus-polkit.service`, which requests the
 upstream `hyprpolkitagent.service` when that user unit is installed and stops it
 with the ARGVUS session. ARGVUS does not start a second agent instance.
+
+## Secret Service
+
+`argvus-secret-service.service` starts the upstream `gnome-keyring` daemon
+(`secrets` component only) when `gnome-keyring` is installed, and stops it with
+the session. `argvus sessionctl secret-service-status` reports its state. The
+provider is optional and does not change PAM; see the graphical session docs
+for unlock behavior and how to mask the unit to use another provider.
 
 ## Layout
 

@@ -669,6 +669,9 @@ restart_components() {
       polkit|policykit)
         units="$units argvus-polkit.service"
         ;;
+      secret-service|keyring|gnome-keyring)
+        units="$units argvus-secret-service.service"
+        ;;
       *)
         warn "$(argvus_tr session error.unknown_component "component=$component")"
         exit 64
@@ -822,6 +825,42 @@ stop_polkit() {
   fi
 }
 
+start_secret_service() {
+  require_systemd
+  if ! have gnome-keyring-daemon; then
+    log "secret service: gnome-keyring-daemon is not installed; skipping"
+    exit 0
+  fi
+  systemctl --user start gnome-keyring-daemon.service
+}
+
+stop_secret_service() {
+  user_systemd_available || exit 0
+  systemctl --user stop gnome-keyring-daemon.service >/dev/null 2>&1 || true
+}
+
+# Reports the provider state without activating it: listing acquired names
+# never starts a D-Bus-activatable service, unlike querying the name directly.
+secret_service_status() {
+  if ! have gnome-keyring-daemon; then
+    argvus_tr session secret_service.missing
+    return 0
+  fi
+  if ! busctl --user --no-pager --acquired list 2>/dev/null |
+    awk '$1 == "org.freedesktop.secrets" { found = 1 } END { exit !found }'; then
+    argvus_tr session secret_service.stopped
+    return 0
+  fi
+  _locked="$(busctl --user --no-pager get-property org.freedesktop.secrets \
+    /org/freedesktop/secrets/collection/login \
+    org.freedesktop.Secret.Collection Locked 2>/dev/null || true)"
+  case "$_locked" in
+    "b true") argvus_tr session secret_service.locked ;;
+    "b false") argvus_tr session secret_service.unlocked ;;
+    *) argvus_tr session secret_service.running ;;
+  esac
+}
+
 usage() {
   argvus_tr session usage.sessionctl
   argvus_tr session usage.commands
@@ -836,6 +875,7 @@ usage() {
   argvus_tr session usage.logs
   argvus_tr session usage.widget_telemetry
   argvus_tr session usage.widget_telemetry_help
+  argvus_tr session usage.secret_service_status
 }
 
 case "${1:-}" in
@@ -894,6 +934,15 @@ case "${1:-}" in
     ;;
   stop-polkit)
     stop_polkit
+    ;;
+  start-secret-service)
+    start_secret_service
+    ;;
+  stop-secret-service)
+    stop_secret_service
+    ;;
+  secret-service-status)
+    secret_service_status
     ;;
   -h|--help|help|'')
     usage
