@@ -90,7 +90,7 @@ set_gsettings() {
   if command -v icon_theme_effective >/dev/null 2>&1; then
     _icon_theme="$(icon_theme_effective)"
   else
-    _icon_theme="Argvus Icons"
+    _icon_theme="Argvus Dark Icons"
   fi
   if command -v gsettings >/dev/null 2>&1; then
     if
