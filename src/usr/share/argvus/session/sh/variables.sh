@@ -19,7 +19,6 @@ WAYBAR_CACHE_DIR="${ARGVUS_CACHE_HOME}/waybar"
 # Button Layout restored usage: appmenu:minimize,maximize,close
 BUTTON_LAYOUT=":"
 GTK_THEME="Adwaita-dark"
-ICON_THEME="Yaru-prussiangreen-dark"
 GTK_CURSOR="Adwaita"
 
 # -- Application defaults -----------------------------------------------------

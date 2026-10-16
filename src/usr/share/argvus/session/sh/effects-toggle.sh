@@ -6,7 +6,8 @@ ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}
 . "$ARGVUS_BOOTSTRAP"
 ARGVUS_MUTABLE_CONFIG=1
 
-LEGACY_STATE_FILE="$(paths_state effects)"
+# Every transparency surface that the Enable/Disable commands switch.
+TRANSPARENCY_SURFACES="taskbar control-panel widget-telemetry terminal launchers control-center"
 
 active_theme() {
   _theme="$(sed -n '1p' "${ARGVUS_CONFIG_HOME}/argvus/data/.active-theme" 2>/dev/null || true)"
@@ -225,7 +226,7 @@ global_effect_enabled() {
       false|disabled) printf 'disabled\n'; return 0 ;;
     esac
   fi
-  legacy_status
+  default_status
 }
 
 # Canonical modular effect pointers per surface. The transparency value and
@@ -301,6 +302,9 @@ effect_enabled() {
       case "$1" in
         taskbar.transparency|control-panel.transparency|widget-telemetry.transparency|\
         taskbar.blur|control-panel.blur|widget-telemetry.blur) printf 'enabled\n' ;;
+        # A per-surface transparency switch must not fall back to the
+        # aggregate status: that would call back into effect_enabled forever.
+        *.transparency) default_status ;;
         *) status "${1#*.}" ;;
       esac
       ;;
@@ -371,9 +375,6 @@ ensure_waybar_namespace() {
   fi
 }
 
-state_file() {
-  paths_state "$1"
-}
 
 detect_vm() {
   if command -v systemd-detect-virt >/dev/null 2>&1; then
@@ -561,12 +562,6 @@ default_status() {
   fi
 }
 
-legacy_status() {
-  case "$(sed -n '1p' "$LEGACY_STATE_FILE" 2>/dev/null || true)" in
-    enabled|disabled) sed -n '1p' "$LEGACY_STATE_FILE" ;;
-    *) default_status ;;
-  esac
-}
 
 canonical_status() {
   _component="$1"
@@ -579,31 +574,23 @@ canonical_status() {
   esac
 }
 
-canonical_explicit_status() {
-  _component="$1"
-  [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] || return 1
-  _value="$("$ARGVUS_COMMANDS_DIR/argvus-config" get "/effects/${_component}" --raw 2>/dev/null || true)"
-  case "$_value" in
-    true|enabled) printf 'enabled\n' ;;
-    false|disabled) printf 'disabled\n' ;;
-    *) return 1 ;;
-  esac
-}
 
 status() {
   _component="$1"
-  [ "$_component" = blur ] && { global_effect_enabled; return; }
-  # Animations are canonical in the modular store. The legacy state file remains a
-  # migration fallback only, so a stale generated marker can never override
-  # the Control Center/Control Panel setting.
-  if [ "$_component" = animations ] && canonical_explicit_status "$_component"; then
-    return 0
-  fi
-  _state_file="$(state_file "$_component")"
-  case "$(sed -n '1p' "$_state_file" 2>/dev/null || true)" in
-    enabled|disabled) sed -n '1p' "$_state_file" ;;
-    *) canonical_status "$_component" || legacy_status ;;
+  case "$_component" in
+    blur) global_effect_enabled ;;
+    transparency) transparency_status ;;
+    *) canonical_status "$_component" || default_status ;;
   esac
+}
+
+# Transparency is one switch per surface in argvus-config. The aggregate is
+# enabled only when every surface is enabled.
+transparency_status() {
+  for _surface in $TRANSPARENCY_SURFACES; do
+    [ "$(effect_enabled "$_surface.transparency")" = enabled ] || { printf 'disabled\n'; return 0; }
+  done
+  printf 'enabled\n'
 }
 
 apply_runtime() {
@@ -642,44 +629,47 @@ rematerialize_control_center() {
 set_status() {
   _component="$1"
   _status="$2"
-  if [ "$_component" = blur ] && [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ]; then
-    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/blur_global_enabled "$([ "$_status" = enabled ] && printf true || printf false)"
-    request_config_reload || return 1
-    apply_surfaces "$(status transparency)" "$(status animations)"
-    printf '%s\n' "$_status"
-    apply_runtime >/dev/null 2>&1 &
-    return 0
-  fi
-  if [ "$_component" = animations ] && [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ]; then
-    "$ARGVUS_COMMANDS_DIR/argvus-config" set /effects/animations "$([ "$_status" = enabled ] && printf true || printf false)"
-    request_config_reload || return 1
-    _state_file="$(state_file "$_component")"
-    mkdir -p "${_state_file%/*}"
-    printf '%s\n' "$_status" > "$_state_file"
-    apply_surfaces "$(status transparency)" "$_status"
-    printf '%s\n' "$_status"
-    apply_runtime >/dev/null 2>&1 &
-    return 0
-  fi
-  _state_file="$(state_file "$_component")"
-  mkdir -p "${_state_file%/*}"
-  printf '%s\n' "$_status" > "$_state_file"
+  require_config || return 1
+  case "$_component" in
+    blur) write_flag /effects/blur_global_enabled "$_status" || return 1 ;;
+    animations) write_flag /effects/animations "$_status" || return 1 ;;
+    transparency) write_transparency "$_status" || return 1 ;;
+    *) return 64 ;;
+  esac
+  request_config_reload || return 1
   apply_surfaces "$(status transparency)" "$(status animations)"
   printf '%s\n' "$_status"
   apply_runtime >/dev/null 2>&1 &
 }
 
-set_legacy_status() {
+# Enable/Disable without a component switches animations, transparency and
+# blur together, in one reload.
+set_all_status() {
   _status="$1"
-  mkdir -p "${LEGACY_STATE_FILE%/*}"
-  printf '%s\n' "$_status" > "$(state_file animations)"
-  printf '%s\n' "$_status" > "$(state_file transparency)"
-  printf '%s\n' "$_status" > "$(state_file blur)"
-  config_set_flag /effects/animations "$_status"
+  require_config || return 1
+  write_flag /effects/animations "$_status" || return 1
+  write_flag /effects/blur_global_enabled "$_status" || return 1
+  write_transparency "$_status" || return 1
   request_config_reload || return 1
   apply_surfaces "$_status" "$_status"
   printf '%s\n' "$_status"
   apply_runtime >/dev/null 2>&1 &
+}
+
+require_config() {
+  [ -x "$ARGVUS_COMMANDS_DIR/argvus-config" ] && return 0
+  printf '%s\n' 'argvus-config is required to change effects' >&2
+  return 1
+}
+
+write_flag() {
+  "$ARGVUS_COMMANDS_DIR/argvus-config" set "$1" "$([ "$2" = enabled ] && printf true || printf false)" >/dev/null 2>&1
+}
+
+write_transparency() {
+  for _surface in $TRANSPARENCY_SURFACES; do
+    write_flag "/effects/transparency_${_surface}_enabled" "$1" || return 1
+  done
 }
 
 surface_value_command() {
@@ -910,10 +900,10 @@ case "${1:-status}" in
     fi
     ;;
   enable|on|enabled)
-    set_legacy_status enabled
+    set_all_status enabled
     ;;
   disable|off|disabled)
-    set_legacy_status disabled
+    set_all_status disabled
     ;;
   toggle)
     # Keep the legacy shortcut semantic focused on animations. Explicit old

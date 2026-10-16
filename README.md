@@ -75,9 +75,11 @@ Waybar process during default login.
 When `argvus start` detects a virtual machine, it exports `ARGVUS_LOW_POWER=1`
 and software-rendering compatibility variables. The packaged Hyprland config
 uses that mode to disable blur, shadows, and animations for VM sessions. The
-interactive visual settings are persisted independently in
-`$XDG_CONFIG_HOME/argvus/data/state/animations` and
-`$XDG_CONFIG_HOME/argvus/data/state/transparency`.
+interactive visual settings are persisted independently in argvus-config as
+`/effects/animations`, `/effects/blur_global_enabled` and one
+`/effects/transparency_<surface>_enabled` switch per surface. The former
+`data/state/animations` and `data/state/transparency` files are no longer read
+or written.
 
 When Hyprland exits, `argvus start` stops `argvus-session.target`, asks
 `graphical-session.target` to stop if active, then exits with Hyprland's exit

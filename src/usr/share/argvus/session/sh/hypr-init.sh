@@ -9,6 +9,11 @@ ARGVUS_BOOTSTRAP="${ARGVUS_BOOTSTRAP:-${ARGVUS_SYSTEM_CONFIG:-/usr/share/argvus}
 ARGVUS_HYPR_HELPER="${ARGVUS_SYSTEM_CONFIG}/appearance/sh/hypr.sh"
 [ -r "$ARGVUS_HYPR_HELPER" ] && . "$ARGVUS_HYPR_HELPER"
 
+# The configured icon theme (/appearance/icon_theme) is resolved by the
+# appearance helper. Fall back to the ARGVUS default when it is not installed.
+ARGVUS_ICON_HELPER="${ARGVUS_SYSTEM_CONFIG}/appearance/sh/icon-switch.sh"
+[ -r "$ARGVUS_ICON_HELPER" ] && . "$ARGVUS_ICON_HELPER"
+
 sessionctl() {
   [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ] || return 127
   "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" "$@"
@@ -82,9 +87,14 @@ set_gsettings() {
   esac
 
   # GTK Theme
+  if command -v icon_theme_effective >/dev/null 2>&1; then
+    _icon_theme="$(icon_theme_effective)"
+  else
+    _icon_theme="Argvus Icons"
+  fi
   if command -v gsettings >/dev/null 2>&1; then
     if
-      gsettings set org.gnome.desktop.interface icon-theme "Argvus Icons" &&
+      gsettings set org.gnome.desktop.interface icon-theme "$_icon_theme" &&
       gsettings set org.gnome.desktop.interface gtk-theme "$_gtk_theme" &&
       gsettings set org.gnome.desktop.interface color-scheme "$_scheme" &&
       gsettings set org.gnome.desktop.interface font-name "$_default_font" &&
