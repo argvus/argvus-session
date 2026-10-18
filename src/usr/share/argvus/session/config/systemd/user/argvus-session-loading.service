@@ -4,5 +4,5 @@ PartOf=argvus-session.target graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/lib/argvus/commands/argvus-config session-loading
+ExecStart=/usr/bin/argvus config session-loading
 Restart=no

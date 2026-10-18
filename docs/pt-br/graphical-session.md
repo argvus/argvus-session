@@ -4,7 +4,7 @@ description: Inicie o ARGVUS pelo login gráfico.
 slug: pt/0.4.0/docs/user-guide/sessions/graphical-session
 ---
 
-O ponto de entrada gráfico é `/usr/lib/argvus/commands/argvus-session`. Ele importa o ambiente da sessão e delega para `argvus start`, que valida a configuração Lua do Hyprland fornecida pelo pacote ou pelo usuário, aplica ajustes gráficos detectados, inicia o Hyprland e aguarda o compositor ficar pronto.
+O ponto de entrada gráfico é `argvus session`. Ele importa o ambiente da sessão e delega para `argvus start`, que valida a configuração Lua do Hyprland fornecida pelo pacote ou pelo usuário, aplica ajustes gráficos detectados, inicia o Hyprland e aguarda o compositor ficar pronto.
 
 Os logs são gravados em `~/.local/state/argvus/session.log`. O greeter roda como outro usuário antes do login, então sua saída pré-login fica em `/run/argvus-greeter/session.log` e é anexada ao `session.log` quando a sessão inicia. Consulte esse arquivo primeiro quando um aviso de inicialização do Hyprland não aparecer no log da sessão.
 

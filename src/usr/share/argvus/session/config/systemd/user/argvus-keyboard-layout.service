@@ -7,6 +7,6 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-ExecStart=/usr/lib/argvus/commands/argvus-sessionctl run keyboard-layout
+ExecStart=/usr/bin/argvus sessionctl run keyboard-layout
 Restart=on-failure
 RestartSec=3s

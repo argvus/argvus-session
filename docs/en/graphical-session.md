@@ -3,7 +3,7 @@ title: Graphical session
 description: Start ARGVUS through a graphical login flow.
 ---
 
-The graphical entry point is `/usr/lib/argvus/commands/argvus-session`. It imports the session environment and delegates to `argvus start`, which validates the packaged or user Hyprland Lua configuration, applies detected graphics compatibility settings, launches Hyprland and waits for compositor readiness.
+The graphical entry point is `argvus session`. It imports the session environment and delegates to `argvus start`, which validates the packaged or user Hyprland Lua configuration, applies detected graphics compatibility settings, launches Hyprland and waits for compositor readiness.
 
 Logs are written to `~/.local/state/argvus/session.log`. The greeter runs as its own user before login, so its pre-login output is kept in `/run/argvus-greeter/session.log` and appended to `session.log` when the session starts. Check this file first when a startup warning from Hyprland does not appear in the session log.
 

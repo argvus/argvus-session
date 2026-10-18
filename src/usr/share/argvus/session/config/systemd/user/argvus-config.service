@@ -9,5 +9,5 @@ Before=argvus-session-prepare.service
 Type=oneshot
 RemainAfterExit=yes
 Environment=ARGVUS_CONFIG_SERVICE=1
-ExecStart=/usr/lib/argvus/commands/argvus-config project
-ExecReload=/usr/lib/argvus/commands/argvus-sessionctl reload-config-transaction
+ExecStart=/usr/bin/argvus config project
+ExecReload=/usr/bin/argvus sessionctl reload-config-transaction

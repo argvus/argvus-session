@@ -23,16 +23,18 @@ ISOLATED_VARIABLES = ("HYPRLAND_INSTANCE_SIGNATURE", "WAYLAND_DISPLAY", "DISPLAY
 # Mock argvus-config. It records every call, answers the plan from STUB_PLAN,
 # and writes the marker for the commands that changed state.
 MOCK_CONFIG = """#!/bin/sh
+# The shell calls `argvus config <command>`; the mock answers the command after `config`.
+[ "$1" = config ] && shift
 case "$1" in
   session-prepare) printf prepared > "$TEST_MARKER" ;;
   session-reload-config)
     printf reload > "$TEST_MARKER"
-    printf 'argvus-config %s\\n' "$*" >> "$TEST_LOG"
+    printf 'argvus config %s\\n' "$*" >> "$TEST_LOG"
     exit "${STUB_RELOAD_STATUS:-0}" ;;
   session-plan) printf '%b' "${STUB_PLAN:-plan\\nfull\\n}"; exit 0 ;;
   session-telemetry) printf 'disabled\\n'; exit 0 ;;
 esac
-printf 'argvus-config %s\\n' "$*" >> "$TEST_LOG"
+printf 'argvus config %s\\n' "$*" >> "$TEST_LOG"
 exit 0
 """
 
@@ -54,7 +56,7 @@ def mock_bin(base):
         'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
     # A hyprctl that is never the compositor's: it only records the call.
     write_executable(mockbin / "hyprctl", '#!/bin/sh\nprintf "hyprctl %s\\n" "$*" >> "$TEST_LOG"\n')
-    write_executable(mockbin / "argvus-config", MOCK_CONFIG)
+    write_executable(mockbin / "argvus", MOCK_CONFIG)
     return mockbin
 
 
@@ -118,7 +120,7 @@ class SessionctlDelegationTests(unittest.TestCase):
             result = run_sessionctl(env, "reload-desktop")
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(marker.read_text(), "reload")
-            self.assertIn("argvus-config session-reload-config", read_log(base))
+            self.assertIn("argvus config session-reload-config", read_log(base))
             self.assertNotIn("--user restart argvus-taskbar.service", read_log(base))
 
     def test_full_reload_restarts_components_only_after_a_successful_reload(self):
@@ -136,11 +138,11 @@ class SessionctlDelegationTests(unittest.TestCase):
                 expected = reload_status
                 self.assertEqual(result.returncode, expected, result.stderr)
                 calls = read_log(base)
-                restarts = [line for line in calls if line.startswith("argvus-config session-restart")]
+                restarts = [line for line in calls if line.startswith("argvus config session-restart")]
                 if status == 0:
                     self.assertEqual(restarts, [
-                        "argvus-config session-restart wallpaper hypridle waybar dunst "
-                        "control-panel snappy-switcher polkit"])
+                        "argvus config session-restart wallpaper hypridle waybar dunst "
+                        "control-panel polkit"])
                 else:
                     self.assertEqual(restarts, [])
 
@@ -152,7 +154,7 @@ class SessionctlDelegationTests(unittest.TestCase):
             result = run_sessionctl(env, "apply-config-runtime")
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = read_log(base)
-            self.assertIn("argvus-config session-restart hypridle", calls)
+            self.assertIn("argvus config session-restart hypridle", calls)
             self.assertEqual([line for line in calls if " restart " in line
                               and line.startswith("--user")], [])
 

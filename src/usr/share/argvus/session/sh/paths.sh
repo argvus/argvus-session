@@ -104,7 +104,7 @@ paths_ensure_generated_copy() {
   # in argvus-config, so the shell has one implementation. argvus-config is a
   # dependency of this package and is called from the commands directory, as
   # the session scripts do.
-  "${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}/argvus-config" mutable-path "$1"
+  argvus config mutable-path "$1"
 }
 
 paths_config() {

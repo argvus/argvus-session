@@ -42,13 +42,12 @@ argvus-session.target
         |
         |-- argvus-session-prepare.service
         |-- argvus-wallpaper.service
-        |-- argvus-shell.service
+        |-- argvus-taskbar.service
         |-- argvus-waybar-taskbar.service
         |-- argvus-dunst.service
         |-- argvus-hypridle.service
         |-- argvus-polkit.service
         |-- argvus-secret-service.service
-        |-- argvus-snappy-switcher.service
         |-- argvus-clipboard-text.service
         |-- argvus-clipboard-image.service
         `-- argvus-keyboard-layout.service
@@ -103,7 +102,7 @@ Useful component restarts:
 ```sh
 argvus sessionctl restart waybar
 argvus sessionctl restart wallpaper
-argvus sessionctl restart dunst shell snappy-switcher
+argvus sessionctl restart dunst shell
 argvus sessionctl restart clipboard keyboard-layout blueman-applet
 ```
 
@@ -113,8 +112,8 @@ services that need fresh configuration.
 
 `argvus-blueman-applet.service` is still installed for users who want Blueman's
 legacy tray applet, but it is no longer pulled into the default session target.
-Bluetooth power/status is surfaced by `argvus-network` commands consumed by the
-`argvus-shell` Waybar module and Quickshell control-panel card.
+Bluetooth power/status is surfaced by `argvus bluetooth` commands consumed by the
+Waybar module of `argvus-taskbar` and the Quickshell control-panel card.
 
 ## Environment
 
@@ -193,7 +192,7 @@ Services are not enabled globally; logging into ARGVUS starts
 ```sh
 journalctl --user -u argvus-session.target -u 'argvus-*.service'
 journalctl --user -u argvus-waybar-taskbar.service
-journalctl --user -u argvus-shell.service
+journalctl --user -u argvus-taskbar.service
 ```
 
 The bootstrap log remains at:
@@ -211,7 +210,6 @@ distribution.
 ## Related Repositories
 
 - https://github.com/argvus/argvus
-- https://github.com/argvus/argvus-shell
-- https://github.com/argvus/argvus-network
+- https://github.com/argvus/argvus
 - https://github.com/argvus/argvus-display
 - https://github.com/argvus/packages

@@ -5,7 +5,7 @@ After=argvus-session-prepare.service graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/lib/argvus/commands/argvus-sessionctl run hypridle
+ExecStart=/usr/bin/argvus sessionctl run hypridle
 Restart=on-failure
 RestartSec=2s
 

@@ -195,7 +195,7 @@ prepare_session() {
   # Starting it again here would make this process wait on its own transaction.
   require_systemd
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    "$ARGVUS_COMMANDS_DIR/argvus-config" session-prepare
+    argvus config session-prepare
 }
 
 reload_configuration() {
@@ -216,7 +216,7 @@ reload_runtime_configuration() {
   # argvus-config owns the runtime half of a reload: Rofi, btop and yazi sync,
   # spacing and borders, the compositor reload and the display layout.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    "$ARGVUS_COMMANDS_DIR/argvus-config" session-reload-config
+    argvus config session-reload-config
 }
 
 reload_desktop() {
@@ -226,7 +226,7 @@ reload_desktop() {
   # PartOf/Wants. This command performs the compositor half once; restarting
   # the target then stops and starts each surface exactly once.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    timeout 30s "$ARGVUS_COMMANDS_DIR/argvus-config" session-reload-config
+    timeout 30s argvus config session-reload-config
 }
 
 apply_config_runtime() {
@@ -234,7 +234,7 @@ apply_config_runtime() {
   import_environment
   # argvus-config decides what to reload from the projection manifest. The first
   # line of its answer is the mode: "targets" (names follow) or "plan" (one name).
-  _decision="$("$ARGVUS_COMMANDS_DIR/argvus-config" session-plan 2>/dev/null)" || return 65
+  _decision="$(argvus config session-plan 2>/dev/null)" || return 65
   _has_reload_targets=0
   if [ "$(printf '%s\n' "$_decision" | sed -n '1p')" = "targets" ]; then
     _has_reload_targets=1
@@ -249,10 +249,10 @@ apply_config_runtime() {
     if _target_enabled hyprland || _target_enabled wallpaper ||
       _target_enabled taskbar || _target_enabled widget_telemetry ||
       _target_enabled control_panel || _target_enabled notifications ||
-      _target_enabled snappy_switcher || _target_enabled polkit; then
+      _target_enabled polkit; then
       # argvus-config starts the splash only when none is running, and prints
       # "started" only when this call started it, so only that call owns it.
-      if [ "$("$ARGVUS_COMMANDS_DIR/argvus-config" session-splash start 2>/dev/null)" = "started" ]; then
+      if [ "$(argvus config session-splash start 2>/dev/null)" = "started" ]; then
         _overlay_owner=1
       fi
     fi
@@ -276,23 +276,20 @@ apply_config_runtime() {
     if [ "$_status" -eq 0 ] && _target_enabled notifications; then
       restart_components dunst || _status=$?
     fi
-    if [ "$_status" -eq 0 ] && _target_enabled snappy_switcher; then
-      restart_components snappy-switcher || _status=$?
-    fi
     if [ "$_status" -eq 0 ] && _target_enabled polkit; then
       restart_components polkit || _status=$?
     fi
     if [ "$_status" -eq 0 ] && _target_enabled hypridle; then
       restart_components hypridle || _status=$?
     fi
-    [ "$_overlay_owner" -eq 1 ] && "$ARGVUS_COMMANDS_DIR/argvus-config" session-splash stop
+    [ "$_overlay_owner" -eq 1 ] && argvus config session-splash stop
     return "$_status"
   fi
   _reload_plan="$(printf '%s\n' "$_decision" | sed -n '2p')"
   case "$_reload_plan" in
     full)
       reload_runtime_configuration || return $?
-      restart_components wallpaper hypridle waybar dunst control-panel snappy-switcher polkit
+      restart_components wallpaper hypridle waybar dunst control-panel polkit
       ;;
     hyprland)
       reload_runtime_configuration || return $?
@@ -313,13 +310,13 @@ reload_config_transaction() {
   require_systemd
   import_environment
   ARGVUS_CONFIG_SERVICE=1 ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" "$ARGVUS_COMMANDS_DIR/argvus-config" project
+    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" argvus config project
   apply_config_runtime
 }
 
 widget_telemetry_enabled() {
   # The state rule lives in argvus-config (session-telemetry).
-  [ "$("$ARGVUS_COMMANDS_DIR/argvus-config" session-telemetry 2>/dev/null)" = "enabled" ]
+  [ "$(argvus config session-telemetry 2>/dev/null)" = "enabled" ]
 }
 
 resolve_waybar_file() {
@@ -444,13 +441,13 @@ persisted_wallpaper() {
     return 0
   fi
 
-  # The canonical document is authoritative after "$ARGVUS_COMMANDS_DIR/argvus-config" projection.
+  # The canonical document is authoritative after argvus config projection.
   # Keep the file-based fallback below for older installations and custom
   # layouts, but do not let a stale generated hyprpaper.conf win over a newer
   # theme wallpaper.
   if have argvus-config; then
     _canonical_wallpaper="$(
-      ARGVUS_CONFIG_HOME="$CONFIG_HOME" "$ARGVUS_COMMANDS_DIR/argvus-config" get /appearance/wallpaper --raw 2>/dev/null || true
+      ARGVUS_CONFIG_HOME="$CONFIG_HOME" argvus config get /appearance/wallpaper --raw 2>/dev/null || true
     )"
     if [ -n "$_canonical_wallpaper" ] && [ -f "$_canonical_wallpaper" ]; then
       printf '%s\n' "$_canonical_wallpaper"
@@ -513,7 +510,7 @@ restart_components() {
   # are rejected there with exit 64 before any unit is restarted.
   [ "$#" -gt 0 ] || return 0
   require_systemd
-  "$ARGVUS_COMMANDS_DIR/argvus-config" session-restart "$@"
+  argvus config session-restart "$@"
 }
 
 start_widget_telemetry_if_enabled() {
@@ -610,10 +607,6 @@ run_component() {
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       mkdir -p "$(paths_cache quickshell)"
       exec qs -c argvus-control-panel
-      ;;
-    snappy-switcher)
-      have snappy-switcher || exit 0
-      exec snappy-switcher --daemon
       ;;
     clipboard-text)
       have wl-paste || exit 0

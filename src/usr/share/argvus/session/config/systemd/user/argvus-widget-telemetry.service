@@ -5,7 +5,7 @@ After=argvus-session-prepare.service graphical-session.target
 
 [Service]
 Type=simple
-ExecCondition=/usr/lib/argvus/commands/argvus-sessionctl widget-telemetry is-enabled
-ExecStart=/usr/lib/argvus/commands/argvus-sessionctl run widget-telemetry
+ExecCondition=/usr/bin/argvus sessionctl widget-telemetry is-enabled
+ExecStart=/usr/bin/argvus sessionctl run widget-telemetry
 Restart=on-failure
 RestartSec=2s
