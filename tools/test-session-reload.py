@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Exercise the central reload without reaching the live user service manager."""
+"""Exercise the session reload flow without reaching the live session.
+
+The reload decisions, unit tables and the compositor calls live in
+argvus-config and are covered by its Rust tests. These tests check the part
+that stays in argvus-sessionctl: which argvus-config command it runs, with
+which arguments, and how it reports the result.
+
+Every test isolates the environment: a mock bin directory replaces the
+private commands, a mock systemctl and hyprctl record calls, and the
+Hyprland and Wayland variables are removed so nothing reaches the real
+compositor or the user manager.
+"""
 import os
 from pathlib import Path
 import subprocess
@@ -7,204 +18,143 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+ISOLATED_VARIABLES = ("HYPRLAND_INSTANCE_SIGNATURE", "WAYLAND_DISPLAY", "DISPLAY")
+
+# Mock argvus-config. It records every call, answers the plan from STUB_PLAN,
+# and writes the marker for the commands that changed state.
+MOCK_CONFIG = """#!/bin/sh
+case "$1" in
+  session-prepare) printf prepared > "$TEST_MARKER" ;;
+  session-reload-config)
+    printf reload > "$TEST_MARKER"
+    printf 'argvus-config %s\\n' "$*" >> "$TEST_LOG"
+    exit "${STUB_RELOAD_STATUS:-0}" ;;
+  session-plan) printf '%b' "${STUB_PLAN:-plan\\nfull\\n}"; exit 0 ;;
+  session-telemetry) printf 'disabled\\n'; exit 0 ;;
+esac
+printf 'argvus-config %s\\n' "$*" >> "$TEST_LOG"
+exit 0
+"""
 
 
-
-def mock_dbus_helper(mockbin):
-    """Stub the real dbus helper; it would export test paths to systemd."""
-    dbus = mockbin / "dbus-update-activation-environment"
-    dbus.write_text("#!/bin/sh\nexit 0\n")
-    dbus.chmod(0o755)
+def write_executable(path, text):
+    path.write_text(text)
+    path.chmod(0o755)
 
 
-class ReloadTests(unittest.TestCase):
-    def test_prepare_uses_systemd_dependency_without_waiting_on_itself(self):
+def mock_bin(base):
+    """A bin directory with the mocks every test needs."""
+    mockbin = base / "bin"
+    mockbin.mkdir()
+    write_executable(mockbin / "dbus-update-activation-environment", "#!/bin/sh\nexit 0\n")
+    write_executable(
+        mockbin / "systemctl",
+        '#!/bin/sh\n'
+        'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
+        'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
+    # A hyprctl that is never the compositor's: it only records the call.
+    write_executable(mockbin / "hyprctl", '#!/bin/sh\nprintf "hyprctl %s\\n" "$*" >> "$TEST_LOG"\n')
+    write_executable(mockbin / "argvus-config", MOCK_CONFIG)
+    return mockbin
+
+
+def isolated_env(mockbin, base, **extra):
+    """The environment of a sessionctl run, with the session variables removed."""
+    env = {key: value for key, value in os.environ.items() if key not in ISOLATED_VARIABLES}
+    env |= {
+        "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
+        "ARGVUS_COMMANDS_DIR": str(mockbin),
+        "ARGVUS_CONFIG_HOME": str(base / "config"),
+        "XDG_CACHE_HOME": str(base / "cache"),
+        "XDG_STATE_HOME": str(base / "state"),
+        "XDG_RUNTIME_DIR": str(base / "run"),
+        "TEST_LOG": str(base / "commands.log"),
+    }
+    env.update(extra)
+    return env
+
+
+def run_sessionctl(env, *arguments):
+    return subprocess.run(
+        ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), *arguments],
+        env=env, capture_output=True, text=True, timeout=10)
+
+
+def read_log(base):
+    log = base / "commands.log"
+    return log.read_text().splitlines() if log.exists() else []
+
+
+class SessionctlDelegationTests(unittest.TestCase):
+    def test_prepare_runs_the_session_preparation_in_argvus_config(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
-            mockbin = base / "bin"
-            mockbin.mkdir()
-            mock_dbus_helper(mockbin)
-            systemctl = mockbin / "systemctl"
-            systemctl.write_text(
-                '#!/bin/sh\n'
-                'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
-                'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
-            systemctl.chmod(0o755)
-            system = base / "system"
-            scripts = system / "session/sh"
-            scripts.mkdir(parents=True)
-            (scripts / "hypr-init.sh").write_text(
-                '#!/bin/sh\n'
-                'printf prepared > "$TEST_MARKER"\n')
-            (scripts / "hypr-init.sh").chmod(0o755)
-            log = base / "commands.log"
+            mockbin = mock_bin(base)
             marker = base / "prepared"
-            result = subprocess.run(
-                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "prepare"],
-                env=os.environ | {
-                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
-                    "ARGVUS_SYSTEM_CONFIG": str(system),
-                    "ARGVUS_CONFIG_HOME": str(base / "config"),
-                    "XDG_STATE_HOME": str(base / "state"),
-                    "TEST_LOG": str(log),
-                    "TEST_MARKER": str(marker),
-                }, capture_output=True, text=True, timeout=10)
+            env = isolated_env(mockbin, base, TEST_MARKER=str(marker))
+            result = run_sessionctl(env, "prepare")
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue(marker.exists())
-            self.assertNotIn("start --wait argvus-config.service", log.read_text() if log.exists() else "")
+            self.assertEqual(marker.read_text(), "prepared")
+            self.assertNotIn("start --wait argvus-config.service", "\n".join(read_log(base)))
 
     def test_reload_delegates_to_config_service_without_nested_projection(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
-            mockbin = base / "bin"
-            mockbin.mkdir()
-            mock_dbus_helper(mockbin)
-            systemctl = mockbin / "systemctl"
-            systemctl.write_text(
-                '#!/bin/sh\n'
-                'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
-            systemctl.chmod(0o755)
-            system = base / "system"
-            scripts = system / "session/sh"
-            scripts.mkdir(parents=True)
-            marker = base / "projection-ran"
-            (scripts / "hypr-init.sh").write_text(
-                f'printf touched > "{marker}"\nexit 0\n')
-            (scripts / "bootstrap.sh").write_text(
-                'paths_cache() { printf "%s/%s\\n" "$XDG_CACHE_HOME" "$1"; }\n')
-            log = base / "commands.log"
-            result = subprocess.run(
-                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "reload"],
-                env=os.environ | {
-                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
-                    "ARGVUS_SYSTEM_CONFIG": str(system),
-                    "ARGVUS_CONFIG_HOME": str(base / "config"),
-                    "XDG_CACHE_HOME": str(base / "cache"),
-                    "XDG_STATE_HOME": str(base / "state"),
-                    "ARGVUS_THEME_SWITCH": "1",
-                    "TEST_LOG": str(log),
-                }, capture_output=True, text=True, timeout=10)
+            mockbin = mock_bin(base)
+            marker = base / "reloaded"
+            env = isolated_env(mockbin, base, ARGVUS_THEME_SWITCH="1", TEST_MARKER=str(marker))
+            result = run_sessionctl(env, "reload")
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("--user reload-or-restart argvus-config.service", log.read_text())
-            self.assertFalse(marker.exists())
+            self.assertIn("--user reload-or-restart argvus-config.service",
+                          "\n".join(read_log(base)))
+            self.assertFalse(marker.exists(), "the projection must not run from the reload")
 
-    def test_reload_desktop_only_reloads_hyprland(self):
+    def test_reload_desktop_runs_the_runtime_reload_only(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
-            mockbin = base / "bin"
-            mockbin.mkdir()
-            mock_dbus_helper(mockbin)
-            for name in ("systemctl", "dbus-update-activation-environment"):
-                command = mockbin / name
-                command.write_text(
-                    '#!/bin/sh\n'
-                    'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
-                    'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
-                command.chmod(0o755)
-            system = base / "system"
-            scripts = system / "session/sh"
-            scripts.mkdir(parents=True)
-            (scripts / "hypr-init.sh").write_text(
-                '#!/bin/sh\nprintf reload > "$TEST_MARKER"\n')
-            (scripts / "hypr-init.sh").chmod(0o755)
-            log = base / "commands.log"
+            mockbin = mock_bin(base)
             marker = base / "reloaded"
-            result = subprocess.run(
-                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "reload-desktop"],
-                env=os.environ | {
-                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
-                    "ARGVUS_SYSTEM_CONFIG": str(system),
-                    "ARGVUS_CONFIG_HOME": str(base / "config"),
-                    "XDG_STATE_HOME": str(base / "state"),
-                    "TEST_LOG": str(log),
-                    "TEST_MARKER": str(marker),
-                }, capture_output=True, text=True, timeout=10)
+            env = isolated_env(mockbin, base, TEST_MARKER=str(marker))
+            result = run_sessionctl(env, "reload-desktop")
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(marker.read_text(), "reload")
-            self.assertNotIn("restart argvus-taskbar.service", log.read_text())
+            self.assertIn("argvus-config session-reload-config", read_log(base))
+            self.assertNotIn("--user restart argvus-taskbar.service", read_log(base))
 
-    def test_components_restart_after_success_failed_or_missing_config_sync(self):
+    def test_full_reload_restarts_components_only_after_a_successful_reload(self):
         for status in (0, 42, None):
-            with self.subTest(config_status=status), tempfile.TemporaryDirectory() as directory:
+            with self.subTest(reload_status=status), tempfile.TemporaryDirectory() as directory:
                 base = Path(directory)
-                mockbin = base / "bin"
-                mockbin.mkdir()
-                mock_dbus_helper(mockbin)
-                for name in ("systemctl", "dbus-update-activation-environment"):
-                    command = mockbin / name
-                    command.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$TEST_LOG"\n')
-                    command.chmod(0o755)
-                system = base / "system"
-                scripts = system / "session/sh"
-                scripts.mkdir(parents=True)
-                (scripts / "bootstrap.sh").write_text(
-                    'paths_cache() { printf "%s/%s\\n" "$XDG_CACHE_HOME" "$1"; }\n')
-                if status is not None:
-                    (scripts / "hypr-init.sh").write_text(f"exit {status}\n")
-                log = base / "commands.log"
-                state = base / "cache/waybar/widget-telemetry-state"
-                state.parent.mkdir(parents=True)
-                state.write_text("enabled\n")
-                result = subprocess.run(
-                    ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "apply-config-runtime"],
-                    env=os.environ | {
-                        "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
-                        "ARGVUS_SYSTEM_CONFIG": str(system),
-                        "ARGVUS_CONFIG_HOME": str(base / "config"),
-                        "XDG_CACHE_HOME": str(base / "cache"),
-                        "XDG_STATE_HOME": str(base / "state"),
-                        "TEST_LOG": str(log),
-                    }, capture_output=True, text=True, timeout=10)
-                self.assertEqual(result.returncode, 78 if status is None else status, result.stderr)
-                restarts = [line for line in log.read_text().splitlines()
-                            if line.startswith("--user restart ")]
-                self.assertEqual(len(restarts), 1 if status == 0 else 0)
+                mockbin = mock_bin(base)
+                marker = base / "reloaded"
+                # 127 is what a missing command returns; it is the failure case.
+                reload_status = 127 if status is None else status
+                env = isolated_env(mockbin, base, TEST_MARKER=str(marker),
+                                   STUB_RELOAD_STATUS=str(reload_status),
+                                   STUB_PLAN="plan\\nfull\\n")
+                result = run_sessionctl(env, "apply-config-runtime")
+                expected = reload_status
+                self.assertEqual(result.returncode, expected, result.stderr)
+                calls = read_log(base)
+                restarts = [line for line in calls if line.startswith("argvus-config session-restart")]
                 if status == 0:
-                    for component in ("wallpaper", "hypridle", "taskbar", "widget-telemetry",
-                                      "dunst", "control-panel", "snappy-switcher", "polkit"):
-                        self.assertIn(f"argvus-{component}.service", restarts[0])
+                    self.assertEqual(restarts, [
+                        "argvus-config session-restart wallpaper hypridle waybar dunst "
+                        "control-panel snappy-switcher polkit"])
+                else:
+                    self.assertEqual(restarts, [])
 
-    def test_modular_power_reload_restarts_only_hypridle(self):
+    def test_targeted_power_reload_restarts_only_hypridle(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
-            mockbin = base / "bin"
-            mockbin.mkdir()
-            mock_dbus_helper(mockbin)
-            systemctl = mockbin / "systemctl"
-            systemctl.write_text(
-                '#!/bin/sh\n'
-                'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
-                'printf "%s\\n" "$*" >> "$TEST_LOG"\n'
-            )
-            systemctl.chmod(0o755)
-            system = base / "system"
-            scripts = system / "session/sh"
-            scripts.mkdir(parents=True)
-            (scripts / "bootstrap.sh").write_text(
-                'paths_cache() { printf "%s/%s\\n" "$XDG_CACHE_HOME" "$1"; }\n'
-            )
-            manifest = base / "state/argvus/config-projection.json"
-            manifest.parent.mkdir(parents=True)
-            manifest.write_text('{"reload_targets":{"hypridle":true}}\n')
-            log = base / "commands.log"
-            result = subprocess.run(
-                ["sh", str(ROOT / "src/usr/bin/argvus-sessionctl"), "apply-config-runtime"],
-                env=os.environ | {
-                    "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
-                    "ARGVUS_SYSTEM_CONFIG": str(system),
-                    "ARGVUS_CONFIG_HOME": str(base / "config"),
-                    "XDG_CACHE_HOME": str(base / "cache"),
-                    "XDG_STATE_HOME": str(base / "state"),
-                    "TEST_LOG": str(log),
-                },
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
+            mockbin = mock_bin(base)
+            env = isolated_env(mockbin, base, STUB_PLAN="targets\\nhypridle\\n")
+            result = run_sessionctl(env, "apply-config-runtime")
             self.assertEqual(result.returncode, 0, result.stderr)
-            commands = log.read_text().splitlines()
-            self.assertIn("--user restart argvus-hypridle.service", commands)
-            self.assertEqual(len([line for line in commands if " restart " in line]), 1)
+            calls = read_log(base)
+            self.assertIn("argvus-config session-restart hypridle", calls)
+            self.assertEqual([line for line in calls if " restart " in line
+                              and line.startswith("--user")], [])
 
 
 if __name__ == "__main__":

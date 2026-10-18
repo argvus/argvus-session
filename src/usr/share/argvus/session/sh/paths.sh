@@ -100,88 +100,11 @@ paths_read_config() {
 }
 
 paths_ensure_generated_copy() {
-  _relative_path="$1"
-  _user_path="$(paths_user_config "$_relative_path")"
-  _generated_path="$(paths_generated_config "$_relative_path")"
-
-  if [ -e "$_user_path" ] || [ -L "$_user_path" ]; then
-    printf '%s\n' "$_user_path"
-    return 0
-  fi
-
-  # Retain edits from the component-shaped managed layout. Copy instead of
-  # moving so older installed consumers can still read the previous location.
-  _component_user_path="$ARGVUS_CONFIG_HOME/argvus/$_relative_path"
-  if [ "$_component_user_path" != "$_user_path" ] && [ -f "$_component_user_path" ]; then
-    mkdir -p "${_user_path%/*}"
-    cp "$_component_user_path" "$_user_path" || return 1
-    printf '%s\n' "$_user_path"
-    return 0
-  fi
-
-  # Promote the pre-`data/` flat managed copy so an upgraded profile keeps its
-  # user edits at the new location.
-  _flat_user_path="$(paths_legacy_user_config "$_relative_path")"
-  if [ "$_flat_user_path" != "$_user_path" ] && [ -f "$_flat_user_path" ]; then
-    mkdir -p "${_user_path%/*}"
-    cp "$_flat_user_path" "$_user_path" || return 1
-    printf '%s\n' "$_user_path"
-    return 0
-  fi
-
-  # Read-only lookup also accepts component-shaped generated files. Promote
-  # those through the same migration/shim handling rather than losing edits.
-  if [ ! -e "$_generated_path" ] && [ ! -L "$_generated_path" ]; then
-    _component_generated_path="$ARGVUS_CONFIG_HOME/argvus/data/generated/$_relative_path"
-    if [ -e "$_component_generated_path" ] || [ -L "$_component_generated_path" ]; then
-      _generated_path="$_component_generated_path"
-    fi
-  fi
-
-  # Migrate: if generated copy exists but user path doesn't, move it to user path
-  if [ -e "$_generated_path" ] || [ -L "$_generated_path" ]; then
-    # A settings-managed CSS shim (an @import wrapper to the system css) must
-    # not be promoted to the user copy: the user copy is the themed css that
-    # theme-switch rewrites per theme. Retire the shim and use the system css.
-    _legacy_relative_path="$(paths_legacy_relative "$_relative_path")"
-    case "$_legacy_relative_path" in
-      waybar/*.css)
-        _first_line="$(sed -n '1p' "$_generated_path" 2>/dev/null || true)"
-        case "$_first_line" in
-          '@import url("/usr/'*)
-            _system_path="$(paths_system_config "$_relative_path")"
-            if [ -f "$_system_path" ]; then
-              mv "$_generated_path" "${_generated_path}.retired"
-              mkdir -p "${_user_path%/*}"
-              cp "$_system_path" "$_user_path"
-              printf '%s\n' "$_user_path"
-              return 0
-            fi
-            ;;
-        esac
-        ;;
-    esac
-    _parent="${_user_path%/*}"
-    mkdir -p "$_parent"
-    mv "$_generated_path" "$_user_path"
-    printf '%s\n' "$_user_path"
-    return 0
-  fi
-
-  _system_path="$(paths_system_config "$_relative_path")"
-  _source_path="$_system_path"
-
-  if [ -d "$_source_path" ]; then
-    mkdir -p "$_user_path"
-    cp -R "$_source_path/." "$_user_path/"
-  elif [ -f "$_source_path" ]; then
-    mkdir -p "${_user_path%/*}"
-    cp "$_source_path" "$_user_path"
-  else
-    mkdir -p "${_user_path%/*}"
-  fi
-
-  printf '%s\n' "$_user_path"
+  # The copy rules (component, flat, generated and waybar shim promotion) live
+  # in argvus-config, so the shell has one implementation. argvus-config is a
+  # dependency of this package and is called from the commands directory, as
+  # the session scripts do.
+  "${ARGVUS_COMMANDS_DIR:-/usr/lib/argvus/commands}/argvus-config" mutable-path "$1"
 }
 
 paths_config() {

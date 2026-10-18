@@ -42,8 +42,13 @@ append_layout() {
 }
 
 seed_from_generated_input() {
-  [ -r "$GENERATED_INPUT" ] || return 0
-  _value="$(sed -n 's/^[[:space:]]*kb_layout[[:space:]]*=[[:space:]]*"\([^"]*\)",*[[:space:]]*$/\1/p' "$GENERATED_INPUT" | head -n1 2>/dev/null || true)"
+  # The canonical configuration is the source of the layout list. The generated
+  # input.lua is a projection of it, read only when argvus-config is unavailable.
+  _value="$(argvus config get /hyprland/keyboard/layout --raw 2>/dev/null || true)"
+  if [ -z "$_value" ] && [ -r "$GENERATED_INPUT" ]; then
+    # The projection writes the whole table on one line: return { kb_layout = "...", ... }.
+    _value="$(sed -n 's/.*kb_layout[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$GENERATED_INPUT" | head -n1 2>/dev/null || true)"
+  fi
   case "$_value" in
     ''|*[!A-Za-z0-9_,-]*) return 0 ;;
   esac
@@ -105,7 +110,9 @@ case "${1:-cycle}" in
     command -v hyprctl >/dev/null 2>&1 || exit 0
     _current="$(hyprctl getoption input:kb_layout -j 2>/dev/null | jq -r '.str // empty' 2>/dev/null || true)"
     if [ "$_current" != "$LAYOUTS" ]; then
-      hyprctl keyword input:kb_layout "$LAYOUTS" >/dev/null
+      # Hyprland 0.56 rejects `keyword`, so the layouts are set through eval.
+      # Errors stay visible on stderr instead of being discarded.
+      argvus config hyprland keyboard-layout "$LAYOUTS" || true
     fi
     exec hyprctl switchxkblayout all next
     ;;
