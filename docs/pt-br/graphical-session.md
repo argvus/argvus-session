@@ -1,7 +1,6 @@
 ---
 title: Sessão gráfica
 description: Inicie o ARGVUS pelo login gráfico.
-slug: pt/0.4.0/docs/user-guide/sessions/graphical-session
 ---
 
 O ponto de entrada gráfico é `argvus session`. Ele importa o ambiente da sessão e delega para `argvus start`, que valida a configuração Lua do Hyprland fornecida pelo pacote ou pelo usuário, aplica ajustes gráficos detectados, inicia o Hyprland e aguarda o compositor ficar pronto.

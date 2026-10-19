@@ -43,7 +43,7 @@ argvus-session.target
         |-- argvus-session-prepare.service
         |-- argvus-wallpaper.service
         |-- argvus-taskbar.service
-        |-- argvus-waybar-taskbar.service
+        |-- argvus-taskbar.service
         |-- argvus-dunst.service
         |-- argvus-hypridle.service
         |-- argvus-polkit.service
@@ -66,7 +66,7 @@ user config override, and packaged fallback behavior. The Hyprland Lua
 `hyprland.start` event is only a readiness bridge that runs
 `argvus sessionctl ready`.
 
-`argvus-waybar-sysinfo.service` is intentionally opt-in. It is started by the
+`argvus-widget-telemetry.service` is intentionally opt-in. It is started by the
 shell/sysinfo toggle only after the user enables it, and future logins start it
 again only while that saved state remains enabled. This avoids a second polling
 Waybar process during default login.
@@ -191,7 +191,7 @@ Services are not enabled globally; logging into ARGVUS starts
 
 ```sh
 journalctl --user -u argvus-session.target -u 'argvus-*.service'
-journalctl --user -u argvus-waybar-taskbar.service
+journalctl --user -u argvus-taskbar.service
 journalctl --user -u argvus-taskbar.service
 ```
 
