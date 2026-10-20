@@ -5,11 +5,11 @@ Argvus desktop.
 
 ## Repository layout
 
-The repository follows the ARGVUS packaging-only skeleton:
+The repository layout:
 
 ```text
 packaging/arch/
-  ci/PKGBUILD       # tagged release source
+  remote/PKGBUILD       # tagged release source
   local/PKGBUILD    # local archive source
   common/            # shared source normalization and payload functions
 src/usr/             # installed package payload
