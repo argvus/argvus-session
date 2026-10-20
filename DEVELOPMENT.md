@@ -29,8 +29,8 @@ Validate the expected files:
 
 ```sh
 test -f src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
-grep -q '^Exec=argvus-session$' src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
-grep -q '^TryExec=argvus-session$' src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
+grep -q '^Exec=/usr/bin/argvus session$' src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
+grep -q '^TryExec=/usr/bin/argvus$' src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop
 test -x src/usr/bin/argvus-session
 test -x src/usr/bin/argvus-start
 test -x src/usr/bin/argvus-tty

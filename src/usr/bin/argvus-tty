@@ -144,4 +144,4 @@ cleanup() {
 trap cleanup EXIT INT TERM HUP
 
 log "launching argvus-session (VT=${VT:-?})"
-exec "$ARGVUS_COMMANDS_DIR/argvus-session"
+exec "$ARGVUS_COMMANDS_DIR/session"

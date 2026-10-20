@@ -30,6 +30,6 @@ both are presented to the PKGBUILD as `${pkgname}-${pkgver}`.
 To inspect metadata without building:
 
 ```sh
-makepkg -p packaging/arch/ci/PKGBUILD --printsrcinfo
+makepkg -p packaging/arch/remote/PKGBUILD --printsrcinfo
 makepkg -p packaging/arch/local/PKGBUILD --printsrcinfo
 ```

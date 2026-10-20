@@ -45,7 +45,7 @@ arch_package_payload() {
 
 	for executable in argvus-session argvus-sessionctl argvus-start argvus-tty; do
 		install -Dm755 "${source_root}/src/usr/bin/${executable}" \
-			"${pkgdir}/usr/lib/argvus/commands/${executable}"
+			"${pkgdir}/usr/lib/argvus/commands/${executable#argvus-}"
 	done
 	install -dm755 "${pkgdir}/usr/share/argvus/session/sh"
 	cp -a "${source_root}/src/usr/share/argvus/session/sh/." \

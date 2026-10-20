@@ -27,4 +27,4 @@ argvus sessionctl reload
 
 Se a projeção não puder ser concluída, o reload para antes de reiniciar as superfícies do desktop. Consulte `argvus sessionctl logs` e execute `argvus config validate` antes de tentar novamente; isso evita deixar Waybar, notificações ou o Control Panel executando uma mistura antiga de temas após uma projeção falha.
 
-O fluxo padrão usa greetd. Para a sequência de inicialização e a responsabilidade dos serviços, veja [Ciclo de vida em tempo de execução](../../developer-guide/architecture/runtime-lifecycle/).
+O fluxo padrão usa greetd. Para a sequência de inicialização e a responsabilidade dos serviços, veja [Ciclo de vida em tempo de execução](/pt/docs/developer-guide/architecture/runtime-lifecycle/).

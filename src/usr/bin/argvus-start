@@ -38,8 +38,8 @@ log_monotonic "argvus-start entered"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin${PATH:+:$PATH}"
 
 sync_session_environment() {
-  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ]; then
-    "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" import-environment >/dev/null 2>&1 || true
+  if [ -x "$ARGVUS_COMMANDS_DIR/sessionctl" ]; then
+    "$ARGVUS_COMMANDS_DIR/sessionctl" import-environment >/dev/null 2>&1 || true
   fi
 }
 
@@ -179,8 +179,8 @@ if ! verify_config "$HYPRLAND_LUA"; then
 fi
 
 stop_session_target() {
-  if [ -x "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" ]; then
-    "$ARGVUS_COMMANDS_DIR/argvus-sessionctl" stop >/dev/null 2>&1 || true
+  if [ -x "$ARGVUS_COMMANDS_DIR/sessionctl" ]; then
+    "$ARGVUS_COMMANDS_DIR/sessionctl" stop >/dev/null 2>&1 || true
   elif command -v systemctl >/dev/null 2>&1; then
     systemctl --user stop argvus-session.target graphical-session.target >/dev/null 2>&1 || true
   fi
@@ -198,7 +198,21 @@ start_loading_overlay() {
   fi
 }
 
+release_drm_handoff() {
+  # The greeter leaves a DRM surface running to keep a frame on screen. The user
+  # compositor needs DRM master, so ask that surface to release it first. With no
+  # surface running this succeeds without doing anything.
+  handoff=/usr/lib/argvus/greeter/handoff
+  [ -x "$handoff" ] || return 0
+  if "$handoff" --send release >> "$LOG" 2>&1; then
+    log "released greeter DRM handoff surface"
+  else
+    log "greeter DRM handoff surface did not release; continuing"
+  fi
+}
+
 run_hyprland() {
+  release_drm_handoff
   # The overlay helper waits asynchronously for the new Wayland socket.
   start_loading_overlay
   log_monotonic "argvus-start final Hyprland launch"

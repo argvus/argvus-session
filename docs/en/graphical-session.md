@@ -27,6 +27,6 @@ argvus sessionctl reload
 
 If the projection cannot be completed, the reload stops before restarting desktop surfaces. Check `argvus sessionctl logs` and run `argvus config validate` before trying again; this prevents a failed theme projection from leaving Waybar, notifications, or the Control Panel running with a stale mixture of themes.
 
-The default login integration is greetd. See [Greeter](/docs/argvus-greeter/) and [session troubleshooting](/docs/user-guide/troubleshooting/session-startup/).
+The default login integration is greetd. See [Greeter](/docs/components/argvus-greeter/) and [session troubleshooting](/docs/user-guide/troubleshooting/session-startup/).
 
-For service ownership and the startup sequence, see [Runtime lifecycle](../../developer-guide/architecture/runtime-lifecycle/).
+For service ownership and the startup sequence, see [Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/).
