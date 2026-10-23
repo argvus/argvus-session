@@ -44,9 +44,9 @@ esac
 export ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG"
 export ARGVUS_CONFIG_HOME="$CONFIG_HOME"
 
-if [ -x "$ARGVUS_COMMANDS_DIR/sessionctl" ]; then
-  "$ARGVUS_COMMANDS_DIR/sessionctl" import-environment >/dev/null 2>&1 || true
-fi
+# The environment is imported into the user manager by argvus-start, which
+# runs next with the complete session variables; importing here too only
+# repeated the same systemctl and D-Bus round trips.
 
 log "executing argvus-start"
 exec "$ARGVUS_COMMANDS_DIR/start"

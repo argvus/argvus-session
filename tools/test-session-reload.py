@@ -123,6 +123,19 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertIn("argvus config session-reload-config", read_log(base))
             self.assertNotIn("--user restart argvus-taskbar.service", read_log(base))
 
+    def test_login_reload_delegates_without_reimporting_the_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = mock_bin(base)
+            marker = base / "reloaded"
+            env = isolated_env(mockbin, base, TEST_MARKER=str(marker))
+            result = run_sessionctl(env, "reload-desktop", "--login")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            calls = read_log(base)
+            self.assertIn("argvus config session-reload-config --login", calls)
+            # Session preparation imported the environment just before.
+            self.assertFalse(any("import-environment" in call for call in calls), calls)
+
     def test_full_reload_restarts_components_only_after_a_successful_reload(self):
         for status in (0, 42, None):
             with self.subTest(reload_status=status), tempfile.TemporaryDirectory() as directory:

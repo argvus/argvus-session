@@ -3,13 +3,13 @@ title: Sessão gráfica
 description: Inicie o ARGVUS pelo login gráfico.
 ---
 
-O ponto de entrada gráfico é `argvus session`. Ele importa o ambiente da sessão e delega para `argvus start`, que valida a configuração Lua do Hyprland fornecida pelo pacote ou pelo usuário, aplica ajustes gráficos detectados, inicia o Hyprland e aguarda o compositor ficar pronto.
+O ponto de entrada gráfico é `argvus session`. Ele define o ambiente da sessão e delega para `argvus start`, que o importa no gerenciador de usuário, valida a configuração Lua do Hyprland fornecida pelo pacote ou pelo usuário, aplica ajustes gráficos detectados, inicia o Hyprland e aguarda o compositor ficar pronto.
 
 Os logs são gravados em `~/.local/state/argvus/session.log`. O greeter roda como outro usuário antes do login, então sua saída pré-login fica em `/run/argvus-greeter/session.log` e é anexada ao `session.log` quando a sessão inicia. Consulte esse arquivo primeiro quando um aviso de inicialização do Hyprland não aparecer no log da sessão.
 
 A sessão garante que a variável de ambiente `PATH` do shell esteja definida para um padrão sensato, mesmo quando o gerenciador de login (como greetd com `source_profile=false`) não exporta nenhum. Isso garante que utilitários como `hyprland-dialog`, usados pelo Hyprland na inicialização, sejam descobertos pelos processos filhos.
 
-Depois que o Hyprland está pronto, `argvus sessionctl` inicia `argvus-session.target`. Esse target inicia taskbar, Control Panel, notificações, wallpaper, idle, clipboard, o agente SSH, o provedor Secret Service e serviços relacionados.
+Depois que o Hyprland está pronto, `argvus sessionctl` inicia `argvus-session.target`. Esse target inicia taskbar, Control Panel, notificações, wallpaper, idle, clipboard, o agente SSH, o provedor Secret Service e serviços relacionados. Um único spinner de carregamento fica na tela desde a troca do login até esses serviços iniciarem.
 
 `PATH` também recebe `~/.local/bin` e `~/.cargo/bin` no início, quando esses diretórios existem, para que ferramentas instaladas ali fiquem visíveis ao compositor e aos serviços. `EDITOR` e `VISUAL` recebem o editor de terminal padrão configurado nos aplicativos padrão do Control Center (`TERMINAL_EDITOR`) e são exportados para o gerenciador systemd do usuário, para a ativação via D-Bus e para o Hyprland, de modo que terminais e serviços iniciados pela sessão os herdem. O agente SSH (`argvus-ssh-agent.service`, do pacote `openssh`) escuta em `$XDG_RUNTIME_DIR/ssh-agent.socket` e publica `SSH_AUTH_SOCK` no gerenciador do usuário. Ao iniciar, o agente do ARGVUS substitui `SSH_AUTH_SOCK` no gerenciador do usuário. Se outro agente, como gnome-keyring ou gcr, deve ser o dono do socket, desative a unit do ARGVUS com `systemctl --user mask argvus-ssh-agent.service`. Ele é encerrado quando o Hyprland termina, evitando processos órfãos após o logout.
 

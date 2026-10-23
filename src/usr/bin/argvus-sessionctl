@@ -165,7 +165,9 @@ start_session() {
   # hyprland/* modules against the stale IPC socket.  Recreate the target only
   # after the compositor reports ready, so its services inherit the current
   # Wayland/Hyprland environment.
-  if [ "$_start_mode" = ready ]; then
+  # A first login has no target to recreate; skipping the stop job avoids
+  # needless churn in the user manager.
+  if [ "$_start_mode" = ready ] && systemctl --user is-active --quiet argvus-session.target; then
     systemctl --user stop argvus-session.target >/dev/null 2>&1 || true
   fi
 
@@ -176,11 +178,12 @@ start_session() {
     log "failed to start argvus-session.target; desktop services were not started"
   fi
   if [ "$_start_mode" = ready ]; then
-    # The handoff overlay is intentionally independent of desktop components:
-    # it remains mapped until Hyprland reaches its existing ready bridge, then
-    # systemd sends SIGTERM through the splash's normal fade-out path. It is
-    # stopped even when the target failed, so a start error never leaves a
-    # permanent spinner on screen.
+    # The handoff overlay has no PartOf=, so the stop above leaves it mapped.
+    # The start returns once the configuration, preparation and reload units
+    # finished and the desktop components were started; only then systemd
+    # sends SIGTERM through the splash's normal fade-out path. It is stopped
+    # even when the target failed, so a start error never leaves a permanent
+    # spinner on screen (the unit also has RuntimeMaxSec= as a last resort).
     systemctl --user stop argvus-session-loading.service >/dev/null 2>&1 || true
     log "stopped session loading overlay after graphical readiness"
   fi
@@ -189,6 +192,9 @@ start_session() {
 
 stop_session() {
   require_systemd
+  # The loading overlay has no PartOf= (a restart of the target must not take
+  # it down mid-login), so it is stopped here explicitly.
+  systemctl --user stop argvus-session-loading.service >/dev/null 2>&1 || true
   systemctl --user stop argvus-session.target graphical-session.target
 }
 
@@ -228,6 +234,15 @@ reload_runtime_configuration() {
 
 reload_desktop() {
   require_systemd
+  if [ "${1:-}" = --login ]; then
+    # At login argvus-session-prepare.service has just imported the
+    # environment and synchronized the user files, so only the compositor
+    # reload is left, and argvus-config skips it when the projection did not
+    # touch Hyprland.
+    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
+      timeout 30s argvus config session-reload-config --login
+    return
+  fi
   import_environment
   # argvus-session.target owns the Waybar and Quickshell lifecycle through
   # PartOf/Wants. This command performs the compositor half once; restarting
@@ -737,7 +752,8 @@ case "${1:-}" in
     reload_session
     ;;
   reload-desktop)
-    reload_desktop
+    shift
+    reload_desktop "$@"
     ;;
   apply-config-runtime)
     apply_config_runtime

@@ -1,8 +1,12 @@
 [Unit]
 Description=ARGVUS session handoff spinner
-PartOf=argvus-session.target graphical-session.target
+# No PartOf=: argvus sessionctl recreates argvus-session.target at login, and a
+# propagated stop would take the overlay down before the desktop is ready.
+# sessionctl stops it explicitly once the target started or failed.
 
 [Service]
 Type=simple
 ExecStart=/usr/bin/argvus config session-loading
 Restart=no
+# Last resort against a spinner left on screen when no stop arrives.
+RuntimeMaxSec=30
