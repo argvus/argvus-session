@@ -2,6 +2,7 @@
 Description=ARGVUS Desktop Session
 Documentation=man:systemd.special(7)
 PartOf=graphical-session.target
+Wants=graphical-session.target
 Wants=argvus-session-prepare.service
 Wants=argvus-config.service
 Wants=argvus-session-reload.service

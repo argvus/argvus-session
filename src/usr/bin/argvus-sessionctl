@@ -169,11 +169,18 @@ start_session() {
     systemctl --user stop argvus-session.target >/dev/null 2>&1 || true
   fi
 
-  systemctl --user start graphical-session.target argvus-session.target
+  # graphical-session.target refuses manual start (RefuseManualStart=yes); it is
+  # pulled in by argvus-session.target through Wants= instead. Starting it here
+  # would make the whole transaction fail, leaving no desktop services running.
+  if ! systemctl --user start argvus-session.target; then
+    log "failed to start argvus-session.target; desktop services were not started"
+  fi
   if [ "$_start_mode" = ready ]; then
     # The handoff overlay is intentionally independent of desktop components:
     # it remains mapped until Hyprland reaches its existing ready bridge, then
-    # systemd sends SIGTERM through the splash's normal fade-out path.
+    # systemd sends SIGTERM through the splash's normal fade-out path. It is
+    # stopped even when the target failed, so a start error never leaves a
+    # permanent spinner on screen.
     systemctl --user stop argvus-session-loading.service >/dev/null 2>&1 || true
     log "stopped session loading overlay after graphical readiness"
   fi
