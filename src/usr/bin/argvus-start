@@ -204,6 +204,13 @@ release_drm_handoff() {
   # surface running this succeeds without doing anything.
   handoff=/usr/lib/argvus/greeter/handoff
   [ -x "$handoff" ] || return 0
+  # The greeter leaves its VT before its compositor exits, and greetd switches
+  # back for this session. Activate the session anyway, so Hyprland does not
+  # start on a VT that is not in the foreground.
+  if [ -S /run/argvus-greeter/handoff.sock ] && [ -n "${XDG_SESSION_ID:-}" ]; then
+    loginctl activate "$XDG_SESSION_ID" >> "$LOG" 2>&1 \
+      || log "could not activate session $XDG_SESSION_ID; continuing"
+  fi
   if "$handoff" --send release >> "$LOG" 2>&1; then
     log "released greeter DRM handoff surface"
   else
