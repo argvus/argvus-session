@@ -331,9 +331,28 @@ apply_config_runtime() {
 reload_config_transaction() {
   require_systemd
   import_environment
+  # The cover goes up before the projection, so every desktop change below
+  # happens under the splash. A splash left by an interrupted reload would
+  # block this one, so it is cleared first. This call owns the splash only when
+  # it prints "started", and stops it on every path once the reload has finished.
+  argvus config session-splash stop
+  _cover=0
+  if [ "$(argvus config session-splash start 2>/dev/null)" = started ]; then
+    _cover=1
+  fi
+  _status=0
   ARGVUS_CONFIG_SERVICE=1 ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
-    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" argvus config project
-  apply_config_runtime
+    ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" argvus config project || _status=$?
+  # A failed projection skips the runtime half, as before, but still lifts the cover.
+  if [ "$_status" -eq 0 ]; then
+    # Inside this transaction the splash is already running, so this call
+    # does not start or stop one of its own.
+    apply_config_runtime || _status=$?
+  fi
+  if [ "$_cover" -eq 1 ]; then
+    argvus config session-splash stop
+  fi
+  return "$_status"
 }
 
 widget_telemetry_enabled() {
