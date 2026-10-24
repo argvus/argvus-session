@@ -24,7 +24,7 @@ both are presented to the PKGBUILD as `${pkgname}-${pkgver}`.
 3. Keep the source normalization in `prepare()` and maintain equivalent
    project-specific `check()` and `package()` behavior in both PKGBUILDs.
 4. Keep the session payload under `src/usr/`, and update `.github/CODEOWNERS`,
-   `SECURITY.md`, and the project documentation as needed.
+   and the project documentation as needed.
 5. Run `make validate && make build` before committing.
 
 To inspect metadata without building:
