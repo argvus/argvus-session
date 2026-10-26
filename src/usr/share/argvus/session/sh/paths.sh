@@ -76,6 +76,20 @@ paths_state() { echo "${ARGVUS_STATE_HOME}/${1}"; }
 paths_data() { echo "${ARGVUS_DATA_HOME}/${1}"; }
 paths_backgrounds() { echo "${ARGVUS_BACKGROUNDS_DIR:-/usr/share/backgrounds}/${1}"; }
 
+# A file of the theme build (`argvus theme`), printed only when the build behind
+# `generated/theme/current` was rendered for theme $1 (`<id>` or `<id>-float`)
+# and has the file $2. Returns 1, printing nothing, otherwise.
+paths_theme_build_file() {
+  _build_dir="${ARGVUS_DATA_HOME}/generated/theme/current"
+  [ -r "$_build_dir/build.toml" ] || return 1
+  _build_theme="$(sed -n 's/^theme = "\(.*\)"$/\1/p' "$_build_dir/build.toml" | head -n 1)"
+  if grep -q '^variant = "float"$' "$_build_dir/build.toml"; then
+    _build_theme="${_build_theme}-float"
+  fi
+  [ -n "$_build_theme" ] && [ "$_build_theme" = "$1" ] && [ -f "$_build_dir/$2" ] || return 1
+  printf '%s\n' "$_build_dir/$2"
+}
+
 paths_read_config() {
   _relative_path="$1"
   _user_path="$(paths_user_config "$_relative_path")"
