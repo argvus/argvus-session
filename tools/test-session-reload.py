@@ -158,6 +158,8 @@ class SessionctlDelegationTests(unittest.TestCase):
                         "control-panel polkit"])
                 else:
                     self.assertEqual(restarts, [])
+                # The full plan recreates the bars and the panel: under the splash.
+                self.assertIn("argvus config session-splash start", calls)
 
     def test_targeted_power_reload_restarts_only_hypridle(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -170,6 +172,36 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertIn("argvus config session-restart hypridle", calls)
             self.assertEqual([line for line in calls if " restart " in line
                               and line.startswith("--user")], [])
+
+    def test_in_place_reloads_show_no_splash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = mock_bin(base)
+            env = isolated_env(mockbin, base,
+                               STUB_PLAN="targets\\nhyprland\\nconsumers\\nwallpaper\\npolkit\\n")
+            result = run_sessionctl(env, "apply-config-runtime")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            calls = read_log(base)
+            self.assertNotIn("argvus config session-splash start", calls)
+            self.assertIn("argvus config theme-runtime consumers", calls)
+            self.assertIn("argvus config theme-runtime wallpaper", calls)
+            self.assertIn("argvus config session-restart polkit", calls)
+            self.assertFalse(any(line.startswith("argvus config session-restart")
+                                 and ("taskbar" in line or "waybar" in line)
+                                 for line in calls), calls)
+
+    def test_recreating_the_taskbar_shows_the_splash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = mock_bin(base)
+            env = isolated_env(mockbin, base, STUB_PLAN="targets\\nhyprland\\ntaskbar\\n")
+            result = run_sessionctl(env, "apply-config-runtime")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            calls = read_log(base)
+            self.assertIn("argvus config session-splash start", calls)
+            self.assertIn("argvus config session-restart taskbar", calls)
+            self.assertLess(calls.index("argvus config session-splash start"),
+                            calls.index("argvus config session-restart taskbar"))
 
 
 if __name__ == "__main__":

@@ -267,13 +267,13 @@ apply_config_runtime() {
       printf '%s\n' "$_decision" | sed -n '2,$p' | grep -qx "$_target"
     }
 
+    # The splash covers only what recreates a surface: a Waybar bar or the
+    # Control Panel coming back moves every window. Everything else reloads in
+    # place. argvus-config starts the splash only when none is running, and
+    # prints "started" only when this call started it, so only that call owns it.
     _overlay_owner=0
-    if _target_enabled hyprland || _target_enabled wallpaper ||
-      _target_enabled taskbar || _target_enabled widget_telemetry ||
-      _target_enabled control_panel || _target_enabled notifications ||
-      _target_enabled polkit; then
-      # argvus-config starts the splash only when none is running, and prints
-      # "started" only when this call started it, so only that call owns it.
+    if _target_enabled taskbar || _target_enabled widget_telemetry ||
+      _target_enabled control_panel; then
       if [ "$(argvus config session-splash start 2>/dev/null)" = "started" ]; then
         _overlay_owner=1
       fi
@@ -283,8 +283,13 @@ apply_config_runtime() {
     if _target_enabled hyprland; then
       reload_runtime_configuration || _status=$?
     fi
+    if [ "$_status" -eq 0 ] && _target_enabled consumers; then
+      # Waybar stylesheets, Control Panel, Hyprland colours, Dunst, btop, kitty.
+      argvus config theme-runtime consumers || _status=$?
+    fi
     if [ "$_status" -eq 0 ] && _target_enabled wallpaper; then
-      restart_components wallpaper || _status=$?
+      # hyprpaper's IPC; the wallpaper service restarts only for swaybg.
+      argvus config theme-runtime wallpaper || _status=$?
     fi
     if [ "$_status" -eq 0 ] && _target_enabled taskbar; then
       restart_components taskbar || _status=$?
@@ -310,8 +315,18 @@ apply_config_runtime() {
   _reload_plan="$(printf '%s\n' "$_decision" | sed -n '2p')"
   case "$_reload_plan" in
     full)
-      reload_runtime_configuration || return $?
-      restart_components wallpaper hypridle waybar dunst control-panel polkit
+      # Every surface is recreated, so the splash covers the whole plan.
+      _overlay_owner=0
+      if [ "$(argvus config session-splash start 2>/dev/null)" = "started" ]; then
+        _overlay_owner=1
+      fi
+      _status=0
+      reload_runtime_configuration || _status=$?
+      if [ "$_status" -eq 0 ]; then
+        restart_components wallpaper hypridle waybar dunst control-panel polkit || _status=$?
+      fi
+      [ "$_overlay_owner" -eq 1 ] && argvus config session-splash stop
+      return "$_status"
       ;;
     hyprland)
       reload_runtime_configuration || return $?
@@ -331,26 +346,17 @@ apply_config_runtime() {
 reload_config_transaction() {
   require_systemd
   import_environment
-  # The cover goes up before the projection, so every desktop change below
-  # happens under the splash. A splash left by an interrupted reload would
-  # block this one, so it is cleared first. This call owns the splash only when
-  # it prints "started", and stops it on every path once the reload has finished.
+  # The projection only writes files: no cover. The runtime half shows the
+  # splash itself, and only when it recreates a bar or the Control Panel. A
+  # splash left by an interrupted reload would block that one, so it is
+  # cleared first.
   argvus config session-splash stop
-  _cover=0
-  if [ "$(argvus config session-splash start 2>/dev/null)" = started ]; then
-    _cover=1
-  fi
   _status=0
   ARGVUS_CONFIG_SERVICE=1 ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" argvus config project || _status=$?
-  # A failed projection skips the runtime half, as before, but still lifts the cover.
+  # A failed projection skips the runtime half.
   if [ "$_status" -eq 0 ]; then
-    # Inside this transaction the splash is already running, so this call
-    # does not start or stop one of its own.
     apply_config_runtime || _status=$?
-  fi
-  if [ "$_cover" -eq 1 ]; then
-    argvus config session-splash stop
   fi
   return "$_status"
 }
