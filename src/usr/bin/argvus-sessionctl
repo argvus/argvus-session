@@ -115,10 +115,28 @@ systemd_env_value() {
 }
 
 adopt_systemd_environment() {
+  _missing_names=""
   for _name in WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD; do
     eval "_current=\${${_name}:-}"
-    [ -n "$_current" ] && continue
-    _value="$(systemd_env_value "$_name")"
+    [ -n "$_current" ] || _missing_names="$_missing_names $_name"
+  done
+  [ -n "$_missing_names" ] || return 0
+
+  # One read of the manager environment for every missing name. Each component
+  # wrapper runs this while the manager is busy starting the session, and some
+  # names (HYPRLAND_CMD) are never there. The last assignment wins, as with
+  # systemd_env_value.
+  have systemctl || return 0
+  _manager_environment="$(systemctl --user show-environment 2>/dev/null)" || return 0
+  for _name in $_missing_names; do
+    _value=""
+    while IFS= read -r _line; do
+      case "$_line" in
+        "$_name="*) _value="${_line#*=}" ;;
+      esac
+    done <<MANAGER_ENVIRONMENT
+$_manager_environment
+MANAGER_ENVIRONMENT
     [ -n "$_value" ] || continue
     export "$_name=$_value"
   done
@@ -154,6 +172,72 @@ wait_graphical_runtime() {
   done
 }
 
+# Polls of the desktop surfaces before the loading overlay leaves, 20 ms
+# apart: at most 1.5 seconds.
+DESKTOP_SURFACE_POLLS=75
+
+# The desktop surfaces Hyprland lists as mapped, one per line: `wallpaper`
+# for a background layer and `taskbar` for the taskbar's namespace. Hyprland
+# lists only mapped layer surfaces.
+desktop_surfaces() {
+  hyprctl layers -j 2>/dev/null | jq -r '
+    (if any(.[] | .levels["0"][]?; true) then "wallpaper" else empty end),
+    (if any(.[] | .levels[][]; .namespace == "argvus-taskbar") then "taskbar" else empty end)
+  ' 2>/dev/null
+}
+
+# Appends a `timing` entry in the format of the Rust session steps.
+log_timing() {
+  mkdir -p "$STATE_DIR"
+  printf '%s timing %s %sms\n' "$(date +%s%3N)" "$1" "$2" >> "$LOG"
+}
+
+# Waits, bounded, until the wallpaper and the taskbar are on screen. A simple
+# service counts as started once its process exists, before it maps a surface,
+# so the overlay must not leave on the target state alone. A surface whose unit
+# is not running is not waited for. The time each surface took and the whole
+# wait are logged as timing entries.
+wait_desktop_surfaces() {
+  have hyprctl && have jq || return 0
+  _need_wallpaper=false
+  _need_taskbar=false
+  systemctl --user is-active --quiet argvus-wallpaper.service && _need_wallpaper=true
+  systemctl --user is-active --quiet argvus-taskbar.service && _need_taskbar=true
+  [ "$_need_wallpaper" = true ] || [ "$_need_taskbar" = true ] || return 0
+
+  _surfaces_started_ms="$(date +%s%3N)"
+  _wallpaper_ms=""
+  _taskbar_ms=""
+  _surface_poll=0
+  while :; do
+    _mapped="$(desktop_surfaces)"
+    _surface_ms="$(date +%s%3N)"
+    case "$_mapped" in
+      *wallpaper*) [ -n "$_wallpaper_ms" ] || _wallpaper_ms="$_surface_ms" ;;
+    esac
+    case "$_mapped" in
+      *taskbar*) [ -n "$_taskbar_ms" ] || _taskbar_ms="$_surface_ms" ;;
+    esac
+    if { [ "$_need_wallpaper" = false ] || [ -n "$_wallpaper_ms" ]; } \
+      && { [ "$_need_taskbar" = false ] || [ -n "$_taskbar_ms" ]; }; then
+      break
+    fi
+    _surface_poll=$((_surface_poll + 1))
+    if [ "$_surface_poll" -ge "$DESKTOP_SURFACE_POLLS" ]; then
+      log "desktop surfaces were not mapped in time; removing the loading overlay anyway"
+      break
+    fi
+    sleep 0.02
+  done
+  if [ -n "$_wallpaper_ms" ]; then
+    log_timing session.wallpaper-surface "$((_wallpaper_ms - _surfaces_started_ms))"
+  fi
+  if [ -n "$_taskbar_ms" ]; then
+    log_timing session.taskbar-surface "$((_taskbar_ms - _surfaces_started_ms))"
+  fi
+  log_timing session.desktop-surfaces "$(($(date +%s%3N) - _surfaces_started_ms))"
+}
+
 start_session() {
   _start_mode="${1:-start}"
   require_systemd
@@ -174,10 +258,17 @@ start_session() {
   # graphical-session.target refuses manual start (RefuseManualStart=yes); it is
   # pulled in by argvus-session.target through Wants= instead. Starting it here
   # would make the whole transaction fail, leaving no desktop services running.
+  _target_started=true
   if ! systemctl --user start argvus-session.target; then
+    _target_started=false
     log "failed to start argvus-session.target; desktop services were not started"
   fi
   if [ "$_start_mode" = ready ]; then
+    # Only a started target has surfaces to wait for; after a failure the
+    # overlay leaves at once, as before.
+    if [ "$_target_started" = true ]; then
+      wait_desktop_surfaces
+    fi
     # The handoff overlay has no PartOf=, so the stop above leaves it mapped.
     # The start returns once the configuration, preparation and reload units
     # finished and the desktop components were started; only then systemd
