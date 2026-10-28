@@ -6,7 +6,14 @@ Before=dunst.service
 Conflicts=dunst.service
 
 [Service]
-Type=simple
+# Type=dbus: the unit counts as started once Dunst owns its bus name. The
+# ExecStartPost below sets the pause state over that name, so it must not run
+# before the name exists.
+Type=dbus
+BusName=org.freedesktop.Notifications
+# Bounded wait: a Dunst that never takes the name must not hold the desktop
+# session start for the default 90 seconds.
+TimeoutStartSec=10s
 ExecStartPre=-/usr/bin/argvus notifications theme restore
 ExecStart=/usr/bin/argvus sessionctl run dunst
 ExecStartPost=-/usr/bin/argvus notifications dnd restore
