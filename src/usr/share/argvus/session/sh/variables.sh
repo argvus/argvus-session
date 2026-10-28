@@ -52,25 +52,49 @@ get_default_value() {
 }
 
 # -- Application paths --------------------------------------------------------
-TERM="$(get_default_value terminal | sed '/^$/d' | head -1)"
+# Stores the default app of one category in its variable.
+_argvus_assign_app_default() {
+  case "$1" in
+    terminal) TERM="$2" ;;
+    launcher) FINDER="$2" ;;
+    file_manager) FILE_MANAGER="$2" ;;
+    terminal_editor) TERMINAL_EDITOR="$2" ;;
+    text_editor) TEXT_EDITOR="$2" ;;
+    image_viewer) IMAGE_VIEWER="$2" ;;
+    pdf_viewer) PDF_VIEWER="$2" ;;
+    video_player) VIDEO_PLAYER="$2" ;;
+    audio_player) AUDIO_PLAYER="$2" ;;
+    archive) ARCHIVE_APP="$2" ;;
+  esac
+}
+
+TERM="" FINDER="" FILE_MANAGER="" TERMINAL_EDITOR="" TEXT_EDITOR=""
+IMAGE_VIEWER="" PDF_VIEWER="" VIDEO_PLAYER="" AUDIO_PLAYER="" ARCHIVE_APP=""
+if [ -x "$_GET_DEFAULT" ]; then
+  # One get-default.sh run for every category: each `sessionctl run` sources
+  # this module, and several start together at login.
+  _argvus_tab="$(printf '\t')"
+  while IFS="$_argvus_tab" read -r _argvus_category _argvus_app; do
+    _argvus_assign_app_default "$_argvus_category" "$_argvus_app"
+  done <<APP_DEFAULTS
+$(sh "$_GET_DEFAULT" --all 2>/dev/null || true)
+APP_DEFAULTS
+else
+  for _argvus_category in terminal launcher file_manager terminal_editor text_editor \
+    image_viewer pdf_viewer video_player audio_player archive; do
+    _argvus_assign_app_default "$_argvus_category" \
+      "$(get_default_value "$_argvus_category" | sed '/^$/d' | head -1)"
+  done
+fi
 [ -n "$TERM" ] || TERM="argvus-terminal"
-FINDER="$(get_default_value launcher | sed '/^$/d' | head -1)"
 [ -n "$FINDER" ] || FINDER="rofi"
-FILE_MANAGER="$(get_default_value file_manager | sed '/^$/d' | head -1)"
 [ -n "$FILE_MANAGER" ] || FILE_MANAGER="argvus --spf"
-TERMINAL_EDITOR="$(get_default_value terminal_editor | sed '/^$/d' | head -1)"
 [ -n "$TERMINAL_EDITOR" ] || TERMINAL_EDITOR="vim"
-TEXT_EDITOR="$(get_default_value text_editor | sed '/^$/d' | head -1)"
 [ -n "$TEXT_EDITOR" ] || TEXT_EDITOR="mousepad"
-IMAGE_VIEWER="$(get_default_value image_viewer | sed '/^$/d' | head -1)"
 [ -n "$IMAGE_VIEWER" ] || IMAGE_VIEWER="imv"
-PDF_VIEWER="$(get_default_value pdf_viewer | sed '/^$/d' | head -1)"
 [ -n "$PDF_VIEWER" ] || PDF_VIEWER="zathura"
-VIDEO_PLAYER="$(get_default_value video_player | sed '/^$/d' | head -1)"
 [ -n "$VIDEO_PLAYER" ] || VIDEO_PLAYER="mpv"
-AUDIO_PLAYER="$(get_default_value audio_player | sed '/^$/d' | head -1)"
 [ -n "$AUDIO_PLAYER" ] || AUDIO_PLAYER="audacious"
-ARCHIVE_APP="$(get_default_value archive | sed '/^$/d' | head -1)"
 [ -n "$ARCHIVE_APP" ] || ARCHIVE_APP="xarchiver"
 
 # -- UI defaults --------------------------------------------------------------
