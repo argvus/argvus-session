@@ -43,6 +43,20 @@ sync_session_environment() {
   fi
 }
 
+start_config_projection() {
+  # The projection does not need the compositor: its adapters run without the
+  # runtime and its files are replaced atomically. Queuing it now overlaps it
+  # with the Hyprland startup instead of waiting for `sessionctl ready`;
+  # argvus-session.target then finds the unit active or waits for its job.
+  # --no-block keeps this launch from waiting for the projection.
+  if command -v systemctl >/dev/null 2>&1 \
+    && systemctl --user start --no-block argvus-config.service >/dev/null 2>&1; then
+    log "queued the configuration projection before Hyprland launch"
+  else
+    log "could not queue the configuration projection early; the session target runs it"
+  fi
+}
+
 hyprland_bin() {
   if command -v Hyprland >/dev/null 2>&1; then
     command -v Hyprland
@@ -142,6 +156,8 @@ VIRTUALIZATION="$(detect_virtualization)"
 configure_virtual_machine "$VIRTUALIZATION"
 log "virtualization=${VIRTUALIZATION} WLR_RENDERER_ALLOW_SOFTWARE=${WLR_RENDERER_ALLOW_SOFTWARE:-0} AQ_NO_MODIFIERS=${AQ_NO_MODIFIERS:-0}"
 sync_session_environment
+# After the import, so the projection runs with this session's environment.
+start_config_projection
 if [ -d /dev/dri ]; then
   ls -l /dev/dri >> "$LOG" 2>&1 || true
 else
