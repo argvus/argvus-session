@@ -1,0 +1,10 @@
+[Unit]
+Description=Evaluate ARGVUS night light schedule
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service hyprsunset.service argvus-night-light-init.service
+ConditionEnvironment=HYPRLAND_INSTANCE_SIGNATURE
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/argvus config display night-light apply-schedule
+TimeoutStartSec=15

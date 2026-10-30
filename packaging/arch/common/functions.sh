@@ -54,6 +54,10 @@ arch_package_payload() {
 	for unit in "${source_root}"/src/usr/share/argvus/session/config/systemd/user/*; do
 		install -Dm644 "$unit" "${pkgdir}/usr/lib/systemd/user/${unit##*/}"
 	done
+	install -Dm644 "${source_root}/src/usr/lib/systemd/user/hyprsunset.service.d/argvus.conf" \
+		"${pkgdir}/usr/lib/systemd/user/hyprsunset.service.d/argvus.conf"
+	install -Dm644 "${source_root}/src/usr/share/argvus/session/config/night-light/hypr/hyprsunset.conf" \
+		"${pkgdir}/usr/share/argvus/session/config/night-light/hypr/hyprsunset.conf"
 	install -Dm644 \
 		"${source_root}/src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop" \
 		"${pkgdir}/usr/share/wayland-sessions/argvus.desktop"

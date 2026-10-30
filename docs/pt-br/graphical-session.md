@@ -28,3 +28,9 @@ argvus sessionctl reload
 Se a projeção não puder ser concluída, o reload para antes de reiniciar as superfícies do desktop. Consulte `argvus sessionctl logs` e execute `argvus config validate` antes de tentar novamente; isso evita deixar Waybar, notificações ou o Control Panel executando uma mistura antiga de temas após uma projeção falha.
 
 O fluxo padrão usa greetd. Para a sequência de inicialização e a responsabilidade dos serviços, veja [Ciclo de vida em tempo de execução](/pt/docs/developer-guide/architecture/runtime-lifecycle/).
+
+## Luz noturna
+
+`argvus-session` depende de `hyprsunset>=0.4.0` e inicia o serviço upstream pelo target da sessão, sem habilitar um segundo daemon. `argvus-night-light-init.service` aplica o estado salvo na entrada; o timer avalia horários locais fixos a cada minuto e após mudanças do relógio/fuso. Sem programação, as verificações periódicas preservam o estado manual. O serviço upstream acompanha `graphical-session.target` no logout.
+
+O drop-in empacotado inicia com `--identity` e `XDG_CONFIG_HOME`/`XDG_CONFIG_DIRS` locais ao serviço apontando para `/usr/share/argvus/session/config/night-light`, sem perfis nativos. Evita programadores concorrentes e a inicialização upstream a 6000 K. Aplica-se ao serviço também fora do ARGVUS enquanto instalado; arquivos pessoais do Hyprsunset são preservados. Overrides systemd do usuário podem ter precedência. A instalação não grava no HOME. Preferências ficam em `/displays/night_light`, sobreposições em `$XDG_RUNTIME_DIR/argvus/night-light/`; consulte `argvus config display night-light status`.

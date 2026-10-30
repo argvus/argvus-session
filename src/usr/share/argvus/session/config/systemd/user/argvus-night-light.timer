@@ -1,0 +1,10 @@
+[Unit]
+Description=Check ARGVUS night light every minute
+PartOf=argvus-session.target graphical-session.target
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+OnClockChange=yes
+OnTimezoneChange=yes
+AccuracySec=1s
+Unit=argvus-night-light.service

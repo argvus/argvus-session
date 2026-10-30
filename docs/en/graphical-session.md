@@ -30,3 +30,9 @@ If the projection cannot be completed, the reload stops before restarting deskto
 The default login integration is greetd. See [Greeter](/docs/components/argvus-greeter/) and [session troubleshooting](/docs/user-guide/troubleshooting/session-startup/).
 
 For service ownership and the startup sequence, see [Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/).
+
+## Night Light
+
+`argvus-session` depends on `hyprsunset>=0.4.0` and starts the upstream user service through the session target, without enabling a second daemon. `argvus-night-light-init.service` applies saved state at entry; the timer evaluates fixed local schedules every minute and after clock/time-zone changes. With scheduling off, periodic checks leave manual state unchanged. The upstream service follows `graphical-session.target` at logout.
+
+The packaged drop-in starts Hyprsunset with `--identity` and service-local `XDG_CONFIG_HOME`/`XDG_CONFIG_DIRS` pointing to `/usr/share/argvus/session/config/night-light`, whose config contains no native profiles. This avoids competing schedulers and startup at the upstream 6000 K default. It applies to the upstream service also outside ARGVUS while installed; personal Hyprsunset files are preserved. User systemd overrides can take precedence. No package install writes into HOME. Preferences are in `/displays/night_light`, overrides in `$XDG_RUNTIME_DIR/argvus/night-light/`; see `argvus config display night-light status`.

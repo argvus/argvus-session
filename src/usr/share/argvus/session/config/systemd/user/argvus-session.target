@@ -18,5 +18,6 @@ Wants=argvus-secret-service.service
 Wants=argvus-clipboard-text.service
 Wants=argvus-clipboard-image.service
 Wants=argvus-keyboard-layout.service
+Wants=hyprsunset.service argvus-night-light.timer argvus-night-light-init.service
 Requires=argvus-session-prepare.service
 After=graphical-session-pre.target graphical-session.target argvus-config.service argvus-session-prepare.service argvus-session-reload.service
