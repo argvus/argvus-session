@@ -23,6 +23,11 @@ ISOLATED_VARIABLES = ("HYPRLAND_INSTANCE_SIGNATURE", "WAYLAND_DISPLAY", "DISPLAY
 # Mock argvus-config. It records every call, answers the plan from STUB_PLAN,
 # and writes the marker for the commands that changed state.
 MOCK_CONFIG = """#!/bin/sh
+# The post-readiness Welcome hook is deliberately tested through this mock.
+if [ "$1" = welcome ]; then
+  printf 'argvus welcome %s\\n' "$*" >> "$TEST_LOG"
+  exit "${STUB_WELCOME_STATUS:-0}"
+fi
 # The shell calls `argvus config <command>`; the mock answers the command after `config`.
 [ "$1" = config ] && shift
 case "$1" in
@@ -53,6 +58,7 @@ def mock_bin(base):
         mockbin / "systemctl",
         '#!/bin/sh\n'
         'if [ "$1" = "--user" ] && [ "$2" = "show-environment" ]; then exit 0; fi\n'
+        'if [ "${STUB_READY:-0}" = 1 ] && [ "$1" = "--user" ] && [ "$2" = "is-active" ]; then exit 1; fi\n'
         'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
     # A hyprctl that is never the compositor's: it only records the call.
     write_executable(mockbin / "hyprctl", '#!/bin/sh\nprintf "hyprctl %s\\n" "$*" >> "$TEST_LOG"\n')
@@ -88,6 +94,18 @@ def read_log(base):
 
 
 class SessionctlDelegationTests(unittest.TestCase):
+    def test_ready_attempts_welcome_only_after_the_desktop_readiness_wait(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = mock_bin(base)
+            env = isolated_env(mockbin, base, STUB_READY="1")
+            result = run_sessionctl(env, "ready")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            calls = read_log(base)
+            self.assertIn("--user start argvus-session.target", calls)
+            self.assertIn("--user stop argvus-session-loading.service", calls)
+            self.assertIn("argvus welcome welcome --if-needed", calls)
+
     def test_prepare_runs_the_session_preparation_in_argvus_config(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

@@ -277,6 +277,13 @@ start_session() {
     # spinner on screen (the unit also has RuntimeMaxSec= as a last resort).
     systemctl --user stop argvus-session-loading.service >/dev/null 2>&1 || true
     log "stopped session loading overlay after graphical readiness"
+    if [ "$_target_started" = true ]; then
+      if have argvus; then
+        (argvus welcome --if-needed >> "$LOG" 2>&1 || log "ARGVUS Welcome auto-start failed; unopened onboarding will be retried at the next login") &
+      else
+        log "ARGVUS Welcome auto-start skipped: argvus command is unavailable"
+      fi
+    fi
   fi
   start_widget_telemetry_if_enabled
 }
