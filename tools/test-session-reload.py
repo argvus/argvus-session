@@ -72,6 +72,7 @@ def isolated_env(mockbin, base, **extra):
     env |= {
         "PATH": str(mockbin) + os.pathsep + os.environ["PATH"],
         "ARGVUS_COMMANDS_DIR": str(mockbin),
+        "ARGVUS_SYSTEM_CONFIG": str(ROOT / "src/usr/share/argvus"),
         "ARGVUS_CONFIG_HOME": str(base / "config"),
         "XDG_CACHE_HOME": str(base / "cache"),
         "XDG_STATE_HOME": str(base / "state"),
@@ -220,6 +221,28 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertIn("argvus config session-restart taskbar", calls)
             self.assertLess(calls.index("argvus config session-splash start"),
                             calls.index("argvus config session-restart taskbar"))
+
+    def test_import_publishes_user_default_and_clears_inherited_language(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            mockbin = mock_bin(base)
+            write_executable(mockbin / "locale", '#!/bin/sh\nprintf "en_US.utf8\\n"\n')
+            write_executable(mockbin / "systemctl", '#!/bin/sh\n'
+                             'if [ "$2" = show-environment ]; then exit 0; fi\n'
+                             'printf "manager:%s|%s|%s|%s\\n" "$LANG" "$LC_ALL" "$LC_MESSAGES" "$LANGUAGE" >> "$TEST_LOG"\n'
+                             'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
+            write_executable(mockbin / "dbus-update-activation-environment", '#!/bin/sh\n'
+                             'printf "dbus:%s|%s|%s|%s\\n" "$LANG" "$LC_ALL" "$LC_MESSAGES" "$LANGUAGE" >> "$TEST_LOG"\n'
+                             'printf "%s\\n" "$*" >> "$TEST_LOG"\n')
+            env = isolated_env(mockbin, base, LANG="pt_BR.UTF-8", LC_ALL="C.UTF-8",
+                               LC_MESSAGES="pt_BR.UTF-8", LANGUAGE="pt_BR")
+            result = run_sessionctl(env, "import-environment")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            calls = read_log(base)
+            self.assertIn("manager:en_US.UTF-8||en_US.UTF-8|en_US", calls)
+            self.assertIn("dbus:en_US.UTF-8||en_US.UTF-8|en_US", calls)
+            self.assertTrue(any("LANGUAGE" in call and "LC_ALL" in call for call in calls))
+            self.assertFalse((base / "config/locale.conf").exists())
 
 
 if __name__ == "__main__":

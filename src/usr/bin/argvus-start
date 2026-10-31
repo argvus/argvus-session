@@ -155,16 +155,10 @@ log "GDMSESSION=${GDMSESSION:-} DESKTOP_SESSION=${DESKTOP_SESSION:-} XDG_SESSION
 VIRTUALIZATION="$(detect_virtualization)"
 configure_virtual_machine "$VIRTUALIZATION"
 log "virtualization=${VIRTUALIZATION} WLR_RENDERER_ALLOW_SOFTWARE=${WLR_RENDERER_ALLOW_SOFTWARE:-0} AQ_NO_MODIFIERS=${AQ_NO_MODIFIERS:-0}"
-# Apply the logged-in user's locale before publishing the session environment.
-_user_locale="$(sed -n 's/^[[:space:]]*LANG=//p' "$CONFIG_HOME/locale.conf" 2>/dev/null | tail -n 1 | tr -d '"\047')"
-case "$_user_locale" in
-  ''|null|*[!a-zA-Z0-9_.@-]*) ;;
-  *)
-    unset LC_ALL
-    export LANG="$_user_locale" LC_MESSAGES="$_user_locale"
-    export LANGUAGE="${_user_locale%%.*}"
-    ;;
-esac
+# Resolve only this user's locale, with English as the unconfigured default.
+# shellcheck disable=SC1091
+. "$SYSTEM_CONFIG/session/sh/locale.sh"
+locale_apply
 sync_session_environment
 # After the import, so the projection runs with this session's environment.
 start_config_projection
