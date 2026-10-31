@@ -40,3 +40,5 @@ O drop-in empacotado inicia com `--identity` e `XDG_CONFIG_HOME`/`XDG_CONFIG_DIR
 A sessão lê LANG do arquivo `$XDG_CONFIG_HOME/locale.conf` do usuário conectado (padrão `~/.config/locale.conf`) antes de importar o ambiente. Isso atende TTY e gerenciadores gráficos. Mudanças de idioma exigem sair e entrar novamente; `/etc/locale.conf` não é alterado.
 
 Sem `LANG` válido do usuário, a sessão inicia em inglês mesmo se o locale do host for português. Usa `en_US.UTF-8` quando gerado, ou `C.UTF-8` caso contrário, sem criar configuração do usuário. A resolução ocorre antes da projeção e do início do desktop. A sessão limpa `LC_ALL` herdado e substitui as variáveis de idioma nos ambientes do systemd de usuário e da ativação D-Bus, incluindo `LANGUAGE`. Categorias regionais do mesmo locale.conf são preservadas. Arquivos legados de idioma do ARGVUS são ignorados.
+
+A sessão lê TZ pessoal de `$XDG_CONFIG_HOME/environment.d/20-timezone.conf` antes de iniciar Hyprland e o importa para serviços do usuário e D-Bus. Valida nomes de zoneinfo sem executar o arquivo. Um novo login aplica alterações de fuso aos aplicativos.

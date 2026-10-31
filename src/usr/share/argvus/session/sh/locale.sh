@@ -31,6 +31,14 @@ locale_user_lang() {
 
 # Call before importing the environment or starting any desktop component.
 locale_apply() {
+  _timezone_config="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/20-timezone.conf"
+  if [ -r "$_timezone_config" ]; then
+    _timezone_value="$(awk -F= '$1 == "TZ" && $2 ~ /^[a-zA-Z0-9_+\/-]+$/ { zone = $2 } END { print zone }' "$_timezone_config")"
+    case "$_timezone_value" in
+      ''|/*|*..*) ;;
+      *) if [ -f "/usr/share/zoneinfo/$_timezone_value" ]; then export TZ="$_timezone_value"; fi ;;
+    esac
+  fi
   LANG="$(locale_user_lang)"
   _locale_available="$(locale -a 2>/dev/null | tr '[:upper:]' '[:lower:]' | tr -d '-')"
   _locale_requested="$(printf '%s' "$LANG" | tr '[:upper:]' '[:lower:]' | tr -d '-')"

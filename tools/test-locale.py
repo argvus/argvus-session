@@ -41,6 +41,19 @@ class UserLocaleTests(unittest.TestCase):
             self.assertEqual((config / "locale.conf").exists(), contents is not None)
             return result.stdout.splitlines()
 
+    def test_timezone_is_personal_and_not_executed(self):
+        with tempfile.TemporaryDirectory(prefix="argvus-timezone-") as directory:
+            config = Path(directory)
+            (config / "environment.d").mkdir()
+            timezone = config / "environment.d/20-timezone.conf"
+            for value, expected in [("America/Sao_Paulo", "America/Sao_Paulo"), ("$(id)", "UTC"), ("../etc/passwd", "UTC")]:
+                timezone.write_text("TZ=" + value + "\n")
+                result = subprocess.run([
+                    "sh", "-c", '. "$1"; locale_apply; printf "%s" "$TZ"', "sh", str(LIBRARY)
+                ], env=os.environ | {"XDG_CONFIG_HOME": directory, "TZ": "UTC"},
+                    text=True, capture_output=True, check=True)
+                self.assertEqual(result.stdout, expected)
+
     def test_new_profile_ignores_global_portuguese_and_legacy_files(self):
         for legacy in [False, True]:
             self.assertEqual(self.resolve(legacy=legacy), ["en_US.UTF-8", "", "en_US.UTF-8", "en_US", ""])
