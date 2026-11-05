@@ -362,6 +362,44 @@ apply_config_runtime() {
   # argvus-config decides what to reload from the projection manifest. The first
   # line of its answer is the mode: "targets" (names follow) or "plan" (one name).
   _decision="$(argvus config session-plan 2>/dev/null)" || return 65
+  _forced_targets=""
+  if [ "${ARGVUS_MODE_SWITCH:-0}" = 1 ]; then
+    _forced_targets="taskbar widget_telemetry hyprland"
+  elif [ "${ARGVUS_CUSTOM_THEME:-0}" = 1 ]; then
+    _forced_targets="taskbar hyprland wallpaper control_panel consumers"
+  fi
+  if [ -n "$_forced_targets" ]; then
+    if [ "$(printf '%s\n' "$_decision" | sed -n '1p')" != targets ]; then
+      _plan="$(printf '%s\n' "$_decision" | sed -n '2p')"
+      case "$_plan" in
+        full)
+          # Preserve the full plan's targets while applying forced surfaces.
+          _decision="targets"
+          for _target in hyprland consumers wallpaper taskbar widget_telemetry control_panel notifications polkit hypridle; do
+            _decision="${_decision}
+${_target}"
+          done
+          ;;
+        hyprland|hypridle)
+          _decision="targets
+${_plan}"
+          ;;
+        none)
+          _decision="targets"
+          ;;
+        *)
+          warn "unknown configuration reload plan: $_plan"
+          return 65
+          ;;
+      esac
+    fi
+    for _target in $_forced_targets; do
+      if ! printf '%s\n' "$_decision" | sed -n '2,$p' | grep -qx "$_target"; then
+        _decision="${_decision}
+${_target}"
+      fi
+    done
+  fi
   _has_reload_targets=0
   if [ "$(printf '%s\n' "$_decision" | sed -n '1p')" = "targets" ]; then
     _has_reload_targets=1
@@ -393,6 +431,9 @@ apply_config_runtime() {
       argvus config theme-runtime consumers || _status=$?
     fi
     if [ "$_status" -eq 0 ] && _target_enabled wallpaper &&
+      [ "${ARGVUS_CUSTOM_THEME:-0}" = 1 ]; then
+      restart_components wallpaper || _status=$?
+    elif [ "$_status" -eq 0 ] && _target_enabled wallpaper &&
       [ "${ARGVUS_THEME_APPLYING:-0}" != 1 ]; then
       # hyprpaper's IPC; the wallpaper service restarts only for swaybg.
       argvus config theme-runtime wallpaper || _status=$?
