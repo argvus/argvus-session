@@ -392,7 +392,8 @@ apply_config_runtime() {
       # Waybar stylesheets, Control Panel, Hyprland colours, Dunst, btop, kitty.
       argvus config theme-runtime consumers || _status=$?
     fi
-    if [ "$_status" -eq 0 ] && _target_enabled wallpaper; then
+    if [ "$_status" -eq 0 ] && _target_enabled wallpaper &&
+      [ "${ARGVUS_THEME_APPLYING:-0}" != 1 ]; then
       # hyprpaper's IPC; the wallpaper service restarts only for swaybg.
       argvus config theme-runtime wallpaper || _status=$?
     fi
