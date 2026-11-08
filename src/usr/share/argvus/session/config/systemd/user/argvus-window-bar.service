@@ -1,0 +1,11 @@
+[Unit]
+Description=ARGVUS window-bar
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service graphical-session.target argvus-windows.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/argvus windows bar
+Restart=on-failure
+RestartSec=2s
+KillMode=control-group

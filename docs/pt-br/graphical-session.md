@@ -42,3 +42,10 @@ A sessão lê LANG do arquivo `$XDG_CONFIG_HOME/locale.conf` do usuário conecta
 Sem `LANG` válido do usuário, a sessão inicia em inglês mesmo se o locale do host for português. Usa `en_US.UTF-8` quando gerado, ou `C.UTF-8` caso contrário, sem criar configuração do usuário. A resolução ocorre antes da projeção e do início do desktop. A sessão limpa `LC_ALL` herdado e substitui as variáveis de idioma nos ambientes do systemd de usuário e da ativação D-Bus, incluindo `LANGUAGE`. Categorias regionais do mesmo locale.conf são preservadas. Arquivos legados de idioma do ARGVUS são ignorados.
 
 A sessão lê TZ pessoal de `$XDG_CONFIG_HOME/environment.d/20-timezone.conf` antes de iniciar Hyprland e o importa para serviços do usuário e D-Bus. Valida nomes de zoneinfo sem executar o arquivo. Um novo login aplica alterações de fuso aos aplicativos.
+
+
+## Botões de janela e barra de aplicativos
+
+A minimização usa o workspace reservado `special:argvus-minimized`. Não use esse workspace manualmente. O processo `argvus windows service` registra identidade, workspace/monitor de origem, geometria, tela cheia/maximização e fixação em um registro de runtime separado por instância do compositor, em `$XDG_RUNTIME_DIR/argvus`. Os registros sobrevivem ao reinício do serviço ou reload da configuração, mas não atravessam sessões do compositor. Fechar uma janela remove seu registro. Se um monitor desaparecer, a restauração usa uma saída disponível. Uma barra de recuperação ausente ou com falha impede novas minimizações; falhas de restauração preservam o registro e a barra de recuperação.
+
+A sessão gerencia `argvus-windows.service` e `argvus-window-bar.service`. O segundo mantém sua Waybar inativa em mosaico. O plugin hyprbars é distribuído por `argvus-hyprland`, compilado para a ABI do Hyprland 0.57.0 em x86_64; não é compilado no diretório pessoal do usuário. Recompile o plugin ao atualizar a ABI do compositor.

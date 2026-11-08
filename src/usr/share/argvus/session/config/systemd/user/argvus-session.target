@@ -9,6 +9,7 @@ Wants=argvus-session-reload.service
 Wants=argvus-wallpaper.service
 Wants=argvus-control-panel.service
 Wants=argvus-taskbar.service
+Wants=argvus-windows.service argvus-window-bar.service
 Wants=argvus-widget-telemetry.service
 Wants=argvus-dunst.service
 Wants=argvus-hypridle.service

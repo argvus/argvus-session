@@ -1,0 +1,11 @@
+[Unit]
+Description=ARGVUS windows
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/argvus windows service
+Restart=on-failure
+RestartSec=2s
+KillMode=control-group

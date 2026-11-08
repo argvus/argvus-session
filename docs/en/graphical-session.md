@@ -44,3 +44,10 @@ The session loads LANG from the logged-in user’s `$XDG_CONFIG_HOME/locale.conf
 Without a valid user `LANG`, the session starts in English even if the host locale is Portuguese. It uses `en_US.UTF-8` when generated and `C.UTF-8` otherwise, without creating a user configuration. Locale resolution happens before configuration projection and desktop startup. The session clears inherited `LC_ALL` and replaces the language variables in the systemd user and D-Bus activation environments, including `LANGUAGE`. Regional categories from the same locale.conf are preserved. Legacy ARGVUS language files are ignored.
 
 The session reads the personal TZ assignment from `$XDG_CONFIG_HOME/environment.d/20-timezone.conf` before starting Hyprland and imports it into the user service and D-Bus environments. It validates zoneinfo names and never executes the file. A new login applies timezone changes to applications.
+
+
+## Window buttons and application bar
+
+Minimization uses the reserved `special:argvus-minimized` workspace. Do not use that workspace manually. The `argvus windows service` process records identity, original workspace/monitor, geometry, fullscreen/maximization and pin state in a compositor-instance-specific runtime registry under `$XDG_RUNTIME_DIR/argvus`. Records survive a service restart or config reload, but do not cross compositor sessions. Closing a window removes its record. If a monitor disappears, restoration uses an available output. A missing or failed recovery bar prevents new minimizations; failed restoration retains the record and recovery bar.
+
+The session owns `argvus-windows.service` and `argvus-window-bar.service`. The latter keeps its Waybar child dormant in Tile. The hyprbars plugin is bundled by `argvus-hyprland`, built for the Hyprland 0.57.0 ABI on x86_64; it is not compiled in the user's home directory. Rebuild the plugin with a compositor ABI update.
