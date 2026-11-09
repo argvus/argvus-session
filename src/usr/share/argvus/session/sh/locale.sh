@@ -70,7 +70,16 @@ locale_detect() {
     return
   fi
   case "$(locale_user_lang)" in
-    pt_BR*) printf '%s\n' "pt-BR" ;;
+    pt_*|pt-*) printf '%s\n' "pt-BR" ;;
+    es_*|es-*) printf '%s\n' "es-ES" ;;
+    fr_*|fr-*) printf '%s\n' "fr-FR" ;;
+    it_*|it-*) printf '%s\n' "it-IT" ;;
+    de_*|de-*) printf '%s\n' "de-DE" ;;
+    ru_*|ru-*) printf '%s\n' "ru-RU" ;;
+    ja_*|ja-*) printf '%s\n' "ja-JP" ;;
+    ko_*|ko-*) printf '%s\n' "ko-KR" ;;
+    zh_TW*|zh_HK*|zh_MO*|zh-Hant*|zh-TW*|zh-HK*|zh-MO*) printf '%s\n' "en-US" ;;
+    zh_*|zh-*) printf '%s\n' "zh-CN" ;;
     *) printf '%s\n' "en-US" ;;
   esac
 }

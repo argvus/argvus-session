@@ -62,6 +62,13 @@ class UserLocaleTests(unittest.TestCase):
         self.assertEqual(self.resolve("# comment\n LANG='pt_BR.UTF-8'\nLC_TIME=en_GB.UTF-8\n"),
                          ["pt_BR.UTF-8", "", "pt_BR.UTF-8", "pt_BR", "en_GB.UTF-8"])
 
+    def test_all_new_languages_propagate_to_session_environment(self):
+        for language in ["es_ES", "fr_FR", "it_IT", "de_DE", "ru_RU", "zh_CN", "ja_JP", "ko_KR"]:
+            with self.subTest(language=language):
+                locale = language + ".UTF-8"
+                result = self.resolve("LANG=" + locale + "\n", generated=language + ".utf8")
+                self.assertEqual(result[:4], [locale, "", locale, language])
+
     def test_english_fallback_without_generated_en_us(self):
         self.assertEqual(self.resolve(generated="C.utf8")[:4], ["C.UTF-8", "", "C.UTF-8", "C"])
 
