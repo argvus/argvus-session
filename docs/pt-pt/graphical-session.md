@@ -1,0 +1,53 @@
+---
+title: Sessão gráfica
+description: Inicie o ARGVUS pelo login gráfico.
+---
+
+O ponto de entrada gráfico é `argvus session`. Ele define o ambiente da sessão e delega para `argvus start`, que o importa no gestor de utilizador, valida a configuração Lua do Hyprland fornecida pelo pacote ou pelo utilizador, aplica ajustes gráficos detectados, inicia o Hyprland e aguarda o compositor ficar pronto.
+
+Os logs são gravados em `~/.local/state/argvus/session.log`. O greeter roda como outro utilizador antes do login, então sua saída pré-login fica em `/run/argvus-greeter/session.log` e é anexada ao `session.log` quando a sessão inicia. Consulte esse ficheiro primeiro quando um aviso de arranque do Hyprland não aparecer no log da sessão.
+
+A sessão garante que a variável de ambiente `PATH` do shell esteja definida para um padrão sensato, mesmo quando o gestor de login (como greetd com `source_profile=false`) não exporta nenhum. Isso garante que utilitários como `hyprland-dialog`, usados pelo Hyprland no arranque, sejam descobertos pelos processos filhos.
+
+Depois que o Hyprland está pronto, `argvus sessionctl` inicia `argvus-session.target`. Esse target inicia taskbar, Control Panel, notificações, wallpaper, idle, clipboard, o agente SSH, o provedor Secret Service e serviços relacionados. Um único spinner de carregamento fica no ecrã desde a troca do login até esses serviços iniciarem e o wallpaper e a barra de tarefas aparecerem no ecrã (no máximo 1,5 segundo a mais). Antes de iniciar o Hyprland, o `argvus-start` enfileira a projeção da configuração (`argvus-config.service`), que então corre durante o arranque do compositor, e pede à superfície DRM do handoff do greeter que libere o ecrã (`/usr/lib/argvus/greeter/handoff --send release`); quando essa superfície está a executar, ele antes ativa a sessão com `loginctl activate`, para que o Hyprland nunca inicie numa VT em segundo plano. Depois, o spinner da sessão avisa a superfície para remover o overlay que escondia os primeiros quadros do Hyprland.
+
+Depois que o desktop está pronto, a sessão executa `argvus welcome --if-needed`, seja o login por TTY, ARGVUS Greeter ou outro gestor. O comando abre a página Welcome integrada na Central de Controle quando o estado por utilizador ainda não registra `opened`, conclusão ou dispensa. A primeira renderização bem-sucedida grava `opened` em `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`; os próximos logins não reabrem o ecrã. Não depende de `/etc/skel`. Contas existentes sem esse registro também recebem uma abertura automática. Falhas anteriores à renderização permitem tentar novamente no próximo login. A abertura manual com `argvus welcome` continua disponível.
+
+`PATH` também recebe `~/.local/bin` e `~/.cargo/bin` no início, quando esses diretórios existem, para que ferramentas instaladas ali fiquem visíveis ao compositor e aos serviços. `EDITOR` e `VISUAL` recebem o editor de terminal padrão configurado nas aplicações padrão do Control Center (`TERMINAL_EDITOR`) e são exportados para o gestor systemd do utilizador, para a ativação via D-Bus e para o Hyprland, de modo que terminais e serviços iniciados pela sessão os herdem. O agente SSH (`argvus-ssh-agent.service`, do pacote `openssh`) escuta em `$XDG_RUNTIME_DIR/ssh-agent.socket` e publica `SSH_AUTH_SOCK` no gestor do utilizador. Ao iniciar, o agente do ARGVUS substitui `SSH_AUTH_SOCK` no gestor do utilizador. Se outro agente, como gnome-keyring ou gcr, deve ser o dono do socket, desative a unit do ARGVUS com `systemctl --user mask argvus-ssh-agent.service`. Ele é encerrado quando o Hyprland termina, evitando processos órfãos após o logout.
+
+O provedor Secret Service é a unit `argvus-secret-service.service`. Ela inicia a unit upstream `gnome-keyring-daemon.service` apenas com o componente `secrets`, por isso não serve chaves SSH, e `SSH_AUTH_SOCK` continua sob responsabilidade de `argvus-ssh-agent.service`. A unit é ignorada quando o `gnome-keyring` não está instalado. O pacote declara o `gnome-keyring` como dependência opcional, o mesmo que o `argvus-taskbar-calendar`, que guarda ali as palavras-passe do CalDAV. O ARGVUS não altera o PAM, então o keyring não é desbloqueado no login: o primeiro aplicação que o usa pede a palavra-passe do keyring, e a coleção de login é criada nesse momento. Para verificar o estado, execute `argvus sessionctl secret-service-status`, que informa se está ausente, parado, em execução, bloqueado ou desbloqueado. Para que o KWallet ou o KeePassXC assuma o Secret Service, desative a unit do ARGVUS com `systemctl --user mask argvus-secret-service.service`; o provedor é encerrado quando a sessão termina.
+
+A sessão também importa as variáveis Wayland e do ambiente desktop para o gestor systemd do utilizador. Para inspecionar ou recarregar uma sessão ativa:
+
+```sh
+argvus sessionctl status
+argvus sessionctl logs
+argvus sessionctl reload
+```
+
+`reload` aplica a generation que já foi commitada. Se um comando como `argvus config apply-theme`, `accent`, `set`/`patch` ou uma mudança de bloco de widget-telemetry acabou de projetar a mudança, o reload restaura os consumidores afetados a partir do manifesto de projeção em vez de projetar de novo. Ele só projeta quando não existe plano pendente, por exemplo no startup da sessão. Se nenhuma seção relevante para o runtime mudou, ele termina com sucesso sem recarregar o Hyprland nem reiniciar serviços. Quando existem mudanças, reaplica a integração da sessão e recarrega somente o compositor e as superfícies afetadas. O splash só cobre um reload quando ele recria uma superfície: um reinício de uma barra da Waybar (taskbar ou Widget Telemetry) ou do Control Panel, ou o plano `full` de fallback. Mudanças de tema, destaque, efeitos, fontes, layout das janelas e wallpaper recarregam no lugar (`argvus config theme-runtime consumers` e `wallpaper`, o `/reload` do Hyprland) sem ele, e um reload sem nada a fazer não mostra nada. Reloads repetidos são serializados e seções sem alteração não reiniciam seus consumidores. `apply-config` é um alias explícito dessa operação. Quando aparece, o splash do reload é opaco enquanto o trabalho acontece, para que o ambiente de trabalho intermediária não fique visível. Ele não substitui o logout quando é necessário reiniciar o compositor ou o ambiente de login.
+
+Se a projeção não puder ser concluída, o reload para antes de reiniciar as superfícies do desktop. Consulte `argvus sessionctl logs` e execute `argvus config validate` antes de tentar novamente; isso evita deixar Waybar, notificações ou o Control Panel executando uma mistura antiga de temas após uma projeção falha.
+
+O fluxo padrão usa greetd. Para a sequência de arranque e a responsabilidade dos serviços, veja [Ciclo de vida em tempo de execução](/pt/docs/developer-guide/architecture/runtime-lifecycle/).
+
+## Luz noturna
+
+`argvus-session` depende de `hyprsunset>=0.4.0` e inicia o serviço upstream pelo target da sessão, sem ativar um segundo daemon. `argvus-night-light-init.service` aplica o estado salvo na entrada; o timer avalia horários locais fixos a cada minuto e após mudanças do relógio/fuso. Sem programação, as verificações periódicas preservam o estado manual. O serviço upstream acompanha `graphical-session.target` no logout.
+
+O drop-in empacotado inicia com `--identity` e `XDG_CONFIG_HOME`/`XDG_CONFIG_DIRS` locais ao serviço apontando para `/usr/share/argvus/session/config/night-light`, sem perfis nativos. Evita programadores concorrentes e o arranque upstream a 6000 K. Aplica-se ao serviço também fora do ARGVUS enquanto instalado; ficheiros pessoais do Hyprsunset são preservados. Overrides systemd do utilizador podem ter precedência. A instalação não grava no HOME. Preferências ficam em `/displays/night_light`, sobreposições em `$XDG_RUNTIME_DIR/argvus/night-light/`; consulte `argvus config display night-light status`.
+
+A sessão lê LANG do ficheiro `$XDG_CONFIG_HOME/locale.conf` do utilizador conectado (padrão `~/.config/locale.conf`) antes de importar o ambiente. Isso atende TTY e gestores gráficos. Mudanças de idioma exigem sair e entrar novamente; `/etc/locale.conf` não é alterado.
+
+Sem `LANG` válido do utilizador, a sessão inicia em inglês mesmo se o locale do host for português. Usa `en_US.UTF-8` quando gerado, ou `C.UTF-8` caso contrário, sem criar configuração do utilizador. A resolução ocorre antes da projeção e do início do desktop. A sessão limpa `LC_ALL` herdado e substitui as variáveis de idioma nos ambientes do systemd de utilizador e da ativação D-Bus, incluindo `LANGUAGE`. Categorias regionais do mesmo locale.conf são preservadas. Ficheiros legados de idioma do ARGVUS são ignorados.
+
+A sessão lê TZ pessoal de `$XDG_CONFIG_HOME/environment.d/20-timezone.conf` antes de iniciar Hyprland e o importa para serviços do utilizador e D-Bus. Valida nomes de zoneinfo sem executar o ficheiro. Um novo login aplica alterações de fuso às aplicações.
+
+
+## Botões de janela e barra de aplicações
+
+A minimização usa o workspace reservado `special:argvus-minimized`. Não use esse workspace manualmente. O processo `argvus windows service` registra identidade, workspace/monitor de origem, geometria, ecrã cheia/maximização e fixação em um registro de runtime separado por instância do compositor, em `$XDG_RUNTIME_DIR/argvus`. Os registros sobrevivem ao reinício do serviço ou reload da configuração, mas não atravessam sessões do compositor. Fechar uma janela remove seu registro. Se um monitor desaparecer, a restauração usa uma saída disponível. Uma barra de recuperação ausente ou com falha impede novas minimizações; falhas de restauração preservam o registro e a barra de recuperação.
+
+A sessão gerencia `argvus-windows.service` e `argvus-window-bar.service`. O segundo mantém sua Waybar inativa em mosaico. O plugin hyprbars é distribuído por `argvus-hyprland`, compilado para a ABI do Hyprland 0.57.0 em x86_64; não é compilado no diretório pessoal do utilizador. Recompile o plugin ao atualizar a ABI do compositor.
+
+A sessão propaga o locale UTF-8 selecionado para os dez idiomas do ARGVUS, incluindo chinês, japonês e coreano. A escolha do catálogo é feita por `argvus i18n`; disponibilidade do locale do sistema e fallback de fontes são requisitos separados.
