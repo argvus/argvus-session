@@ -1,0 +1,57 @@
+---
+title: Graphical session
+description: গ্রাফিকাল লগইন ফ্লো-এর মাধ্যমে ARGVUS শুরু করুন।
+---
+
+গ্রাফিকাল এন্ট্রি পয়েন্ট হল `argvus session`। এটি সেশন পরিবেশ স্থাপন করে এবং `argvus start`-তে প্রদায়ক করে, যা এটি ব্যবহারকারী ম্যানেজারে আমদানি করে, প্যাকেজকৃত বা ব্যবহারকারীর Hyprland Lua কনফিগারেশন যাচাই করে, সনাক্তকৃত গ্রাফিক্স সামঞ্জস্যতার সেটিং প্রয়োগ করে, Hyprland চালু করে এবং কম্পোজিটর প্রস্তুতির জন্য অপেক্ষা করে।
+
+লগগুলি `~/.local/state/argvus/session.log` তে লেখা হচ্ছে। গ্রীটারটি লগইনের আগে নিজের ব্যবহারকারী হিসাবে চলে, তাই এর প্রি-লগইন আউটপুট `/run/argvus-greeter/session.log` তে রাখা হয় এবং সেশন শুরু হলে `session.log` তে যোগ করা হয়। যখন সেশন লগে Hyprland থেকে একটি স্টার্টআপ সতর্কতা প্রদর্শিত হয় না, তখন প্রথমে এই ফাইলটি চেক করুন।
+
+সেশনটি নিশ্চিত করে যে শেল `PATH` পরিবেশ ভেরিয়েবলটি একটি যুক্তিসঙ্গত ডিফল্টে সেট করা আছে এমনকি যখন লগইন ম্যানেজার (যেমন greetd সহ `source_profile=false`) এটি এক্সপোর্ট করে না। এটি নিশ্চিত করে যে `hyprland-dialog`-এর মতো ইউটিলিটিগুলি, যা Hyprland দ্বারা স্টার্টআপে ব্যবহৃত হয়, চাইল্ড প্রোসেস দ্বারা আবিষ্কৃত হতে পারে।
+
+Hyprland প্রস্তুত হওয়ার পর, `argvus sessionctl` `argvus-session.target` চালু করে। এই লক্ষ্যটি টাস্কবার, কন্ট্রোল প্যানেল, নোটিফিকেশনস, ওয়ালপেপার, আইডল হ্যান্ডলিং, ক্লিপবোর্ড, SSH এজেন্ট, সিক্রেট সার্ভিস প্রোভাইডার এবং সম্পর্কিত পরিষেবাগুলি চালু করে। একটি একক লোডিং স্পিনার লগইন হ্যান্ডঅফ থেকে সেই পরিষেবাগুলি চালু হওয়া এবং ওয়ালপেপার ও টাস্কবার স্ক্রিনে আসা পর্যন্ত (সর্বাধিক ১.৫ সেকেন্ড আরও) স্ক্রিনে থাকে। Hyprland চালু করার আগে, `argvus-start` কনফিগারেশন প্রজেকশন (`argvus-config.service`) কিউ করে, যা পরে কম্পোজিটার স্টার্টআপের সময় চলে, এবং বিএসআই ডিআরএম হ্যান্ডঅফ সারফেসকে ডিসপ্লে রিলিজ করতে বলে (`/usr/lib/argvus/greeter/handoff --send release`); যখন সেই সারফেস চলমান থাকে, এটি প্রথমে `loginctl activate` এর মাধ্যমে সেশন সক্রিয় করে, যাতে Hyprland কখনও ব্যাকগ্রাউন্ডের ভিটি-তে শুরু না হয়। এরপর সেশন স্পিনার সারফেসকে বলে সেই ওভারলে সরাতে যা Hyprland-এর প্রথম ফ্রেমগুলো লুকিয়েছিল।
+
+ডেস্কটপ প্রস্তুত হওয়ার পরে, সেশন TTY, ARGVUS গ্রিটার এবং অন্যান্য লগইন ম্যানেজারের জন্য `argvus welcome --if-needed` চালায়। এটি একত্রিত কন্ট্রোল সেন্টার ওয়েলকাম পৃষ্ঠা খুলে দেয় যদি ব্যবহারকারীর জন্য প্রগতি রেকর্ড `opened`, সমাপ্তি বা বাতিল না করা হয়। প্রথম সফল রেন্ডার `opened`-কে `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`-তে সংরক্ষণ করে, পরে লগইনগুলিতে পুনরায় খোলার প্রতিরোধ করে। এটি `/etc/skel`-এর উপর নির্ভর করে না। যে বিদ্যমান একাউন্টগুলির সেই রেকর্ড নেই তাদেরও একটি স্বয়ংক্রিয় খোলার সুযোগ দেওয়া হয়। রেন্ডারিংয়ের আগে ব্যর্থতা পরের লগইনে আরেকটি চেষ্টার সুযোগ দেয়। ম্যানুয়াল `argvus welcome` পাওয়া যায়।
+
+`PATH` এছাড়াও `~/.local/bin` এবং `~/.cargo/bin` কে সামনে পায় যখন সেই ডিরেক্টরিগুলি থাকে, তাই সেখানে ইনস্টল করা টুলগুলি কম্পোজিটার এবং সার্ভিসগুলির কাছে দৃশ্যমান হয়। `EDITOR` এবং `VISUAL` কন্ট্রোল সেন্টারের ডিফল্ট অ্যাপস (`TERMINAL_EDITOR`) থেকে ডিফল্ট টার্মিনাল সম্পাদক হিসাবে সেট করা হয়েছে, এবং সেগুলি সিস্টেমড ব্যবহারকারী ম্যানেজার, D-Bus অ্যাক্টিভেশন এবং Hyprland-এ রপ্তানি করা হয়েছে, যাতে সেশন থেকে চালু হওয়া টার্মিনাল এবং সার্ভিসগুলি সেগুলি উত্তরাধিকার সূত্রে পায়। SSH এজেন্ট (`argvus-ssh-agent.service`, `openssh` থেকে) `$XDG_RUNTIME_DIR/ssh-agent.socket`-তে শোনে এবং ব্যবহারকারী ম্যানেজারকে `SSH_AUTH_SOCK` প্রকাশ করে। যখন ARGVUS এজেন্ট চালু হয়, এটি ব্যবহারকারী ম্যানেজারে `SSH_AUTH_SOCK` প্রতিস্থাপন করে। যদি গনম-কি রিং বা gcr-এর মতো অন্য কোনো এজেন্ট সকেটের মালিকানা নেওয়া উচিত হয়, তবে ARGVUS ইউনিটকে `systemctl --user mask argvus-ssh-agent.service` দিয়ে নিষ্ক্রিয় করুন। এটি Hyprland-এর বাইরে যাওয়ার সময় বন্ধ হয়ে যায়, তাই এই সারফেসগুলি লগআউটের পর অনাথ প্রক্রিয়াগুলি হিসাবে থেকে যায় না।
+
+গোপন সেবা প্রদানকারী হলো `argvus-secret-service.service`। এটি শুধুমাত্র secrets উপাদান দিয়ে আপস্ট্রিম `gnome-keyring-daemon.service` শুরু করে, তাই এটি SSH কী সরবরাহ করে না এবং  `secrets` `SSH_AUTH_SOCK` `argvus-ssh-agent.service` এর মালিকানাধীন থাকে। যখন `gnome-keyring` ইনস্টল করা থাকে না, তখন ইউনিটটি এড়িয়ে যায়। প্যাকেজটি `gnome-keyring` কে ঐচ্ছিক নির্ভরশীলতা হিসাবে ঘোষণা করে, এবং `argvus-taskbar-calendar` ও এটি করে, যা সেখানে তার CalDAV পাসওয়ার্ড সংরক্ষণ করে। ARGVUS PAM পরিবর্তন করে না, তাই লগিনে কী-রিং আনলক হয় না: এটি ব্যবহার করা প্রথম অ্যাপ্লিকেশন কী-রিং পাসওয়ার্ডের জন্য জিজ্ঞাসা করে, এবং তখন লগিন কালেকশন তৈরি হয়। `argvus sessionctl secret-service-status` দিয়ে অবস্থা পরীক্ষা করুন, যা অনুপস্থিত, বন্ধ, চলমান, লক করা বা আনলক করা রিপোর্ট করে। গোপন সেবা KWallet বা KeePassXC দ্বারা মালিকানাধীন হতে দিতে, ARGVUS ইউনিটটি `systemctl --user mask argvus-secret-service.service` দিয়ে অক্ষম করুন; সেশন বন্ধ হলে প্রদানকারী বন্ধ হয়।
+
+সেশনটি তার ওয়াইল্যান্ড এবং ডেস্কটপ-পরিবেশ ভেরিয়েবলগুলো সিস্টেমড ইউজার ম্যানেজারে আমদানি করে। একটি চলমান সেশন পরিদর্শন বা পুনরায় লোড করতে:
+
+```sh
+argvus sessionctl status
+argvus sessionctl logs
+argvus sessionctl reload
+```
+
+ applies the generation that was already committed. If a command such as `reload`, `argvus config apply-theme`, `accent`/`set` or a widget-telemetry block change just projected the change, the reload restores the affected consumers from the projection manifest instead of projecting again. It only projects when no pending plan exists, for example at session startup. If no runtime-relevant section changed, it exits successfully without reloading Hyprland or restarting services. When changes exist, it reapplies session integration and reloads only the affected compositor and desktop surfaces. The splash covers a reload only when it recreates a surface: a restart of a Waybar bar (taskbar or Widget Telemetry) or of the Control Panel, or the fallback `patch` plan. Theme, accent, effects, fonts, window layout and wallpaper changes reload in place (`full` and `argvus config theme-runtime consumers`, Hyprland's `wallpaper`) without it, and a reload with nothing to do shows nothing. Repeated reloads are serialized and unchanged sections do not restart their consumers. `/reload` `apply-config`  is an explicit alias for this operation. When it is shown, the reload splash is opaque while the work is in progress, so the intermediate desktop is not exposed. It is not a replacement for logging out when the compositor or login environment must be restarted.
+
+যদি প্রক্ষেপণ সম্পন্ন করা না যায়, তবে পুনঃলোড ডেস্কটপ সারফেসগুলি পুনরায় চালু করার আগে বন্ধ হয়ে যায়। পুনরায় চেষ্টা করার আগে `argvus sessionctl logs` পরীক্ষা করুন এবং `argvus config validate` চালান; এটি ব্যর্থ থিম প্রক্ষেপণ থেকে Waybar, নোটিফিকেশন বা কন্ট্রোল প্যানেলকে পুরনো থিমের মিশ্রণের সাথে চলতে থাকা থেকে প্রতিরোধ করে।
+
+ডিফল্ট লগইন ইন্টিগ্রেশন হলো greetd। দেখুন [Greeter](/docs/components/argvus-greeter/) এবং [সেশন সমস্যা সমাধান](/docs/user-guide/troubleshooting/session-startup/)।
+
+সার্ভিস মালিকানা এবং স্টার্টআপ ক্রমের জন্য দেখুন [Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/)।
+
+## নাইট লাইট
+
+`argvus-session` `hyprsunset>=0.4.0`-এর উপর নির্ভর করে এবং সেশন টার্গেটের মাধ্যমে আপস্ট্রিম ব্যবহারকারী সার্ভিস শুরু করে, কোনো দ্বিতীয় ডেমন সক্রিয় না করে। `argvus-night-light-init.service` এন্ট্রিতে সংরক্ষিত অবস্থা প্রয়োগ করে; টাইমার প্রতি মিনিটে নির্দিষ্ট স্থানীয় সময়সূচি পরীক্ষা করে এবং ঘড়ি/সময় অঞ্চল পরিবর্তনের পরে পরীক্ষা করে। সময়সূচি বন্ধ থাকলে,periodic পরীক্ষা ম্যানুয়াল অবস্থা অপরিবর্তিত রাখে। আপস্ট্রিম সার্ভিস লগআউটের সময় `graphical-session.target` অনুসরণ করে।
+
+প্যাকেজ করা ড্রপ-ইনটি `--identity` এবং সার্ভিস-লোকাল `XDG_CONFIG_HOME`/`XDG_CONFIG_DIRS` ব্যবহার করে Hyprsunset চালু করে, যা `/usr/share/argvus/session/config/night-light`-এর দিকে নির্দেশ করছে, যার কনফিগে কোনো নেটিভ প্রোফাইল নেই। এটি প্রতিযোগী শিডিউলার এবং upstream 6000 K ডিফল্টে স্টার্টআপ এড়ায়। এটি ARGVUS এর বাইরে থাকা আপস্ট্রিম সার্ভিসেও প্রযোজ্য যখন ইনস্টল করা হয়; ব্যক্তিগত Hyprsunset ফাইল সংরক্ষিত থাকে। ব্যবহারকারীর systemd ওভাররাইড অগ্রাধিকার পেতে পারে। কোনো প্যাকেজ ইনস্টলেশন HOME-এ লেখে না। পছন্দসমূহ `/displays/night_light`-তে আছে, ওভাররাইড `$XDG_RUNTIME_DIR/argvus/night-light/`-এ; `argvus config display night-light status` দেখুন।
+
+সেশন লগইন করা ব্যবহারকারীর `$XDG_CONFIG_HOME/locale.conf` (ডিফল্ট `~/.config/locale.conf`) থেকে LANG লোড করে পরিবেশ আমদানি করার আগে। এটি TTY এবং গ্রাফিকাল লগইন ম্যানেজারের জন্য প্রযোজ্য। ভাষা পরিবর্তনের জন্য লগআউট এবং পুনরায় লগইন করা প্রয়োজন; `/etc/locale.conf` পরিবর্তিত হয় না।
+
+Without a valid user 
+
+, the session starts in English even if the host locale is Portuguese. It uses `LANG` when generated and `en_US.UTF-8` otherwise, without creating a user configuration. Locale resolution happens before configuration projection and desktop startup. The session clears inherited `C.UTF-8` and replaces the language variables in the systemd user and D-Bus activation environments, including `LC_ALL` `LANGUAGE` . Regional categories from the same locale.conf are preserved. Legacy ARGVUS language files are ignored.
+
+সেশনটি Hyprland শুরু করার আগে `$XDG_CONFIG_HOME/environment.d/20-timezone.conf` থেকে ব্যক্তিগত TZ নিয়োগটি পড়ে এবং এটি ব্যবহারকারী পরিষেবা এবং D-Bus পরিবেশে আমদানি করে। এটি zoneinfo নামগুলি যাচাই করে এবং কখনই ফাইলটি চালায় না। একটি নতুন লগইন অ্যাপ্লিকেশনগুলিতে সময় জোন পরিবর্তন প্রয়োগ করে।
+
+
+## উইন্ডো বোতাম এবং অ্যাপ্লিকেশন বার
+
+ন্যূনতমকরণ সংরক্ষিত `special:argvus-minimized` ওয়ার্কস্পেস ব্যবহার করে। ম্যানুয়ালি সেই ওয়ার্কস্পেস ব্যবহার করবেন না। `argvus windows service` প্রসেসটি পরিচয়, মূল ওয়ার্কস্পেস/মনিটর, জ্যামিতি, ফুলস্ক্রিন/সর্বাধিকীকরণ এবং পিন অবস্থাকে `$XDG_RUNTIME_DIR/argvus` এর অধীনে কম্পোজিটর-উপস্থিতি-নির্দিষ্ট রানটাইম রেজিস্ট্রিতে রেকর্ড করে। রেকর্ডগুলি একটি সার্ভিস পুনরায় চালু বা কনফিগারেশন পুনঃলোডের পর বাঁচে, তবে কম্পোজিটর সেশন অতিক্রম করে না। একটি উইন্ডো বন্ধ করলে তার রেকর্ড মুছে যায়। যদি একটি মনিটর অদৃশ্য হয়, পুনরুদ্ধার একটি উপলব্ধ আউটপুট ব্যবহার করে। একটি হারানো বা ব্যর্থ পুনরুদ্ধার বার নতুন ন্যূনতমকরণকে বাধা দেয়; ব্যর্থ পুনরুদ্ধার রেকর্ড এবং পুনরুদ্ধার বার রক্ষা করে।
+
+সেশনটি `argvus-windows.service` এবং `argvus-window-bar.service`-এর মালিক। পরে এটি তার Waybar শিশুটি Tile-এ নিষ্ক্রিয় রাখে। hyprbars প্লাগইনটি `argvus-hyprland` দ্বারা bundled, Hyprland 0.57.0 ABI-এর জন্য x86_64-এ তৈরি; এটি ব্যবহারকারীর হোম ডিরেক্টরিতে compiled নয়। কম্পোজিটর ABI আপডেট দিয়ে প্লাগইনটি পুনর্নির্মাণ করুন।
+
+সেশনটি নির্বাচিত UTF-8 লোকেলটি সমস্ত দশটি ARGVUS ভাষার জন্য প্রচার করে, যার মধ্যে চীনা, জাপানি এবং কোরিয়ান অন্তর্ভুক্ত। ক্যাটালগের নির্বাচন `argvus i18n` দ্বারা পরিচালিত হয়; সিস্টেম লোকেল উপলব্ধতা এবং ফন্ট ফলব্যাক আলাদা প্রয়োজনীয়তা।
