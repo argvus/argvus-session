@@ -1,5 +1,5 @@
 ---
-title: TTY session
+title: TTY অধিবেশন
 description: ভার্চুয়াল টার্মিনাল থেকে ম্যানুয়ালি ARGVUS শুরু করুন।
 ---
 

@@ -28,9 +28,9 @@ argvus sessionctl reload
 
 如果投影无法完成，重新加载会在重启桌面表面之前停止。请检查 `argvus sessionctl logs` 并在再次尝试之前运行 `argvus config validate`；这可以防止失败的主题投影导致 Waybar、通知或控制面板在使用过时的主题混合下运行。
 
-默认登录集成为 greetd。请参见 [Greeter](/docs/components/argvus-greeter/)] 和 [session troubleshooting](/docs/user-guide/troubleshooting/session-startup/)]。
+默认登录集成为 greetd。请参见 [Greeter](/docs/components/argvus-greeter/) 和 [session troubleshooting](/docs/user-guide/troubleshooting/session-startup/)。
 
-有关服务所有权和启动顺序，请参见 [Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/)]。
+有关服务所有权和启动顺序，请参见 [Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/)。
 
 ## 夜灯
 

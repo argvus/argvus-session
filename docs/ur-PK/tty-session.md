@@ -1,5 +1,5 @@
 ---
-title: TTY session
+title: TTY سیشن
 description: ARGVUS ۔ﮟﯾﺮﮐ ﻉﻭﺮﺷ ﺮﭘ ﺭﻮﻃ ﯽﺘﺳﺩ ﮯﺳ ﻞﻨﯿﻣﺮﭨ ﻞﺋﻮﭼﺭﻭ ﻮﮐ
 ---
 
@@ -9,7 +9,7 @@ TTY ﮟﯾﺮﮐ ﻉﻭﺮﺷ ﺡﺮﻃ ﺱﺍ ﻦﺸﯿﺳ ،ﺪﻌﺑ ﮯﮐ �
 argvus --start-desktop
 ```
 
-                                                  ﮯﮨ ﮧﻄﻘﻧ ﮧﻠﺧﺍﺩ ﯽﺘﺳﺩ ﮧﻘﻠﻌﺘﻣ ﮧﯾ`argvus session`. It uses the same `argvus start` and user-service lifecycle as a graphical login.
+ﮯﮨ ﮧﻄﻘﻧ ﮧﻠﺧﺍﺩ ﯽﺘﺳﺩ ﮧﻘﻠﻌﺘﻣ ﮧﯾ`argvus session`. یہ وہی `argvus start` اور صارف سروس لائف سائیکل کو گرافیکل لاگ ان کے طور پر استعمال کرتا ہے۔
 
 ۔ﮟﯾﺮﮐ ﻝﺎﻤﻌﺘﺳﺍ argvus sessionctl logs ﺎﯾ `argvus sessionctl status`، `argvus sessionctl reload` ﮯﯿﻟ ﮯﮐ
 

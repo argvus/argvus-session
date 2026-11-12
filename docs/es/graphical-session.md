@@ -28,7 +28,7 @@ argvus sessionctl reload
 
 Si la proyección no puede completarse, la recarga se detiene antes de reiniciar las superficies del escritorio. Verifique `argvus sessionctl logs` y ejecute `argvus config validate` antes de intentarlo de nuevo; esto evita que una proyección de tema fallida deje Waybar, notificaciones o el Panel de Control funcionando con una mezcla obsoleta de temas.
 
-La integración de inicio de sesión predeterminada es greetd. Vea [Greeter](/docs/components/argvus-greeter/)] y [solución de problemas de la sesión](/docs/user-guide/troubleshooting/session-startup/)].
+La integración de inicio de sesión predeterminada es greetd. Vea [Greeter](/docs/components/argvus-greeter/) y [solución de problemas de la sesión](/docs/user-guide/troubleshooting/session-startup/).
 
 Para la propiedad del servicio y la secuencia de inicio, consulte [Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/).
 

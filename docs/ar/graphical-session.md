@@ -1,11 +1,11 @@
 ---
-title: Graphical session
+title: جلسة رسومية
 description:                                         .ﻲﻣﻮﺳﺭ ﻝﻮﺧﺩ ﻞﻴﺠﺴﺗ ﻖﻓﺪﺗ ﺮﺒﻋ ARGVUS ﺃﺪﺑﺍ
 ---
 
 Hyprland.
 
-After the desktop is ready, the session runs 
+بعد أن يصبح سطح المكتب جاهزًا، يتم تشغيل الجلسة
 
 ```sh
 argvus sessionctl status
@@ -13,14 +13,14 @@ argvus sessionctl logs
 argvus sessionctl reload
 ```
 
- for TTY, ARGVUS Greeter and other login managers. It opens the integrated Control Center Welcome page unless per-user progress records argvus session, completion or dismissal. The first successful render saves argvus start in ~/.local/state/argvus/session.log, preventing reopening on later logins. It does not depend on /run/argvus-greeter/session.log. Existing accounts without that record also receive one automatic opening. Failures before rendering allow another attempt at the next login. Manual session.log remains available.
+ لـ TTY وARGVUS Greeter ومديري تسجيل الدخول الآخرين. فهو يفتح صفحة الترحيب بمركز التحكم المتكامل ما لم يسجل التقدم لكل مستخدم argvus الجلسة أو الإكمال أو الفصل. يحفظ أول عرض ناجح argvus البدء في ~/.local/state/argvus/session.log، مما يمنع إعادة الفتح عند تسجيل الدخول لاحقًا. لا يعتمد ذلك على /run/argvus-greeter/session.log. الحسابات الموجودة بدون هذا السجل تتلقى أيضًا فتحًا تلقائيًا واحدًا. تسمح حالات الفشل قبل العرض بمحاولة أخرى لتسجيل الدخول التالي. يظل سجل الجلسة اليدوي متاحًا.
 
- applies the generation that was already committed. If a command such as `argvus session`, `argvus start`, `~/.local/state/argvus/session.log`/`/run/argvus-greeter/session.log` or a widget-telemetry block change just projected the change, the reload restores the affected consumers from the projection manifest instead of projecting again. It only projects when no pending plan exists, for example at session startup. If no runtime-relevant section changed, it exits successfully without reloading Hyprland or restarting services. When changes exist, it reapplies session integration and reloads only the affected compositor and desktop surfaces. The splash covers a reload only when it recreates a surface: a restart of a Waybar bar (taskbar or Widget Telemetry) or of the Control Panel, or the fallback `session.log` plan. Theme, accent, effects, fonts, window layout and wallpaper changes reload in place (`PATH` and `source_profile=false`, Hyprland's `hyprland-dialog`) without it, and a reload with nothing to do shows nothing. Repeated reloads are serialized and unchanged sections do not restart their consumers. `argvus sessionctl` is an explicit alias for this operation. When it is shown, the reload splash is opaque while the work is in progress, so the intermediate desktop is not exposed. It is not a replacement for logging out when the compositor or login environment must be restarted.
-
-
+ينطبق على الجيل الذي كان ملتزما بالفعل. إذا كان أمر مثل `argvus session` أو `argvus start` أو `~/.local/state/argvus/session.log`/`/run/argvus-greeter/session.log` أو تغيير كتلة القياس عن بعد لعنصر واجهة المستخدم قد توقع التغيير للتو، فإن إعادة التحميل تستعيد المستهلكين المتأثرين من بيان الإسقاط بدلاً من العرض مرة أخرى. يتم المشروع فقط في حالة عدم وجود خطة معلقة، على سبيل المثال عند بدء الجلسة. إذا لم يتغير أي قسم ذي صلة بوقت التشغيل، فسيتم الخروج بنجاح دون إعادة تحميل Hyprland أو إعادة تشغيل الخدمات. عند وجود تغييرات، فإنه يعيد تطبيق تكامل الجلسة ويعيد تحميل المنضد وأسطح سطح المكتب المتأثرة فقط. يغطي البداية عملية إعادة التحميل فقط عند إعادة إنشاء السطح: إعادة تشغيل شريط Waybar (شريط المهام أو القياس عن بعد لعنصر واجهة المستخدم) أو لوحة التحكم، أو الخطة الاحتياطية `session.log`. يتم إعادة تحميل السمة واللكنة والتأثيرات والخطوط وتخطيط النافذة وتغييرات خلفية الشاشة في مكانها (`PATH` و`source_profile=false`، Hyprland's `hyprland-dialog`) بدونها، وإعادة التحميل بدون أي شيء للقيام به لا تظهر شيئًا. يتم تسلسل عمليات إعادة التحميل المتكررة ولا تؤدي الأقسام التي لم تتغير إلى إعادة تشغيل عملائها. `argvus sessionctl` هو اسم مستعار صريح لهذه العملية. عندما يتم عرضه، يكون رذاذ إعادة التحميل معتمًا أثناء تقدم العمل، لذلك لا يتم كشف سطح المكتب المتوسط. إنه ليس بديلاً لتسجيل الخروج عندما يجب إعادة تشغيل بيئة المنشئ أو تسجيل الدخول.
 
 
- for the installed and user paths. for the installed and user paths.(/docs/developer-guide/architecture/runtime-lifecycle/).
+
+
+ للمسارات المثبتة والمستخدم. للمسارات المثبتة والمستخدم.(/docs/developer-guide/architecture/runtime-lifecycle/).
 
 ## ﻞﻴﻠﻟﺍ ءﻮﺿ
 

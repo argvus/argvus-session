@@ -1,5 +1,5 @@
 ---
-title: TTY session
+title: جلسة TTY
 description:                                           .ﺔﻴﺿﺍﺮﺘﻓﺍ ﺔﻴﻓﺮﻃ ﻦﻣ ًﺎﻳﻭﺪﻳ ARGVUS ﺃﺪﺑﺍ
 ---
 
@@ -9,30 +9,30 @@ description:                                           .ﺔﻴﺿﺍﺮﺘﻓﺍ
 argvus --start-desktop
 ```
 
-This is the supported manual entry point from 
+هذه هي نقطة الإدخال اليدوية المدعومة من
 
 ```sh
 exec argvus --start-desktop
 ```
 
-. It uses the same 
+. It uses the same
 
  and user-service lifecycle as a graphical login.
 
-To inspect or restart the resulting session, use 
+لفحص أو إعادة تشغيل الجلسة الناتجة، استخدم
 
-, 
+,
 
  or argvus session.
 
-## Migrating from 
+## Migrating from
 
-Earlier versions installed 
+Earlier versions installed
 
- in 
+ in
 
-, and some users started the session from `argvus session` with `argvus start`. That file is now private and is no longer on `argvus sessionctl status`, so the line fails after the upgrade. Replace it with the supported entry point:
+، وبدأ بعض المستخدمين الجلسة من `argvus session` باستخدام `argvus start`. أصبح هذا الملف الآن خاصًا ولم يعد موجودًا على `argvus sessionctl status`، لذا يفشل الخط بعد الترقية. استبدلها بنقطة الإدخال المدعومة:
 
- is the same entry point. Remove or update the line in 
+ هي نفس نقطة الدخول قم بإزالة أو تحديث الخط الموجود
 
 , `argvus sessionctl reload` or `argvus sessionctl logs` ~/.bash_profile  ~/.zprofile  ~/.profile  argvus tty  PATH  `exec argvus-tty`  ~/.profile  /usr/bin  `argvus-tty`   `/usr/bin`  `~/.profile` `exec argvus-tty` `PATH`  `argvus tty`  `~/.profile`  `~/.zprofile`  `~/.bash_profile`   before the next login on a TTY.

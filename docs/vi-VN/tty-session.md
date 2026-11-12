@@ -1,5 +1,5 @@
 ---
-title: TTY session
+title: phiên TTY
 description: Khởi động ARGVUS thủ công từ một terminal ảo.
 ---
 

@@ -28,7 +28,7 @@ argvus sessionctl reload
 
 투영을 완료할 수 없는 경우, 리로드는 데스크톱 표면을 재시작하기 전에 중지됩니다. `argvus sessionctl logs`를 확인하고 다시 시도하기 전에 `argvus config validate`를 실행하세요; 이는 실패한 테마 투영이 Waybar, 알림, 제어판을 테마가 혼합된 상태로 실행된 채로 남기는 것을 방지합니다.
 
-기본 로그인 통합은 greetd입니다. [Greeter](/docs/components/argvus-greeter/)] 및 [세션 문제 해결](/docs/user-guide/troubleshooting/session-startup/)]를 참조하세요.
+기본 로그인 통합은 greetd입니다. [Greeter](/docs/components/argvus-greeter/) 및 [세션 문제 해결](/docs/user-guide/troubleshooting/session-startup/)를 참조하세요.
 
 서비스 소유권 및 시작 순서에 대해서는 [Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/)를 참조하십시오.
 
@@ -48,4 +48,4 @@ argvus sessionctl reload
 
 최소화는 예약된 `special:argvus-minimized` 작업 공간을 사용합니다. 해당 작업 공간을 수동으로 사용하지 마십시오. `argvus windows service` 프로세스는 컴포지터 인스턴스별 런타임 레지스트리에 `$XDG_RUNTIME_DIR/argvus` 아래에서 정체, 원래 작업 공간/모니터, 지오메트리, 전체 화면/최대화 및 고정 상태를 기록합니다. 기록은 서비스 재시작이나 설정 다시 불러오기 후에도 남아 있지만, 컴포지터 세션 간에는 공유되지 않습니다. 창을 닫으면 해당 기록이 삭제됩니다. 모니터가 사라지면 복원은 사용 가능한 출력으로 수행됩니다. 누락되었거나 복구 막대가 실패하면 새로운 최소화가 차단되며, 복원이 실패하면 기록과 복구 막대가 유지됩니다.
 
-세션은 `argvus-windows.service` 및 `argvus-window-bar.service`를 소유합니다. 후자는 Tile에서 자신의 Waybar 자식을 대기 상태로 유지합니다. hyprbars 플러그인은 `argvus-hyprland`에서 번들로 제공되며, x86_64에서 Hyprland 0.57.0 ABI용으로 빌드되었습니다; 사용자의 홈 디렉토리에서 컴파일되지 않았습니다. 컴포지터 ABI 업데이트 시 플러그인을 다시 빌드하십시오.세션은 중국어, 일본어 및 한국어를 포함한 10개의 ARGVUS 언어에 대해 선택된 UTF-8 로케일을 전파합니다. 카탈로그 선택은 `argvus i18n`가 처리하며, 시스템 로케일 사용 가능 여부와 폰트 폴백은 별도의 요구 사항입니다.
+세션은 `argvus-windows.service` 및 `argvus-window-bar.service`를 소유합니다. 후자는 Tile에서 자신의 Waybar 자식을 대기 상태로 유지합니다. hyprbars 플러그인은 `argvus-hyprland`에서 번들로 제공되며, x86_64에서 Hyprland 0.57.0 ABI용으로 빌드되었습니다; 사용자의 홈 디렉토리에서 컴파일되지 않았습니다. 컴포지터 ABI 업데이트 시 플러그인을 다시 빌드하십시오. 세션은 중국어, 일본어 및 한국어를 포함한 10개의 ARGVUS 언어에 대해 선택된 UTF-8 로케일을 전파합니다. 카탈로그 선택은 `argvus i18n`가 처리하며, 시스템 로케일 사용 가능 여부와 폰트 폴백은 별도의 요구 사항입니다.

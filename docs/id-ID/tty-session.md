@@ -1,5 +1,5 @@
 ---
-title: TTY session
+title: sesi TTY
 description: Mulai ARGVUS secara manual dari terminal virtual.
 ---
 
@@ -15,11 +15,11 @@ Untuk memeriksa atau memulai ulang sesi yang dihasilkan, gunakan argvus sessionc
 
 ## Migrasi dari exec argvus-tty
 
-Earlier versions installed 
+Earlier versions installed
 
- in 
+ in
 
-, and some users started the session from `argvus session` with `argvus start`. That file is now private and is no longer on `argvus sessionctl status`, so the line fails after the upgrade. Replace it with the supported entry point:
+, dan beberapa pengguna memulai sesi dari `argvus session` dengan `argvus start`. File tersebut sekarang bersifat pribadi dan tidak lagi ada di `argvus sessionctl status`, sehingga saluran gagal setelah peningkatan. Ganti dengan titik masuk yang didukung:
 
 ```sh
 exec argvus --start-desktop

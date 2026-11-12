@@ -28,9 +28,9 @@ argvus sessionctl reload
 
 プロジェクションを完了できない場合、リロードはデスクトップのサーフェスを再起動する前に停止します。`argvus sessionctl logs`を確認し、再試行する前に`argvus config validate`を実行してください。これにより、テーマのプロジェクションに失敗してWaybar、通知、またはコントロールパネルが古いテーマの混合状態で動作し続けるのを防ぎます。
 
-デフォルトのログイン統合はgreetdです。[Greeter](/docs/components/argvus-greeter/)]および[session troubleshooting](/docs/user-guide/troubleshooting/session-startup/)]を参照してください。
+デフォルトのログイン統合はgreetdです。[Greeter](/docs/components/argvus-greeter/)および[session troubleshooting](/docs/user-guide/troubleshooting/session-startup/)を参照してください。
 
-サービスの所有権と起動シーケンスについては、[Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/)] を参照してください。
+サービスの所有権と起動シーケンスについては、[Runtime lifecycle](/docs/developer-guide/architecture/runtime-lifecycle/) を参照してください。
 
 ## ナイトライト
 

@@ -1,5 +1,5 @@
 ---
-title: TTY session
+title: TTY oturumu
 description: Sanal bir terminalden ARGVUS'u manuel olarak başlatın.
 ---
 

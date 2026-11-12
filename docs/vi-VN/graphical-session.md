@@ -1,5 +1,5 @@
 ---
-title: Graphical session
+title: Phiên đồ họa
 description: Khởi động ARGVUS thông qua luồng đăng nhập đồ họa.
 ---
 
@@ -25,7 +25,7 @@ argvus sessionctl logs
 argvus sessionctl reload
 ```
 
- applies the generation that was already committed. If a command such as `reload`, `argvus config apply-theme`, `accent`/`set` or a widget-telemetry block change just projected the change, the reload restores the affected consumers from the projection manifest instead of projecting again. It only projects when no pending plan exists, for example at session startup. If no runtime-relevant section changed, it exits successfully without reloading Hyprland or restarting services. When changes exist, it reapplies session integration and reloads only the affected compositor and desktop surfaces. The splash covers a reload only when it recreates a surface: a restart of a Waybar bar (taskbar or Widget Telemetry) or of the Control Panel, or the fallback `patch` plan. Theme, accent, effects, fonts, window layout and wallpaper changes reload in place (`full` and `argvus config theme-runtime consumers`, Hyprland's `wallpaper`) without it, and a reload with nothing to do shows nothing. Repeated reloads are serialized and unchanged sections do not restart their consumers. `/reload` `apply-config`  is an explicit alias for this operation. When it is shown, the reload splash is opaque while the work is in progress, so the intermediate desktop is not exposed. It is not a replacement for logging out when the compositor or login environment must be restarted.
+ áp dụng thế hệ đã được cam kết. Nếu một lệnh như `reload`, `argvus config apply-theme`, `accent`/`set` hoặc thay đổi khối đo từ xa tiện ích chỉ dự kiến ​​thay đổi, thì việc tải lại sẽ khôi phục những người tiêu dùng bị ảnh hưởng từ bảng kê khai chiếu thay vì chiếu lại. Nó chỉ dự án khi không có kế hoạch đang chờ xử lý, ví dụ như khi khởi động phiên. Nếu không có phần nào liên quan đến thời gian chạy thay đổi thì nó sẽ thoát thành công mà không cần tải lại Hyprland hoặc khởi động lại dịch vụ. Khi có thay đổi, nó sẽ áp dụng lại quá trình tích hợp phiên và chỉ tải lại bộ tổng hợp và bề mặt máy tính để bàn bị ảnh hưởng. Phần giật gân chỉ bao gồm quá trình tải lại khi nó tạo lại một bề mặt: khởi động lại thanh Waybar (thanh tác vụ hoặc Widget Telemetry) hoặc của Bảng điều khiển hoặc kế hoạch dự phòng `patch`. Các thay đổi về chủ đề, giọng, hiệu ứng, phông chữ, bố cục cửa sổ và hình nền được tải lại tại chỗ (`full` và `argvus config theme-runtime consumers`, Hyprland's `wallpaper`) mà không có nó và tải lại không có gì để làm sẽ không hiển thị gì cả. Các lần tải lại lặp đi lặp lại được tuần tự hóa và các phần không thay đổi sẽ không khởi động lại trình tiêu dùng của chúng. `/reload` `apply-config` là bí danh rõ ràng cho hoạt động này. Khi nó được hiển thị, phần giật gân tải lại mờ đục trong khi công việc đang được tiến hành, do đó màn hình trung gian không bị lộ. Nó không phải là sự thay thế cho việc đăng xuất khi phải khởi động lại bộ tổng hợp hoặc môi trường đăng nhập.
 
 Nếu việc chiếu không thể hoàn thành, việc nạp lại sẽ dừng trước khi khởi động lại các bề mặt màn hình. Kiểm tra `argvus sessionctl logs` và chạy `argvus config validate` trước khi thử lại; điều này ngăn việc chiếu giao diện thất bại khiến Waybar, các thông báo hoặc Bảng điều khiển chạy với một hỗn hợp giao diện lỗi thời.
 
@@ -46,7 +46,7 @@ Không có người dùng hợp lệ `LANG`, phiên làm việc sẽ bắt đầ
 Phiên làm việc đọc bản phân công TZ cá nhân từ `$XDG_CONFIG_HOME/environment.d/20-timezone.conf` trước khi khởi động Hyprland và nhập nó vào môi trường dịch vụ người dùng và D-Bus. Nó xác thực tên zoneinfo và không bao giờ thực thi tệp. Một lần đăng nhập mới áp dụng các thay đổi múi giờ cho các ứng dụng.
 
 
-## 
+##
 
 Việc thu gọn sử dụng không gian làm việc `special:argvus-minimized` đã được dành riêng. Không sử dụng không gian làm việc đó một cách thủ công. Quá trình `argvus windows service` ghi nhận danh tính, không gian làm việc/màn hình gốc, hình học, chế độ toàn màn hình/tối đa hóa và trạng thái ghim trong một đăng ký thời gian chạy cụ thể cho từng phiên bản compositor dưới `$XDG_RUNTIME_DIR/argvus`. Bản ghi tồn tại sau khi dịch vụ khởi động lại hoặc tải lại cấu hình, nhưng không vượt quá các phiên bản compositor. Đóng cửa sổ sẽ xóa bản ghi của nó. Nếu một màn hình biến mất, việc khôi phục sẽ sử dụng một đầu ra có sẵn. Thanh phục hồi bị mất hoặc thất bại sẽ ngăn việc thu gọn mới; việc khôi phục thất bại sẽ giữ lại bản ghi và thanh phục hồi.
 

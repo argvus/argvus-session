@@ -1,5 +1,5 @@
 ---
-title: TTY session
+title: टीटीवाई सत्र
 description: आभासी टर्मिनल से मैन्युअली ARGVUS शुरू करें।
 ---
 
