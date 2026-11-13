@@ -29,6 +29,28 @@ locale_user_lang() {
   '
 }
 
+locale_user_application_language() {
+  _locale_config="${XDG_CONFIG_HOME:-$HOME/.config}/locale.conf"
+  [ -r "$_locale_config" ] || return 0
+  awk '
+    /^[[:space:]]*#/ { next }
+    {
+      position = index($0, "=")
+      if (!position) next
+      key = substr($0, 1, position - 1)
+      sub(/^[[:space:]]+/, "", key)
+      sub(/[[:space:]]+$/, "", key)
+      if (key != "ARGVUS_LANGUAGE") next
+      value = substr($0, position + 1)
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      gsub(/^["\047]|["\047]$/, "", value)
+      if (value ~ /^[a-zA-Z0-9_-]+$/) language = value
+    }
+    END { print language }
+  ' "$_locale_config"
+}
+
 # Call before importing the environment or starting any desktop component.
 locale_apply() {
   _timezone_config="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/20-timezone.conf"
@@ -69,7 +91,20 @@ locale_detect() {
     argvus i18n locale
     return
   fi
+  _locale_application_language="$(locale_user_application_language)"
+  if [ -n "$_locale_application_language" ]; then
+    case "$_locale_application_language" in
+      ar|bn-BD|hi-IN|id-ID|pt-PT|tr-TR|ur-PK|vi-VN|de-DE|en-US|es-ES|fr-FR|it-IT|ja-JP|ko-KR|pt-BR|ru-RU|zh-CN)
+        printf '%s\n' "$_locale_application_language"
+        return ;;
+    esac
+  fi
   case "$(locale_user_lang)" in
+    ar*|AR*) printf '%s\n' "ar" ;;
+    bn*|BN*) printf '%s\n' "bn-BD" ;;
+    hi*|HI*) printf '%s\n' "hi-IN" ;;
+    id*|ID*) printf '%s\n' "id-ID" ;;
+    pt_PT*|pt-PT*) printf '%s\n' "pt-PT" ;;
     pt_*|pt-*) printf '%s\n' "pt-BR" ;;
     es_*|es-*) printf '%s\n' "es-ES" ;;
     fr_*|fr-*) printf '%s\n' "fr-FR" ;;
@@ -78,6 +113,9 @@ locale_detect() {
     ru_*|ru-*) printf '%s\n' "ru-RU" ;;
     ja_*|ja-*) printf '%s\n' "ja-JP" ;;
     ko_*|ko-*) printf '%s\n' "ko-KR" ;;
+    tr_*|tr-*) printf '%s\n' "tr-TR" ;;
+    ur_*|ur-*) printf '%s\n' "ur-PK" ;;
+    vi_*|vi-*) printf '%s\n' "vi-VN" ;;
     zh_TW*|zh_HK*|zh_MO*|zh-Hant*|zh-TW*|zh-HK*|zh-MO*) printf '%s\n' "en-US" ;;
     zh_*|zh-*) printf '%s\n' "zh-CN" ;;
     *) printf '%s\n' "en-US" ;;
