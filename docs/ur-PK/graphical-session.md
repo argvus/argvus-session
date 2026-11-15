@@ -43,3 +43,11 @@ The session propagates the selected UTF-8 locale for all ten ARGVUS languages, i
 
                                       ﮟﯿﮭﮑﯾﺩ ۔ﮯﮨ greetd ﻦﺸﯾﺮﮕﯿﭩﻧﺍ ﻥﺍ ﮒﻻ﻿ ﭧﻟﺎﻔﯾﮈ[                                                            ﻻ﻿ﺍﻭ ﮯﻨﮩﮐ ﺪﯾﺪﻣﺁ ﺵﻮﺧ](/docs/components/argvus-greeter/)                                                                           ﺭﻭﺍ[                                                        ﺎﻧﺮﮐ ﺭﻭﺩ ﯽﺑﺍﺮﺧ ﯽﮐ ﻦﺸﯿﺳ](/docs/user-guide/troubleshooting/session-startup/).
                               ﮟﯿﮭﮑﯾﺩ ،ﮯﯿﻟ ﮯﮐ ﺐﯿﺗﺮﺗ ﭖﺍ ﭦﺭﺎﭩﺳﺍ ﺭﻭﺍ ﺖﯿﮑﻠﻣ ﯽﮐ ﺱﻭﺮﺳ[                                                            ﻞﮑﯿﺋﺎﺳ ﻒﺋﻻ﻿ ﻢﺋﺎﭨ ﻥﺭ](/docs/developer-guide/architecture/runtime-lifecycle/).
+
+### کی بورڈ لے آؤٹ
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> کی بورڈ لے آؤٹ
+>
+> br میں تبدیل کر دیا گیا

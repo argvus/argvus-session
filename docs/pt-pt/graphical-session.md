@@ -51,3 +51,11 @@ A minimização usa o workspace reservado `special:argvus-minimized`. Não use e
 A sessão gerencia `argvus-windows.service` e `argvus-window-bar.service`. O segundo mantém sua Waybar inativa em mosaico. O plugin hyprbars é distribuído por `argvus-hyprland`, compilado para a ABI do Hyprland 0.57.0 em x86_64; não é compilado no diretório pessoal do utilizador. Recompile o plugin ao atualizar a ABI do compositor.
 
 A sessão propaga o locale UTF-8 selecionado para os dez idiomas do ARGVUS, incluindo chinês, japonês e coreano. A escolha do catálogo é feita por `argvus i18n`; disponibilidade do locale do sistema e fallback de fontes são requisitos separados.
+
+### Disposição do teclado
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> Disposição do teclado
+>
+> Alterado para br

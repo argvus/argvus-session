@@ -50,3 +50,11 @@ argvus sessionctl reload
 最小化使用保留的 `special:argvus-minimized` 工作区。请勿手动使用该工作区。`argvus windows service` 进程在特定合成器实例的运行时注册表中记录身份、原始工作区/显示器、几何形状、全屏/最大化和固定状态，注册表位于 `$XDG_RUNTIME_DIR/argvus` 下。记录在服务重启或配置重新加载后仍然存在，但不会跨合成器会话。关闭窗口会删除其记录。如果显示器消失，恢复将使用可用的输出。缺失或恢复条失败会阻止新的最小化；恢复失败会保留记录和恢复条。
 
 会话拥有 `argvus-windows.service` 和 `argvus-window-bar.service`。后者保持其 Waybar 子项在 Tile 中处于休眠状态。hyprbars 插件由 `argvus-hyprland` 提供，构建于 Hyprland 0.57.0 的 x86_64 ABI；它并未在用户主目录中编译。若合成器 ABI 更新，请重新构建该插件。该会话为所有十种 ARGVUS 语言传播所选的 UTF-8 语言环境，包括中文、日文和韩文。目录选择由 `argvus i18n` 处理；系统语言环境的可用性和字体回退是单独的要求。
+
+### 键盘布局
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> 键盘布局
+>
+> 已切换为 br

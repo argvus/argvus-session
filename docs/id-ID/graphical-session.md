@@ -59,3 +59,11 @@ Minimisasi menggunakan workspace cadangan  `$XDG_CONFIG_HOME/environment.d/20-ti
 Sesi memiliki `argvus-windows.service` dan `argvus-window-bar.service`. Yang terakhir menjaga child Waybar-nya tetap dorman di Tile. Plugin hyprbars dibundel oleh `argvus-hyprland`, dibuat untuk Hyprland 0.57.0 ABI di x86_64; itu tidak dikompilasi di direktori home pengguna. Bangun ulang plugin dengan pembaruan ABI compositor.
 
 Sesi ini menyebarkan locale UTF-8 yang dipilih untuk semua sepuluh bahasa ARGVUS, termasuk Cina, Jepang, dan Korea. Pemilihan katalog ditangani oleh `argvus i18n`; ketersediaan locale sistem dan fallback font adalah persyaratan terpisah.
+
+### Tata letak papan ketik
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> Tata letak papan ketik
+>
+> Diubah ke br

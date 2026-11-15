@@ -53,3 +53,11 @@ Việc thu gọn sử dụng không gian làm việc `special:argvus-minimized` 
 Phiên làm việc sở hữu `argvus-windows.service` và `argvus-window-bar.service`. Cái sau giữ con Waybar của nó trong trạng thái ngủ trong Tile. Plugin hyprbars được đóng gói bởi `argvus-hyprland`, được xây dựng cho ABI Hyprland 0.57.0 trên x86_64; nó không được biên dịch trong thư mục nhà của người dùng. Xây dựng lại plugin với cập nhật ABI trình hợp nhất.
 
 Phiên làm việc truyền bá cài đặt ngôn ngữ UTF-8 đã chọn cho tất cả mười ngôn ngữ ARGVUS, bao gồm cả tiếng Trung, tiếng Nhật và tiếng Hàn. Việc chọn danh mục được xử lý bởi `argvus i18n`; tính khả dụng của ngôn ngữ hệ thống và việc thay thế phông chữ là các yêu cầu riêng biệt.
+
+### Bố cục bàn phím
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> Bố cục bàn phím
+>
+> Đã chuyển sang br

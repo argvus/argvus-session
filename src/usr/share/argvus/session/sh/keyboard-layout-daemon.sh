@@ -22,14 +22,18 @@ if [ ! -S "$SOCKET" ]; then
   exit 1
 fi
 
-# Map the keymap description to a friendly label + flag.
-layout_label() {
-  _normalized="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
-  case "$_normalized" in
-    *english*|*'(us)'*) argvus_tr session keyboard.layout.english_us ;;
-    *portuguese*|*brazil*) argvus_tr session keyboard.layout.portuguese_br ;;
-    *) printf '%s' "$1" ;;
-  esac
+# Resolve the active XKB code from the device, keeping the event label as fallback.
+layout_code() {
+  _code="$(hyprctl devices -j 2>/dev/null | jq -r --arg device "$1" '
+    .keyboards[] | select(.name == $device) | . as $keyboard
+    | ($keyboard.layout // "" | split(","))[$keyboard.active_layout_index // 0]
+    // empty
+  ' 2>/dev/null)" || _code=""
+  if [ -n "$_code" ]; then
+    printf '%s' "$_code"
+  else
+    printf '%s' "$2"
+  fi
 }
 
 ARGVUS_CACHE_HOME="${ARGVUS_CACHE_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/argvus}"
@@ -66,7 +70,10 @@ socat -u "UNIX-CONNECT:${SOCKET}" - 2>/dev/null \
       fi
       if [ "$layout" != "$last" ]; then
         last="$layout"
-        notify-send "$(argvus_tr session keyboard.layout.title)" "$(layout_label "$layout")"
+        title="$(argvus_tr session keyboard.layout.title)"
+        code="$(layout_code "$dev" "$layout")"
+        notify-send --app-name="$title" --icon=input-keyboard "$title" \
+          "$(argvus_tr session keyboard.layout.changed "layout=$code")"
         # Coalesce the burst emitted simultaneously by several keyboards.
         sleep 0.2
       fi

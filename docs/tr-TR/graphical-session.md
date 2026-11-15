@@ -53,3 +53,11 @@ Minimize etme, rezerve edilmiş `special:argvus-minimized` çalışma alanını 
 Oturum `argvus-windows.service` ve `argvus-window-bar.service` adlı öğelere sahiptir. İkincisi Waybar alt öğesini Tile içinde pasif tutar. hyprbars eklentisi `argvus-hyprland` tarafından paketlenmiştir, Hyprland 0.57.0 ABI için x86_64 üzerinde oluşturulmuştur; kullanıcı ev dizininde derlenmemiştir. Eklentiyi bir compositor ABI güncellemesi ile yeniden derleyin.
 
 Oturum, Çin, Japon ve Korece dahil olmak üzere tüm on ARGVUS dili için seçilen UTF-8 yerel ayarını yayar. Katalog seçimi `argvus i18n` tarafından yönetilir; sistem yerel ayar kullanılabilirliği ve yazı tipi yedeği ayrı gereksinimlerdir.
+
+### Klavye düzeni
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> Klavye düzeni
+>
+> br olarak değiştirildi

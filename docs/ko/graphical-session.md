@@ -49,3 +49,11 @@ argvus sessionctl reload
 최소화는 예약된 `special:argvus-minimized` 작업 공간을 사용합니다. 해당 작업 공간을 수동으로 사용하지 마십시오. `argvus windows service` 프로세스는 컴포지터 인스턴스별 런타임 레지스트리에 `$XDG_RUNTIME_DIR/argvus` 아래에서 정체, 원래 작업 공간/모니터, 지오메트리, 전체 화면/최대화 및 고정 상태를 기록합니다. 기록은 서비스 재시작이나 설정 다시 불러오기 후에도 남아 있지만, 컴포지터 세션 간에는 공유되지 않습니다. 창을 닫으면 해당 기록이 삭제됩니다. 모니터가 사라지면 복원은 사용 가능한 출력으로 수행됩니다. 누락되었거나 복구 막대가 실패하면 새로운 최소화가 차단되며, 복원이 실패하면 기록과 복구 막대가 유지됩니다.
 
 세션은 `argvus-windows.service` 및 `argvus-window-bar.service`를 소유합니다. 후자는 Tile에서 자신의 Waybar 자식을 대기 상태로 유지합니다. hyprbars 플러그인은 `argvus-hyprland`에서 번들로 제공되며, x86_64에서 Hyprland 0.57.0 ABI용으로 빌드되었습니다; 사용자의 홈 디렉토리에서 컴파일되지 않았습니다. 컴포지터 ABI 업데이트 시 플러그인을 다시 빌드하십시오. 세션은 중국어, 일본어 및 한국어를 포함한 10개의 ARGVUS 언어에 대해 선택된 UTF-8 로케일을 전파합니다. 카탈로그 선택은 `argvus i18n`가 처리하며, 시스템 로케일 사용 가능 여부와 폰트 폴백은 별도의 요구 사항입니다.
+
+### 키보드 레이아웃
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> 키보드 레이아웃
+>
+> br(으)로 변경됨

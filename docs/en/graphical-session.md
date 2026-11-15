@@ -53,3 +53,11 @@ Minimization uses the reserved `special:argvus-minimized` workspace. Do not use 
 The session owns `argvus-windows.service` and `argvus-window-bar.service`. The latter keeps its Waybar child dormant in Tile. The hyprbars plugin is bundled by `argvus-hyprland`, built for the Hyprland 0.57.0 ABI on x86_64; it is not compiled in the user's home directory. Rebuild the plugin with a compositor ABI update.
 
 The session propagates the selected UTF-8 locale for all ten ARGVUS languages, including Chinese, Japanese and Korean. Catalog selection is handled by `argvus i18n`; system locale availability and font fallback are separate requirements.
+
+### Keyboard layout
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> Keyboard layout
+>
+> Changed to br

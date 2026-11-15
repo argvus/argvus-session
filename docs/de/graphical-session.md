@@ -49,3 +49,11 @@ Die Sitzung liest die persönliche TZ-Zuweisung aus `$XDG_CONFIG_HOME/environmen
 Die Minimierung verwendet den reservierten Arbeitsbereich `special:argvus-minimized`. Verwenden Sie diesen Arbeitsbereich nicht manuell. Der Prozess `argvus windows service` zeichnet Identität, ursprünglichen Arbeitsbereich/Monitor, Geometrie, Vollbild/Maximierung und Pinnstatus in einem compositorspezifischen Laufzeit-Register unter `$XDG_RUNTIME_DIR/argvus` auf. Die Aufzeichnungen überleben einen Dienstneustart oder ein Konfigurations-Reload, überschreiten jedoch keine Compositor-Sitzungen. Das Schließen eines Fensters entfernt dessen Aufzeichnung. Wenn ein Monitor verschwindet, erfolgt die Wiederherstellung auf einem verfügbaren Ausgabegerät. Eine fehlende oder ausgefallene Wiederherstellungsleiste verhindert neue Minimierungen; eine fehlgeschlagene Wiederherstellung behält die Aufzeichnung und die Wiederherstellungsleiste bei.
 
 Die Sitzung besitzt `argvus-windows.service` und `argvus-window-bar.service`. Letzterer hält sein Waybar-Kind im Tile-Modus inaktiv. Das Hyprbars-Plugin wird von `argvus-hyprland` gebündelt, gebaut für die Hyprland 0.57.0 ABI auf x86_64; es ist nicht im Home-Verzeichnis des Benutzers kompiliert. Bauen Sie das Plugin bei einem Compositor-ABI-Update neu.Die Sitzung propagiert die ausgewählte UTF-8-Locale für alle zehn ARGVUS-Sprachen, einschließlich Chinesisch, Japanisch und Koreanisch. Die Katalogauswahl wird von `argvus i18n` gehandhabt; die Verfügbarkeit der System-Locale und die Schriftart-Fallbacks sind getrennte Anforderungen.
+
+### Tastaturlayout
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> Tastaturlayout
+>
+> Geändert zu br

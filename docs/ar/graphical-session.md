@@ -45,3 +45,11 @@ The session propagates the selected UTF-8 locale for all ten ARGVUS languages, i
 
                                 ﺮﻈﻧﺍ .greetd ﻮﻫ ﻝﻮﺧﺪﻟﺍ ﻞﻴﺠﺴﺘﻟ ﻲﺿﺍﺮﺘﻓﻻ﻿ﺍ ﻞﻣﺎﻜﺘﻟﺍ[                                                                 ﻑﻮﻴﻀﻟﺍ ﻞﺒﻘﺘﺴﻣ](/docs/components/argvus-greeter/)                                                                             ﻭ[                                                          ﺔﺴﻠﺠﻟﺍ ﺕﻼ﻿ﻜﺸﻣ ﻑﺎﺸﻜﺘﺳﺍ](/docs/user-guide/troubleshooting/session-startup/).
                                         ﺮﻈﻧﺍ ،ﻞﻴﻐﺸﺘﻟﺍ ءﺪﺑ ﻞﺴﻠﺴﺗﻭ ﺔﻣﺪﺨﻟﺍ ﺔﻴﻜﻠﻤﻟ[                                                         ﻞﻴﻐﺸﺘﻟﺍ ﺖﻗﻭ ﺓﺎﻴﺣ ﺓﺭﻭﺩ](/docs/developer-guide/architecture/runtime-lifecycle/).
+
+### تخطيط لوحة المفاتيح
+
+`argvus-keyboard-layout.service` → `argvus-control-panel`
+
+> تخطيط لوحة المفاتيح
+>
+> تم التغيير إلى br
