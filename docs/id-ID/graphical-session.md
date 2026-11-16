@@ -67,3 +67,5 @@ Sesi ini menyebarkan locale UTF-8 yang dipilih untuk semua sepuluh bahasa ARGVUS
 > Tata letak papan ketik
 >
 > Diubah ke br
+
+Pemilih tema dan mode menampilkan kemajuan di jendelanya tanpa splash sesi. Posisi akhir taskbar disiapkan sebelum pemuatan ulang; restart yang diperlukan digabung dalam satu transaksi systemd.

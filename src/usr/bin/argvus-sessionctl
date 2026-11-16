@@ -415,8 +415,10 @@ ${_target}"
     # place. argvus-config starts the splash only when none is running, and
     # prints "started" only when this call started it, so only that call owns it.
     _overlay_owner=0
-    if _target_enabled taskbar || _target_enabled widget_telemetry ||
-      _target_enabled control_panel; then
+    if [ "${ARGVUS_SELECTOR_APPLY:-0}" != 1 ] && {
+      _target_enabled taskbar || _target_enabled widget_telemetry ||
+        _target_enabled control_panel;
+    }; then
       if [ "$(argvus config session-splash start 2>/dev/null)" = "started" ]; then
         _overlay_owner=1
       fi
@@ -438,23 +440,20 @@ ${_target}"
       # hyprpaper's IPC; the wallpaper service restarts only for swaybg.
       argvus config theme-runtime wallpaper || _status=$?
     fi
-    if [ "$_status" -eq 0 ] && _target_enabled taskbar; then
-      restart_components taskbar || _status=$?
-    fi
-    if [ "$_status" -eq 0 ] && _target_enabled widget_telemetry; then
-      restart_components widget-telemetry || _status=$?
-    fi
-    if [ "$_status" -eq 0 ] && _target_enabled control_panel; then
-      restart_components control-panel || _status=$?
-    fi
-    if [ "$_status" -eq 0 ] && _target_enabled notifications; then
-      restart_components dunst || _status=$?
-    fi
-    if [ "$_status" -eq 0 ] && _target_enabled polkit; then
-      restart_components polkit || _status=$?
-    fi
-    if [ "$_status" -eq 0 ] && _target_enabled hypridle; then
-      restart_components hypridle || _status=$?
+    # One systemd transaction deduplicates shared units and schedules independent
+    # surfaces together while retaining their declared ordering dependencies.
+    set --
+    for _component in taskbar widget_telemetry control_panel notifications polkit hypridle; do
+      if _target_enabled "$_component"; then
+        case "$_component" in
+          widget_telemetry) set -- "$@" widget-telemetry ;;
+          control_panel) set -- "$@" control-panel ;;
+          *) set -- "$@" "$_component" ;;
+        esac
+      fi
+    done
+    if [ "$_status" -eq 0 ] && [ "$#" -gt 0 ]; then
+      restart_components "$@" || _status=$?
     fi
     [ "$_overlay_owner" -eq 1 ] && argvus config session-splash stop
     return "$_status"
@@ -464,7 +463,8 @@ ${_target}"
     full)
       # Every surface is recreated, so the splash covers the whole plan.
       _overlay_owner=0
-      if [ "$(argvus config session-splash start 2>/dev/null)" = "started" ]; then
+      if [ "${ARGVUS_SELECTOR_APPLY:-0}" != 1 ] &&
+        [ "$(argvus config session-splash start 2>/dev/null)" = "started" ]; then
         _overlay_owner=1
       fi
       _status=0

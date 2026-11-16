@@ -57,3 +57,5 @@ La sessione possiede `argvus-windows.service` e `argvus-window-bar.service`. Que
 > Disposizione della tastiera
 >
 > Passaggio a br
+
+Le applicazioni avviate dai selettori mostrano il progresso nel selettore, senza schermata di caricamento della sessione. I modi preparano la posizione finale della barra prima del ricaricamento; i riavvii necessari sono raggruppati in una transazione systemd.

@@ -232,11 +232,22 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = read_log(base)
             self.assertIn("argvus config session-reload-config", calls)
-            self.assertIn("argvus config session-restart taskbar", calls)
-            self.assertIn("argvus config session-restart widget-telemetry", calls)
+            self.assertIn("argvus config session-restart taskbar widget-telemetry", calls)
             self.assertFalse(any("session-restart wallpaper" in call or
                                  "session-restart control-panel" in call
                                  for call in calls), calls)
+
+    def test_selector_keeps_progress_without_session_splash(self):
+        for plan in ("plan\\nfull\\n", "targets\\ntaskbar\\nwidget_telemetry\\n"):
+            with self.subTest(plan=plan), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                env = isolated_env(mock_bin(base), base, STUB_PLAN=plan,
+                                   ARGVUS_SELECTOR_APPLY="1")
+                result = run_sessionctl(env, "apply-config-runtime")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                calls = read_log(base)
+                self.assertFalse(any("session-splash" in call for call in calls), calls)
+                self.assertEqual(sum("session-restart" in call for call in calls), 1)
 
     def test_custom_theme_forces_all_required_surface_targets(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -250,8 +261,7 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertIn("argvus config session-reload-config", calls)
             self.assertIn("argvus config theme-runtime consumers", calls)
             self.assertIn("argvus config session-restart wallpaper", calls)
-            self.assertIn("argvus config session-restart taskbar", calls)
-            self.assertIn("argvus config session-restart control-panel", calls)
+            self.assertIn("argvus config session-restart taskbar control-panel", calls)
 
     def test_import_publishes_user_default_and_clears_inherited_language(self):
         with tempfile.TemporaryDirectory() as directory:

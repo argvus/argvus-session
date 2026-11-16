@@ -61,3 +61,5 @@ Phiên làm việc truyền bá cài đặt ngôn ngữ UTF-8 đã chọn cho t�
 > Bố cục bàn phím
 >
 > Đã chuyển sang br
+
+Bộ chọn giao diện và chế độ hiển thị tiến trình trong cửa sổ của mình, không có màn hình chờ phiên. Vị trí cuối của thanh tác vụ được chuẩn bị trước khi tải lại; các lần khởi động lại cần thiết được gộp trong một giao dịch systemd.

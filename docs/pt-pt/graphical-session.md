@@ -59,3 +59,5 @@ A sessão propaga o locale UTF-8 selecionado para os dez idiomas do ARGVUS, incl
 > Disposição do teclado
 >
 > Alterado para br
+
+As aplicações iniciadas pelos seletores de temas e modos mostram o progresso no próprio seletor, sem splash da sessão. As mudanças de modo preparam a posição final da taskbar antes de recarregar; os reinícios necessários são agrupados numa transação do systemd.

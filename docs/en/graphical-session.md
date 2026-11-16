@@ -61,3 +61,5 @@ The session propagates the selected UTF-8 locale for all ten ARGVUS languages, i
 > Keyboard layout
 >
 > Changed to br
+
+Applications started by the theme and mode selectors keep progress inside the selector, without a session splash. Mode changes prepare the final taskbar position before reloading; required surface restarts are grouped in one systemd transaction.

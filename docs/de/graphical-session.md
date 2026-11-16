@@ -57,3 +57,5 @@ Die Sitzung besitzt `argvus-windows.service` und `argvus-window-bar.service`. Le
 > Tastaturlayout
 >
 > Geändert zu br
+
+Die Auswahlfenster zeigen den Fortschritt ohne Ladebildschirm der Sitzung. Moduswechsel bereiten die endgültige Taskleistenposition vor dem Neuladen vor; notwendige Neustarts werden in einer systemd-Transaktion gebündelt.

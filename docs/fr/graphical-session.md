@@ -57,3 +57,5 @@ La session possède `argvus-windows.service` et `argvus-window-bar.service`. Ce 
 > Disposition du clavier
 >
 > Passage à br
+
+Les applications lancées depuis les sélecteurs affichent leur progression dans le sélecteur, sans écran de chargement de session. Les modes préparent la position finale de la barre avant le rechargement ; les redémarrages nécessaires sont regroupés dans une transaction systemd.

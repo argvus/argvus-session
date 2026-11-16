@@ -57,3 +57,5 @@ La sesión posee `argvus-windows.service` y `argvus-window-bar.service`. Esta ú
 > Distribución del teclado
 >
 > Cambiado a br
+
+Las aplicaciones iniciadas desde los selectores muestran el progreso en el selector, sin splash de sesión. Los modos preparan la posición final de la barra antes de recargar; los reinicios necesarios se agrupan en una transacción de systemd.

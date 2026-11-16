@@ -61,3 +61,5 @@ Oturum, Çin, Japon ve Korece dahil olmak üzere tüm on ARGVUS dili için seçi
 > Klavye düzeni
 >
 > br olarak değiştirildi
+
+Tema ve mod seçicileri oturum açılış ekranı olmadan ilerlemeyi kendi pencerelerinde gösterir. Yeniden yüklemeden önce görev çubuğunun son konumu hazırlanır; gerekli yeniden başlatmalar tek bir systemd işleminde birleştirilir.
