@@ -59,3 +59,5 @@ La sessione possiede `argvus-windows.service` e `argvus-window-bar.service`. Que
 > Passaggio a br
 
 Le applicazioni avviate dai selettori mostrano il progresso nel selettore, senza schermata di caricamento della sessione. I modi preparano la posizione finale della barra prima del ricaricamento; i riavvii necessari sono raggruppati in una transazione systemd.
+
+Gli Appunti sono attivi per impostazione predefinita e si aprono dal gruppo delle utilità della barra delle applicazioni. Per interrompere la registrazione di testo e immagini, deseleziona la voce in Control Center → Appearance → Taskbar → Icons → Optional modules e scegli Apply. L’icona scompare e la cronologia resta inaccessibile fino alla riattivazione. Le voci salvate vengono conservate.

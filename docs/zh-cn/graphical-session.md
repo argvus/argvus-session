@@ -60,3 +60,5 @@ argvus sessionctl reload
 > 已切换为 br
 
 主题和模式选择器在自身窗口中显示应用进度，不显示会话加载画面。重新加载前先准备任务栏的最终位置；必要的重启合并为一次systemd事务。
+
+剪贴板默认启用，可从任务栏的实用工具组打开。若要停止记录文本和图像，请在 Control Center → Appearance → Taskbar → Icons → Optional modules 中取消勾选该选项并选择 Apply。图标会隐藏，重新启用前无法打开历史记录。已保存的条目会保留。

@@ -59,3 +59,5 @@ Die Sitzung besitzt `argvus-windows.service` und `argvus-window-bar.service`. Le
 > Geändert zu br
 
 Die Auswahlfenster zeigen den Fortschritt ohne Ladebildschirm der Sitzung. Moduswechsel bereiten die endgültige Taskleistenposition vor dem Neuladen vor; notwendige Neustarts werden in einer systemd-Transaktion gebündelt.
+
+Die Zwischenablage ist standardmäßig aktiv und lässt sich über die Dienstprogrammgruppe der Taskleiste öffnen. Um keine Texte und Bilder mehr zu erfassen, deaktivieren Sie die Option unter Control Center → Appearance → Taskbar → Icons → Optional modules und wählen Sie Apply. Das Symbol verschwindet und der Verlauf ist bis zur erneuten Aktivierung gesperrt. Gespeicherte Einträge bleiben erhalten.

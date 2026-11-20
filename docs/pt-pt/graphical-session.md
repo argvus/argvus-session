@@ -61,3 +61,5 @@ A sessão propaga o locale UTF-8 selecionado para os dez idiomas do ARGVUS, incl
 > Alterado para br
 
 As aplicações iniciadas pelos seletores de temas e modos mostram o progresso no próprio seletor, sem splash da sessão. As mudanças de modo preparam a posição final da taskbar antes de recarregar; os reinícios necessários são agrupados numa transação do systemd.
+
+A Área de transferência está ativa por predefinição e abre a partir do grupo de utilitários da barra de tarefas. Para parar a recolha de texto e imagens, desmarque a opção em Control Center → Appearance → Taskbar → Icons → Optional modules e selecione Apply. O ícone desaparece e o histórico fica inacessível até reativar a opção. Os registos guardados são preservados.

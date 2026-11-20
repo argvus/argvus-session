@@ -61,3 +61,5 @@ A sessão propaga o locale UTF-8 selecionado para os dez idiomas do ARGVUS, incl
 > Alterado para br
 
 Aplicações iniciadas pelos seletores de temas e modos mostram o progresso no próprio seletor, sem splash da sessão. Mudanças de modo preparam a posição final da taskbar antes da recarga; os reinícios necessários são agrupados em uma transação do systemd.
+
+O Clipboard vem ativado por padrão e abre pelo grupo de utilidades da barra de tarefas. Para parar a captura de texto e imagens, desmarque Clipboard em Control Center → Appearance → Taskbar → Icons → Optional modules e selecione Apply. O ícone some e o acesso ao histórico fica bloqueado. Reative a opção para acessar as entradas já salvas.

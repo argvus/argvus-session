@@ -63,3 +63,5 @@ Oturum, Çin, Japon ve Korece dahil olmak üzere tüm on ARGVUS dili için seçi
 > br olarak değiştirildi
 
 Tema ve mod seçicileri oturum açılış ekranı olmadan ilerlemeyi kendi pencerelerinde gösterir. Yeniden yüklemeden önce görev çubuğunun son konumu hazırlanır; gerekli yeniden başlatmalar tek bir systemd işleminde birleştirilir.
+
+Pano varsayılan olarak etkindir ve görev çubuğunun yardımcı araçlar grubundan açılır. Metin ve görüntü kaydını durdurmak için Control Center → Appearance → Taskbar → Icons → Optional modules bölümündeki seçeneğin işaretini kaldırıp Apply seçin. Simge gizlenir ve seçenek yeniden açılana kadar geçmişe erişilemez. Kayıtlı öğeler korunur.

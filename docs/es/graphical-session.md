@@ -59,3 +59,5 @@ La sesión posee `argvus-windows.service` y `argvus-window-bar.service`. Esta ú
 > Cambiado a br
 
 Las aplicaciones iniciadas desde los selectores muestran el progreso en el selector, sin splash de sesión. Los modos preparan la posición final de la barra antes de recargar; los reinicios necesarios se agrupan en una transacción de systemd.
+
+El Portapapeles está activado por defecto y se abre desde el grupo de utilidades de la barra de tareas. Para dejar de registrar texto e imágenes, desmarca la opción en Control Center → Appearance → Taskbar → Icons → Optional modules y selecciona Apply. El icono se oculta y el historial queda bloqueado hasta reactivar la opción. Se conservan las entradas guardadas.

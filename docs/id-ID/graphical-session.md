@@ -69,3 +69,5 @@ Sesi ini menyebarkan locale UTF-8 yang dipilih untuk semua sepuluh bahasa ARGVUS
 > Diubah ke br
 
 Pemilih tema dan mode menampilkan kemajuan di jendelanya tanpa splash sesi. Posisi akhir taskbar disiapkan sebelum pemuatan ulang; restart yang diperlukan digabung dalam satu transaksi systemd.
+
+Papan klip aktif secara default dan dapat dibuka dari grup utilitas di bilah tugas. Untuk berhenti merekam teks dan gambar, hapus centang pada opsi di Control Center → Appearance → Taskbar → Icons → Optional modules lalu pilih Apply. Ikon akan disembunyikan dan riwayat tidak bisa dibuka hingga opsi diaktifkan kembali. Entri yang tersimpan tetap tersedia.

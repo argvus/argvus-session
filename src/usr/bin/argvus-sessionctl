@@ -758,6 +758,21 @@ logs_session() {
   fi
 }
 
+clipboard_preference() {
+  argvus config get /taskbar/icons/clipboard_enabled --effective --raw
+}
+
+sync_clipboard() {
+  require_systemd
+  _clipboard_enabled="$(clipboard_preference)" || return 1
+  case "$_clipboard_enabled" in
+    true) _clipboard_action=start ;;
+    false) _clipboard_action=stop ;;
+    *) return 1 ;;
+  esac
+  systemctl --user "$_clipboard_action" argvus-clipboard-text.service argvus-clipboard-image.service
+}
+
 run_component() {
   component="${1:-}"
   case "$component" in
@@ -802,15 +817,12 @@ run_component() {
       mkdir -p "$(paths_cache quickshell)"
       exec qs -c argvus-control-panel
       ;;
-    clipboard-text)
+    clipboard-text|clipboard-image)
+      _clipboard_enabled="$(clipboard_preference)" || exit 1
+      [ "$_clipboard_enabled" = true ] || exit 0
       have wl-paste || exit 0
       have cliphist || exit 0
-      exec wl-paste --type text --watch cliphist store
-      ;;
-    clipboard-image)
-      have wl-paste || exit 0
-      have cliphist || exit 0
-      exec wl-paste --type image --watch cliphist store
+      exec wl-paste --type "${component#clipboard-}" --watch cliphist store
       ;;
     keyboard-layout)
       script="$SYSTEM_CONFIG/session/sh/keyboard-layout-daemon.sh"
@@ -943,6 +955,9 @@ case "${1:-}" in
   widget-telemetry|desktop-telemetry|sysinfo)
     shift
     widget_telemetry_command "$@"
+    ;;
+  sync-clipboard)
+    sync_clipboard
     ;;
   run)
     shift

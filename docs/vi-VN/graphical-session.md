@@ -63,3 +63,5 @@ Phiên làm việc truyền bá cài đặt ngôn ngữ UTF-8 đã chọn cho t�
 > Đã chuyển sang br
 
 Bộ chọn giao diện và chế độ hiển thị tiến trình trong cửa sổ của mình, không có màn hình chờ phiên. Vị trí cuối của thanh tác vụ được chuẩn bị trước khi tải lại; các lần khởi động lại cần thiết được gộp trong một giao dịch systemd.
+
+Bảng tạm được bật mặc định và mở từ nhóm tiện ích trên thanh tác vụ. Để dừng ghi lại văn bản và hình ảnh, bỏ chọn mục này trong Control Center → Appearance → Taskbar → Icons → Optional modules rồi chọn Apply. Biểu tượng sẽ ẩn và chỉ có thể mở lại lịch sử sau khi bật lại. Các mục đã lưu vẫn được giữ.

@@ -63,3 +63,5 @@ The session propagates the selected UTF-8 locale for all ten ARGVUS languages, i
 > Changed to br
 
 Applications started by the theme and mode selectors keep progress inside the selector, without a session splash. Mode changes prepare the final taskbar position before reloading; required surface restarts are grouped in one systemd transaction.
+
+Clipboard is enabled by default. Open it from the taskbar utility group. To stop recording text and images, clear the Clipboard option under Control Center → Appearance → Taskbar → Icons → Optional modules and select Apply. This also hides the icon and blocks opening history. Re-enable the option to access previously saved entries.

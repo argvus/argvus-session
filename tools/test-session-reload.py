@@ -37,6 +37,7 @@ case "$1" in
     printf 'argvus config %s\\n' "$*" >> "$TEST_LOG"
     exit "${STUB_RELOAD_STATUS:-0}" ;;
   session-plan) printf '%b' "${STUB_PLAN:-plan\\nfull\\n}"; exit 0 ;;
+  get) printf '%s\\n' "$STUB_CLIPBOARD_ENABLED"; exit 0 ;;
   session-telemetry) printf 'disabled\\n'; exit 0 ;;
 esac
 printf 'argvus config %s\\n' "$*" >> "$TEST_LOG"
@@ -95,6 +96,29 @@ def read_log(base):
 
 
 class SessionctlDelegationTests(unittest.TestCase):
+    def test_clipboard_preference_controls_both_watchers(self):
+        with tempfile.TemporaryDirectory(dir="/tmp/argvus") as directory:
+            base = Path(directory)
+            mockbin = mock_bin(base)
+            write_executable(mockbin / "cliphist", "#!/bin/sh\nexit 0\n")
+            write_executable(
+                mockbin / "wl-paste",
+                '#!/bin/sh\nprintf "wl-paste %s\\n" "$*" >> "$TEST_LOG"\n',
+            )
+            for enabled, action in [("false", "stop"), ("true", "start")]:
+                env = isolated_env(mockbin, base, STUB_CLIPBOARD_ENABLED=enabled)
+                result = run_sessionctl(env, "sync-clipboard")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(
+                    f"--user {action} argvus-clipboard-text.service argvus-clipboard-image.service",
+                    read_log(base),
+                )
+                for kind in ["text", "image"]:
+                    result = run_sessionctl(env, "run", f"clipboard-{kind}")
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    command = f"wl-paste --type {kind} --watch cliphist store"
+                    self.assertEqual(command in read_log(base), enabled == "true")
+
     def test_ready_attempts_welcome_only_after_the_desktop_readiness_wait(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

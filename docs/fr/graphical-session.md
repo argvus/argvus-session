@@ -59,3 +59,5 @@ La session possède `argvus-windows.service` et `argvus-window-bar.service`. Ce 
 > Passage à br
 
 Les applications lancées depuis les sélecteurs affichent leur progression dans le sélecteur, sans écran de chargement de session. Les modes préparent la position finale de la barre avant le rechargement ; les redémarrages nécessaires sont regroupés dans une transaction systemd.
+
+Le Presse-papiers est activé par défaut et s’ouvre depuis le groupe des utilitaires de la barre des tâches. Pour arrêter la capture de texte et d’images, décochez cette option dans Control Center → Appearance → Taskbar → Icons → Optional modules, puis sélectionnez Apply. L’icône disparaît et l’historique reste inaccessible jusqu’à la réactivation. Les entrées enregistrées sont conservées.
