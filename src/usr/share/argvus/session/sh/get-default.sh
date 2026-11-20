@@ -60,7 +60,7 @@ fallback() {
     video_player) printf 'mpv\n' ;;
     audio_player) printf 'audacious\n' ;;
     archive) printf 'xarchiver\n' ;;
-    launcher) printf 'rofi\n' ;;
+    launcher) printf 'argvus\n' ;;
     *) printf '\n' ;;
   esac
 }

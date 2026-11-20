@@ -44,7 +44,7 @@ get_default_value() {
       video_player) printf 'mpv\n' ;;
       audio_player) printf 'audacious\n' ;;
       archive) printf 'xarchiver\n' ;;
-      launcher) printf 'rofi\n' ;;
+      launcher) printf 'argvus\n' ;;
       browser) printf 'xdg-open\n' ;;
       *) printf '\n' ;;
     esac
@@ -87,7 +87,7 @@ else
   done
 fi
 [ -n "$TERM" ] || TERM="argvus-terminal"
-[ -n "$FINDER" ] || FINDER="rofi"
+[ -n "$FINDER" ] || FINDER="argvus"
 [ -n "$FILE_MANAGER" ] || FILE_MANAGER="argvus --spf"
 [ -n "$TERMINAL_EDITOR" ] || TERMINAL_EDITOR="vim"
 [ -n "$TEXT_EDITOR" ] || TEXT_EDITOR="mousepad"

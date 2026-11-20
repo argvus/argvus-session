@@ -331,7 +331,7 @@ reload_configuration() {
 }
 
 reload_runtime_configuration() {
-  # argvus-config owns the runtime half of a reload: Rofi, btop and yazi sync,
+  # argvus-config owns the runtime half of a reload: Dunst menu migration and btop and yazi sync,
   # spacing and borders, the compositor reload and the display layout.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
     argvus config session-reload-config
