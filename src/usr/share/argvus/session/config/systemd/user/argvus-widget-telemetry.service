@@ -1,11 +1,12 @@
 [Unit]
 Description=ARGVUS widget telemetry panel
+Requires=argvus-bars.service
 PartOf=argvus-session.target graphical-session.target
-After=argvus-session-prepare.service graphical-session.target
+After=argvus-bars.service
 
 [Service]
-Type=simple
+Type=oneshot
+RemainAfterExit=yes
 ExecCondition=/usr/bin/argvus sessionctl widget-telemetry is-enabled
-ExecStart=/usr/bin/argvus sessionctl run widget-telemetry
-Restart=on-failure
-RestartSec=2s
+ExecStart=/usr/bin/argvus sessionctl bar-surface widget-telemetry start
+ExecStop=/usr/bin/argvus sessionctl bar-surface widget-telemetry stop

@@ -10,6 +10,8 @@ description: 그래픽 로그인 흐름을 통해 ARGVUS를 시작하십시오.
 
 Hyprland가 준비되면 `argvus sessionctl`이 `argvus-session.target`을 시작합니다. 이 대상은 작업 표시줄, 제어판, 알림, 바탕화면, 유휴 처리, 클립보드, SSH 에이전트, 시크릿 서비스 공급자 및 관련 서비스를 시작합니다. 로그인 인계부터 이러한 서비스가 시작되고 바탕화면과 작업 표시줄이 화면에 표시될 때까지 단일 로딩 스피너가 화면에 유지됩니다(최대 1.5초 추가). Hyprland를 실행하기 전에 `argvus-start`은 설정 투영(`argvus-config.service`)을 대기열에 넣고, 이는 컴포지터 시작 중에 실행되며, 그리터의 DRM 인계 표면이 디스플레이를 해제하도록 요청합니다(`/usr/lib/argvus/greeter/handoff --send release`); 해당 표면이 실행되면 먼저 `loginctl activate`으로 세션을 활성화하여 Hyprland가 백그라운드의 VT에서 시작되지 않도록 합니다. 그런 다음 세션 스피너는 해당 표면에 Hyprland의 첫 프레임을 가린 오버레이를 제거하라고 지시합니다.
 
+작업 표시줄과 원격 측정 위젯은 `argvus-bars.service`가 관리하는 Quickshell 프로세스의 독립된 표면입니다. 각 표면은 `argvus-taskbar.service`와 `argvus-widget-telemetry.service`로 제어합니다.
+
 데스크탑이 준비된 후, 세션은 TTY, ARGVUS Greeter 및 기타 로그인 관리자를 위해 `argvus welcome --if-needed`를 실행합니다. 사용자별 진행 기록 `opened`, 완료 또는 닫기가 없는 한 통합 제어 센터 환영 페이지를 엽니다. 첫 번째 성공적인 렌더링은 `opened`를 `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`에 저장하여 이후 로그인 시 다시 열리는 것을 방지합니다. 이는 `/etc/skel`에 의존하지 않습니다. 해당 기록이 없는 기존 계정도 자동으로 한 번 열립니다. 렌더링 전에 실패하면 다음 로그인 시 다시 시도할 수 있습니다. 수동 `argvus welcome`는 계속 사용할 수 있습니다.
 
 `PATH`는 해당 디렉터리가 존재할 경우 `~/.local/bin`와 `~/.cargo/bin`도 앞쪽에 추가되므로, 그곳에 설치된 도구들은 합성기(compositor)와 서비스에서 볼 수 있습니다. `EDITOR`와 `VISUAL`는 제어 센터 기본 앱(`TERMINAL_EDITOR`)에서 설정한 기본 터미널 편집기로 설정되며, 시스템드(user manager), D-Bus 활성화 및 Hyprland에 내보내어 세션에서 실행되는 터미널과 서비스가 이를 상속받습니다. SSH 에이전트(`argvus-ssh-agent.service`, `openssh`에서 가져옴)는 `$XDG_RUNTIME_DIR/ssh-agent.socket`에서 대기하고 `SSH_AUTH_SOCK`를 사용자 매니저에 게시합니다. ARGVUS 에이전트가 시작되면 사용자 매니저에서 `SSH_AUTH_SOCK`를 대체합니다. gnome-keyring 또는 gcr와 같은 다른 에이전트가 소켓을 소유해야 하는 경우 `systemctl --user mask argvus-ssh-agent.service`로 ARGVUS 유닛을 비활성화하십시오. Hyprland 종료 시 중지되므로, 로그아웃 후 이러한 인터페이스가 고아 프로세스로 남지 않습니다.
@@ -48,7 +50,7 @@ argvus sessionctl reload
 
 최소화는 예약된 `special:argvus-minimized` 작업 공간을 사용합니다. 해당 작업 공간을 수동으로 사용하지 마십시오. `argvus windows service` 프로세스는 컴포지터 인스턴스별 런타임 레지스트리에 `$XDG_RUNTIME_DIR/argvus` 아래에서 정체, 원래 작업 공간/모니터, 지오메트리, 전체 화면/최대화 및 고정 상태를 기록합니다. 기록은 서비스 재시작이나 설정 다시 불러오기 후에도 남아 있지만, 컴포지터 세션 간에는 공유되지 않습니다. 창을 닫으면 해당 기록이 삭제됩니다. 모니터가 사라지면 복원은 사용 가능한 출력으로 수행됩니다. 누락되었거나 복구 막대가 실패하면 새로운 최소화가 차단되며, 복원이 실패하면 기록과 복구 막대가 유지됩니다.
 
-세션은 `argvus-windows.service` 및 `argvus-window-bar.service`를 소유합니다. 후자는 Tile에서 자신의 Waybar 자식을 대기 상태로 유지합니다. hyprbars 플러그인은 `argvus-hyprland`에서 번들로 제공되며, x86_64에서 Hyprland 0.57.0 ABI용으로 빌드되었습니다; 사용자의 홈 디렉토리에서 컴파일되지 않았습니다. 컴포지터 ABI 업데이트 시 플러그인을 다시 빌드하십시오. 세션은 중국어, 일본어 및 한국어를 포함한 10개의 ARGVUS 언어에 대해 선택된 UTF-8 로케일을 전파합니다. 카탈로그 선택은 `argvus i18n`가 처리하며, 시스템 로케일 사용 가능 여부와 폰트 폴백은 별도의 요구 사항입니다.
+세션은 `argvus-windows.service` 및 `argvus-window-bar.service`를 소유합니다. 후자는 Tile에서 자신의 Quickshell 자식을 대기 상태로 유지합니다. hyprbars 플러그인은 `argvus-hyprland`에서 번들로 제공되며, x86_64에서 Hyprland 0.57.0 ABI용으로 빌드되었습니다; 사용자의 홈 디렉토리에서 컴파일되지 않았습니다. 컴포지터 ABI 업데이트 시 플러그인을 다시 빌드하십시오. 세션은 중국어, 일본어 및 한국어를 포함한 10개의 ARGVUS 언어에 대해 선택된 UTF-8 로케일을 전파합니다. 카탈로그 선택은 `argvus i18n`가 처리하며, 시스템 로케일 사용 가능 여부와 폰트 폴백은 별도의 요구 사항입니다.
 
 ### 키보드 레이아웃
 

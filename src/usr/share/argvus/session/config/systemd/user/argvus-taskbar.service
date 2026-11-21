@@ -1,10 +1,11 @@
 [Unit]
 Description=ARGVUS taskbar panel
+Requires=argvus-bars.service
 PartOf=argvus-session.target graphical-session.target
-After=argvus-session-prepare.service graphical-session.target
+After=argvus-bars.service
 
 [Service]
-Type=simple
-ExecStart=/usr/bin/argvus sessionctl run taskbar
-Restart=on-failure
-RestartSec=2s
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/argvus sessionctl bar-surface taskbar start
+ExecStop=/usr/bin/argvus sessionctl bar-surface taskbar stop

@@ -509,75 +509,87 @@ reload_config_transaction() {
 }
 
 widget_telemetry_enabled() {
-  # The state rule lives in argvus-config (session-telemetry).
-  [ "$(argvus config session-telemetry 2>/dev/null)" = "enabled" ]
+  [ "$(ARGVUS_MACHINE_OUTPUT=1 argvus widget-telemetry toggle status)" = enabled ]
 }
 
-resolve_waybar_file() {
-  _canonical_rel="$1"
-  _legacy_rel="${2:-}"
-  for _resolver in paths_override_config paths_user_config paths_generated_config; do
-    _candidate="$($_resolver "$_canonical_rel")"
-    if [ -e "$_candidate" ] || [ -L "$_candidate" ]; then
-      printf '%s\n' "$_candidate"
+bars_config() {
+  printf '%s\n' "$SYSTEM_CONFIG/taskbar/quickshell/shell.qml"
+}
+
+bars_ipc() {
+  qs -p "$(bars_config)" ipc call "$@"
+}
+
+apply_bars_presentation() {
+  "$SYSTEM_CONFIG/taskbar/sh/bars-presentation.sh" || return 1
+  systemctl --user is-active --quiet argvus-bars.service || return 0
+  _presentation=$(cat "${XDG_RUNTIME_DIR:?}/argvus/bars/presentation.json") || return 1
+  _attempt=0
+  while [ "$_attempt" -lt 50 ]; do
+    if _applied=$(timeout 1 qs -p "$(bars_config)" ipc call bars hasPresentation "$_presentation" 2>/dev/null) &&
+      [ "$_applied" = true ]; then
       return 0
     fi
-    [ -n "$_legacy_rel" ] || continue
-    _candidate="$($_resolver "$_legacy_rel")"
-    if [ -e "$_candidate" ] || [ -L "$_candidate" ]; then
-      printf '%s\n' "$_candidate"
-      return 0
-    fi
+    _attempt=$((_attempt + 1))
+    sleep 0.1
   done
-  paths_system_config "$_canonical_rel"
+  return 1
 }
 
-run_waybar() {
-  _name="$1"
-  _legacy_name="${2:-}"
-  case "$_name" in
-    taskbar)
-      _config_rel="taskbar/config/argvus-taskbar.jsonc"
-      _style_rel="taskbar/config/argvus-taskbar.css"
+bar_layer_matches() {
+  _expected_layer="$1"
+  [ "$_surface" != window-bar ] || return 0
+  hyprctl -j layers 2>/dev/null | jq -e --arg namespace "argvus-$_surface" \
+    --argjson expected "$_expected_layer" \
+    'any(.[] | .levels[][]; .namespace == $namespace) == $expected' >/dev/null
+}
+
+wait_bar_surface() {
+  _expected="$1"
+  _attempt=0
+  while [ "$_attempt" -lt 50 ]; do
+    if _actual=$(timeout 1 qs -p "$(bars_config)" ipc call bars active "$_surface" 2>/dev/null); then
+      if [ "$_actual" = "$_expected" ] && bar_layer_matches "$_expected"; then
+        return 0
+      fi
+    elif [ "$_expected" = false ] && ! systemctl --user is-active --quiet argvus-bars.service; then
+      return 0
+    fi
+    _attempt=$((_attempt + 1))
+    sleep 0.1
+  done
+  return 1
+}
+
+bar_surface() {
+  _surface="${1:-}"
+  _action="${2:-}"
+  case "$_surface" in taskbar|widget-telemetry|window-bar) ;; *) return 64 ;; esac
+  _runtime="${XDG_RUNTIME_DIR:?}/argvus/bars"
+  _marker="$_runtime/$_surface.active"
+  case "$_action" in
+    start)
+      mkdir -p "$_runtime" || return 1
+      _pending=$(mktemp "$_runtime/.active.XXXXXX") || return 1
+      if ! printf 'enabled\n' > "$_pending" || ! mv -f -- "$_pending" "$_marker"; then
+        unlink "$_pending" 2>/dev/null || :
+        return 1
+      fi
+      if ! wait_bar_surface true; then
+        unlink "$_marker" 2>/dev/null || :
+        return 1
+      fi
       ;;
-    widget-telemetry)
-      _config_rel="widget-telemetry/config/argvus-widget-telemetry.jsonc"
-      _style_rel="widget-telemetry/config/argvus-widget-telemetry.css"
+    stop)
+      if [ -e "$_marker" ]; then
+        unlink "$_marker" || return 1
+      fi
+      wait_bar_surface false
       ;;
-    *)
-      _config_rel="${_name}/config/argvus-${_name}.jsonc"
-      _style_rel="${_name}/config/argvus-${_name}.css"
-      ;;
+    *) return 64 ;;
   esac
-  _legacy_config_rel="waybar/argvus-${_name}.jsonc"
-  _legacy_style_rel="waybar/argvus-${_name}.css"
-  _config="$(resolve_waybar_file "$_config_rel" "$_legacy_config_rel")"
-  _style="$(resolve_waybar_file "$_style_rel" "$_legacy_style_rel")"
-  _system_config_file="$(paths_system_config "$_config_rel")"
-  _system_style_file="$(paths_system_config "$_style_rel")"
-
-  if [ ! -f "$_config" ] || [ ! -f "$_style" ]; then
-    log "Waybar ${_name} skipped; missing config=${_config} style=${_style}"
-    exit 0
-  fi
-
-  wait_graphical_runtime "waybar-${_name}"
-  log "starting Waybar ${_name}: config=${_config} style=${_style}"
-
-  set +e
-  waybar -c "$_config" -s "$_style"
-  _status=$?
-  set -e
-
-  if [ "$_status" -le 128 ] &&
-    { [ "$_config" != "$_system_config_file" ] || [ "$_style" != "$_system_style_file" ]; } &&
-    [ -f "$_system_config_file" ] && [ -f "$_system_style_file" ]; then
-    log "Waybar ${_name} exited with ${_status}; retrying packaged config"
-    exec waybar -c "$_system_config_file" -s "$_system_style_file"
-  fi
-
-  exit "$_status"
 }
+
 
 default_wallpaper() {
   for _wallpaper in \
@@ -776,15 +788,18 @@ sync_clipboard() {
 run_component() {
   component="${1:-}"
   case "$component" in
-    taskbar|waybar-taskbar)
-      have waybar || exit 0
+    bars)
+      wait_graphical_runtime bars
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
-      run_waybar taskbar
+      argvus widget-telemetry toggle migrate-master || log "Unable to migrate telemetry master switch"
+      "$SYSTEM_CONFIG/taskbar/sh/bars-presentation.sh" || log "Unable to project bars presentation"
+      exec qs --no-duplicate -p "$(bars_config)"
+      ;;
+    taskbar|waybar-taskbar)
+      exec systemctl --user start argvus-taskbar.service
       ;;
     widget-telemetry|desktop-telemetry|waybar-sysinfo)
-      have waybar || exit 0
-      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
-      run_waybar widget-telemetry sysinfo
+      exec systemctl --user start argvus-widget-telemetry.service
       ;;
     wallpaper)
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
@@ -958,6 +973,18 @@ case "${1:-}" in
     ;;
   sync-clipboard)
     sync_clipboard
+    ;;
+  bars-presentation)
+    . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
+    apply_bars_presentation
+    ;;
+  bars-ipc)
+    shift
+    bars_ipc "$@"
+    ;;
+  bar-surface)
+    shift
+    bar_surface "$@"
     ;;
   run)
     shift

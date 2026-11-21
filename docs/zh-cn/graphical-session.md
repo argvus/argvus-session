@@ -10,6 +10,8 @@ description: 通过图形登录流程启动 ARGVUS。
 
 在 Hyprland 准备好之后，`argvus sessionctl` 会启动 `argvus-session.target`。该目标会启动任务栏、控制面板、通知、壁纸、空闲处理、剪贴板、SSH 代理、Secret Service 提供程序及相关服务。从登录移交开始到这些服务启动并且壁纸和任务栏显示在屏幕上（最多再 1.5 秒）期间，屏幕上会保持一个加载旋转图标。在启动 Hyprland 之前，`argvus-start` 会排队配置投影（`argvus-config.service`），该配置在合成器启动期间运行，并要求迎宾程序的 DRM 移交表面释放显示器（`/usr/lib/argvus/greeter/handoff --send release`）；当该表面运行时，它会先使用 `loginctl activate` 激活会话，因此 Hyprland 从不在后台的 VT 上启动。然后会话旋转图标会告诉表面移除隐藏 Hyprland 第一帧的覆盖层。
 
+任务栏和遥测组件是由 `argvus-bars.service` 管理的 Quickshell 进程中的独立界面。使用 `argvus-taskbar.service` 和 `argvus-widget-telemetry.service` 分别控制它们。
+
 桌面准备就绪后，会话为 TTY、ARGVUS Greeter 和其他登录管理器运行 `argvus welcome --if-needed`。除非每用户的进度记录 `opened`、完成或关闭，否则它会打开集成控制中心欢迎页面。首次成功渲染会将 `opened` 保存在 `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json` 中，从而防止以后登录时再次打开。它不依赖于 `/etc/skel`。现有账户如果没有该记录，也会自动打开一次。在渲染之前的失败允许下次登录时再次尝试。手动 `argvus welcome` 仍然可用。
 
 `PATH` 还会在这些目录存在时将 `~/.local/bin` 和 `~/.cargo/bin` 放在前面，因此安装在这些目录中的工具对于合成器和服务是可见的。`EDITOR` 和 `VISUAL` 被设置为来自控制中心默认应用程序 (`TERMINAL_EDITOR`) 的默认终端编辑器，并且它们被导出到 systemd 用户管理器、D-Bus 激活和 Hyprland，因此从会话启动的终端和服务会继承它们。SSH 代理 (`argvus-ssh-agent.service`，来自 `openssh`) 监听 `$XDG_RUNTIME_DIR/ssh-agent.socket`，并向用户管理器发布 `SSH_AUTH_SOCK`。当 ARGVUS 代理启动时，它会替换用户管理器中的 `SSH_AUTH_SOCK`。如果其他代理（如 gnome-keyring 或 gcr）应该拥有该套接字，请使用 `systemctl --user mask argvus-ssh-agent.service` 禁用 ARGVUS 单元。当 Hyprland 退出时，它会停止，因此这些界面在注销后不会作为孤立进程残留。
@@ -49,7 +51,7 @@ argvus sessionctl reload
 
 最小化使用保留的 `special:argvus-minimized` 工作区。请勿手动使用该工作区。`argvus windows service` 进程在特定合成器实例的运行时注册表中记录身份、原始工作区/显示器、几何形状、全屏/最大化和固定状态，注册表位于 `$XDG_RUNTIME_DIR/argvus` 下。记录在服务重启或配置重新加载后仍然存在，但不会跨合成器会话。关闭窗口会删除其记录。如果显示器消失，恢复将使用可用的输出。缺失或恢复条失败会阻止新的最小化；恢复失败会保留记录和恢复条。
 
-会话拥有 `argvus-windows.service` 和 `argvus-window-bar.service`。后者保持其 Waybar 子项在 Tile 中处于休眠状态。hyprbars 插件由 `argvus-hyprland` 提供，构建于 Hyprland 0.57.0 的 x86_64 ABI；它并未在用户主目录中编译。若合成器 ABI 更新，请重新构建该插件。该会话为所有十种 ARGVUS 语言传播所选的 UTF-8 语言环境，包括中文、日文和韩文。目录选择由 `argvus i18n` 处理；系统语言环境的可用性和字体回退是单独的要求。
+会话拥有 `argvus-windows.service` 和 `argvus-window-bar.service`。后者保持其 Quickshell 子项在 Tile 中处于休眠状态。hyprbars 插件由 `argvus-hyprland` 提供，构建于 Hyprland 0.57.0 的 x86_64 ABI；它并未在用户主目录中编译。若合成器 ABI 更新，请重新构建该插件。该会话为所有十种 ARGVUS 语言传播所选的 UTF-8 语言环境，包括中文、日文和韩文。目录选择由 `argvus i18n` 处理；系统语言环境的可用性和字体回退是单独的要求。
 
 ### 键盘布局
 

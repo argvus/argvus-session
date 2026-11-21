@@ -82,7 +82,7 @@ user config override, and packaged fallback behavior. The Hyprland Lua
 `argvus-widget-telemetry.service` is intentionally opt-in. It is started by the
 shell/sysinfo toggle only after the user enables it, and future logins start it
 again only while that saved state remains enabled. This avoids a second polling
-Waybar process during default login.
+telemetry surface during login. `argvus-bars.service` hosts the primary taskbar, telemetry and Floating surfaces in one Quickshell process.
 
 When `argvus start` detects a virtual machine, it exports `ARGVUS_LOW_POWER=1`
 and software-rendering compatibility variables. The packaged Hyprland config
@@ -113,7 +113,7 @@ argvus sessionctl logs
 Useful component restarts:
 
 ```sh
-argvus sessionctl restart waybar
+argvus sessionctl restart taskbar
 argvus sessionctl restart wallpaper
 argvus sessionctl restart dunst shell
 argvus sessionctl restart clipboard keyboard-layout blueman-applet
@@ -126,7 +126,7 @@ services that need fresh configuration.
 `argvus-blueman-applet.service` is still installed for users who want Blueman's
 legacy tray applet, but it is no longer pulled into the default session target.
 Bluetooth power/status is surfaced by `argvus bluetooth` commands consumed by the
-Waybar module of `argvus-taskbar` and the Quickshell control-panel card.
+Quickshell taskbar and the Quickshell control-panel card.
 
 ## Environment
 

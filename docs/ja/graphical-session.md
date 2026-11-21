@@ -10,6 +10,8 @@ description: グラフィカルログインフローを通じてARGVUSを開始�
 
 Hyprland の準備ができると、`argvus sessionctl` が `argvus-session.target` を起動します。このターゲットはタスクバー、コントロールパネル、通知、壁紙、アイドル処理、クリップボード、SSH エージェント、Secret Service プロバイダーおよび関連するサービスを起動します。ログイン引き渡しからこれらのサービスが起動し、壁紙とタスクバーが画面に表示されるまで、シングルのロードスピナーが画面に表示され続けます（最大でさらに 1.5 秒）。Hyprland を起動する前に、`argvus-start` は設定投影（`argvus-config.service`）をキューに入れ、これはコンポジタ起動中に実行され、グリータの DRM 引き渡しサーフェスにディスプレイを解放するよう依頼します（`/usr/lib/argvus/greeter/handoff --send release`）。そのサーフェスが動作しているとき、まず `loginctl activate` でセッションをアクティブにするため、Hyprland はバックグラウンドの VT 上で起動することはありません。その後、セッションスピナーはサーフェスに Hyprland の最初のフレームを隠していたオーバーレイを削除するよう指示します。
 
+タスクバーとテレメトリは、`argvus-bars.service` が管理する Quickshell プロセス内の独立したサーフェスです。各サーフェスは `argvus-taskbar.service` と `argvus-widget-telemetry.service` で制御します。
+
 デスクトップが準備完了すると、セッションはTTY、ARGVUS Greeterおよびその他のログインマネージャ向けに`argvus welcome --if-needed`を実行します。ユーザー別の進行状況記録`opened`、完了または閉じる操作がない場合、統合コントロールセンターのウェルカムページを開きます。最初の正常なレンダリングは`opened`を`${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`に保存し、後のログイン時に再度開くのを防ぎます。`/etc/skel`には依存しません。その記録がない既存アカウントにも自動的に一度開く操作が行われます。レンダリング前の失敗は、次回のログインで再試行の機会を提供します。手動の`argvus welcome`は引き続き利用可能です。
 
 `PATH` は、これらのディレクトリが存在する場合、`~/.local/bin` および `~/.cargo/bin` も先頭に追加されるので、そこにインストールされたツールはコンポジターやサービスから見えるようになります。`EDITOR` および `VISUAL` は、コントロールセンターのデフォルトアプリ（`TERMINAL_EDITOR`）から設定されたデフォルト端末エディタであり、システムデーモンユーザーマネージャ、D-Bus アクティベーション、および Hyprland にエクスポートされるため、セッションから起動された端末やサービスはそれらを継承します。SSH エージェント（`argvus-ssh-agent.service`、`openssh` 由来）は `$XDG_RUNTIME_DIR/ssh-agent.socket` で待機し、`SSH_AUTH_SOCK` をユーザーマネージャに公開します。ARGVUS エージェントが起動すると、ユーザーマネージャ内の `SSH_AUTH_SOCK` を置き換えます。gnome-keyring や gcr などの他のエージェントがソケットを所有する必要がある場合は、`systemctl --user mask argvus-ssh-agent.service` を使用して ARGVUS ユニットを無効にしてください。Hyprland が終了すると停止するため、これらのサーフェスはログアウト後に孤立したプロセスとして残りません。
@@ -49,7 +51,7 @@ argvus sessionctl reload
 
 最小化は予約済みの`special:argvus-minimized`ワークスペースを使用します。そのワークスペースを手動で使用しないでください。`argvus windows service`プロセスは、識別情報、元のワークスペース/モニター、ジオメトリ、フルスクリーン/最大化およびピン状態を、コンポジタインスタンス固有のランタイムレジストリ内の`$XDG_RUNTIME_DIR/argvus`の下に記録します。記録はサービスの再起動や設定の再読み込みによっても保持されますが、コンポジタセッションを超えることはありません。ウィンドウを閉じると、その記録は削除されます。モニターが消えた場合、復元には利用可能な出力が使用されます。バーが存在しないか復旧に失敗した場合、新しい最小化はできません。復元に失敗した場合、記録と復旧バーは保持されます。
 
-セッションは`argvus-windows.service`と`argvus-window-bar.service`を所有します。後者はWaybarの子プロセスをTileで休止状態に保ちます。hyprbarsプラグインは`argvus-hyprland`で同梱されており、x86_64上のHyprland 0.57.0 ABI向けにビルドされています。ユーザーのホームディレクトリではコンパイルされていません。コンポジタのABIが更新された場合、プラグインを再ビルドしてください。セッションは、中国語、日本語、韓国語を含む10のARGVUS言語すべてに選択されたUTF-8ロケールを伝播します。カタログの選択は`argvus i18n`によって処理されます。システムロケールの利用可能性とフォントフォールバックは別の要件です。
+セッションは`argvus-windows.service`と`argvus-window-bar.service`を所有します。後者はQuickshellの子プロセスをTileで休止状態に保ちます。hyprbarsプラグインは`argvus-hyprland`で同梱されており、x86_64上のHyprland 0.57.0 ABI向けにビルドされています。ユーザーのホームディレクトリではコンパイルされていません。コンポジタのABIが更新された場合、プラグインを再ビルドしてください。セッションは、中国語、日本語、韓国語を含む10のARGVUS言語すべてに選択されたUTF-8ロケールを伝播します。カタログの選択は`argvus i18n`によって処理されます。システムロケールの利用可能性とフォントフォールバックは別の要件です。
 
 ### キーボードのレイアウト
 
