@@ -26,9 +26,9 @@ argvus sessionctl logs
 argvus sessionctl reload
 ```
 
-`reload` 应用已提交的生成。如果像 `argvus config apply-theme`、`accent`、`set`/`patch` 这样的命令，或小部件遥测块更改只是投影了更改，则重新加载会从投影清单中恢复受影响的消费者，而不是再次投影。只有在没有待处理计划存在时才进行投影，例如在会话启动时。如果没有运行时相关的部分发生改变，它会成功退出，而不会重新加载 Hyprland 或重启服务。当存在更改时，它会重新应用会话集成，并仅重新加载受影响的合成器和桌面表面。启动画面只在重新创建表面时覆盖重新加载：例如重新启动 Waybar 栏（任务栏或小部件遥测）或控制面板，或回退 `full` 计划。主题、强调色、效果、字体、窗口布局和壁纸的更改会就地重新加载（`argvus config theme-runtime consumers` 和 `wallpaper`，Hyprland 的 `/reload`），无需启动画面。 而且在没有要做的事情时重新加载不会显示任何内容。重复的重新加载是串行进行的，未更改的部分不会重新启动它们的消费者。`apply-config` 是此操作的显式别名。当它显示时，重新加载的启动画面在工作进行时是不透明的，因此不会暴露中间桌面。这并不能替代在必须重启合成器或登录环境时退出登录。
+`reload` 应用已提交的生成。如果像 `argvus config apply-theme`、`accent`、`set`/`patch` 这样的命令，或小部件遥测块更改只是投影了更改，则重新加载会从投影清单中恢复受影响的消费者，而不是再次投影。只有在没有待处理计划存在时才进行投影，例如在会话启动时。如果没有运行时相关的部分发生改变，它会成功退出，而不会重新加载 Hyprland 或重启服务。当存在更改时，它会重新应用会话集成，并仅重新加载受影响的合成器和桌面表面。启动画面只在重新创建表面时覆盖重新加载：例如重新启动 Taskbar 栏（任务栏或小部件遥测）或控制面板，或回退 `full` 计划。主题、强调色、效果、字体、窗口布局和壁纸的更改会就地重新加载（`argvus config theme-runtime consumers` 和 `wallpaper`，Hyprland 的 `/reload`），无需启动画面。 而且在没有要做的事情时重新加载不会显示任何内容。重复的重新加载是串行进行的，未更改的部分不会重新启动它们的消费者。`apply-config` 是此操作的显式别名。当它显示时，重新加载的启动画面在工作进行时是不透明的，因此不会暴露中间桌面。这并不能替代在必须重启合成器或登录环境时退出登录。
 
-如果投影无法完成，重新加载会在重启桌面表面之前停止。请检查 `argvus sessionctl logs` 并在再次尝试之前运行 `argvus config validate`；这可以防止失败的主题投影导致 Waybar、通知或控制面板在使用过时的主题混合下运行。
+如果投影无法完成，重新加载会在重启桌面表面之前停止。请检查 `argvus sessionctl logs` 并在再次尝试之前运行 `argvus config validate`；这可以防止失败的主题投影导致 Taskbar、通知或控制面板在使用过时的主题混合下运行。
 
 默认登录集成为 greetd。请参见 [Greeter](/docs/components/argvus-greeter/) 和 [session troubleshooting](/docs/user-guide/troubleshooting/session-startup/)。
 

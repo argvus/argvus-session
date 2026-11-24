@@ -197,7 +197,7 @@ class SessionctlDelegationTests(unittest.TestCase):
                 restarts = [line for line in calls if line.startswith("argvus config session-restart")]
                 if status == 0:
                     self.assertEqual(restarts, [
-                        "argvus config session-restart wallpaper hypridle waybar dunst "
+                        "argvus config session-restart wallpaper hypridle taskbar dunst "
                         "control-panel polkit"])
                 else:
                     self.assertEqual(restarts, [])
@@ -230,7 +230,7 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertIn("argvus config theme-runtime wallpaper", calls)
             self.assertIn("argvus config session-restart polkit", calls)
             self.assertFalse(any(line.startswith("argvus config session-restart")
-                                 and ("taskbar" in line or "waybar" in line)
+                                 and ("taskbar" in line or "taskbar" in line)
                                  for line in calls), calls)
 
     def test_recreating_the_taskbar_shows_the_splash(self):

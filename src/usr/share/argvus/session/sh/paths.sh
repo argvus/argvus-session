@@ -19,7 +19,7 @@ paths_legacy_relative() {
       printf 'hypr/%s\n' "${1##*/}"
       ;;
     taskbar/config/*|widget-telemetry/config/*)
-      printf 'waybar/%s\n' "${1#*/config/}"
+      printf 'taskbar/%s\n' "${1#*/config/}"
       ;;
     removable-devices/config/*)
       printf 'removable-devices/%s\n' "${1#*/config/}"
@@ -116,7 +116,7 @@ paths_read_config() {
 }
 
 paths_ensure_generated_copy() {
-  # The copy rules (component, flat, generated and waybar shim promotion) live
+  # The copy rules (component, flat, generated and taskbar shim promotion) live
   # in argvus-config, so the shell has one implementation. argvus-config is a
   # dependency of this package and is called from the commands directory, as
   # the session scripts do.

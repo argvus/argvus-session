@@ -252,7 +252,7 @@ start_session() {
 
   # Hyprland can invoke `ready` while an older ARGVUS target is still active
   # (systemd --user survives logout/login).  Reusing that target also reuses
-  # the previous HYPRLAND_INSTANCE_SIGNATURE, which disables Waybar's
+  # the previous HYPRLAND_INSTANCE_SIGNATURE, which disables Taskbar's
   # hyprland/* modules against the stale IPC socket.  Recreate the target only
   # after the compositor reports ready, so its services inherit the current
   # Wayland/Hyprland environment.
@@ -349,7 +349,7 @@ reload_desktop() {
     return
   fi
   import_environment
-  # argvus-session.target owns the Waybar and Quickshell lifecycle through
+  # argvus-session.target owns the Taskbar and Quickshell lifecycle through
   # PartOf/Wants. This command performs the compositor half once; restarting
   # the target then stops and starts each surface exactly once.
   ARGVUS_SYSTEM_CONFIG="$SYSTEM_CONFIG" ARGVUS_CONFIG_HOME="$CONFIG_HOME" \
@@ -410,7 +410,7 @@ ${_target}"
       printf '%s\n' "$_decision" | sed -n '2,$p' | grep -qx "$_target"
     }
 
-    # The splash covers only what recreates a surface: a Waybar bar or the
+    # The splash covers only what recreates a surface: a Taskbar bar or the
     # Control Panel coming back moves every window. Everything else reloads in
     # place. argvus-config starts the splash only when none is running, and
     # prints "started" only when this call started it, so only that call owns it.
@@ -429,7 +429,7 @@ ${_target}"
       reload_runtime_configuration || _status=$?
     fi
     if [ "$_status" -eq 0 ] && _target_enabled consumers; then
-      # Waybar stylesheets, Control Panel, Hyprland colours, Dunst, btop, kitty.
+      # Taskbar stylesheets, Control Panel, Hyprland colours, Dunst, btop, kitty.
       argvus config theme-runtime consumers || _status=$?
     fi
     if [ "$_status" -eq 0 ] && _target_enabled wallpaper &&
@@ -470,7 +470,7 @@ ${_target}"
       _status=0
       reload_runtime_configuration || _status=$?
       if [ "$_status" -eq 0 ]; then
-        restart_components wallpaper hypridle waybar dunst control-panel polkit || _status=$?
+        restart_components wallpaper hypridle taskbar dunst control-panel polkit || _status=$?
       fi
       [ "$_overlay_owner" -eq 1 ] && argvus config session-splash stop
       return "$_status"
@@ -795,10 +795,10 @@ run_component() {
       "$SYSTEM_CONFIG/taskbar/sh/bars-presentation.sh" || log "Unable to project bars presentation"
       exec qs --no-duplicate -p "$(bars_config)"
       ;;
-    taskbar|waybar-taskbar)
+    taskbar)
       exec systemctl --user start argvus-taskbar.service
       ;;
-    widget-telemetry|desktop-telemetry|waybar-sysinfo)
+    widget-telemetry|desktop-telemetry|taskbar-sysinfo)
       exec systemctl --user start argvus-widget-telemetry.service
       ;;
     wallpaper)

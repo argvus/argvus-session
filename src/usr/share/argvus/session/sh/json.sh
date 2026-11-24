@@ -1,6 +1,6 @@
 # shellcheck shell=sh
 
-# -- JSON utilities for Waybar output -----------------------------------------
+# -- JSON utilities for Taskbar output -----------------------------------------
 
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'

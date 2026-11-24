@@ -70,7 +70,7 @@ class PathsTests(unittest.TestCase):
     def test_generated_css_shim_uses_packaged_css(self):
         rel = "taskbar/config/argvus-taskbar.css"
         self.write(self.system / rel, "/* complete packaged style */")
-        shim = self.write(self.config / "argvus/data/generated/waybar/argvus-taskbar.css",
+        shim = self.write(self.config / "argvus/data/generated/taskbar/argvus-taskbar.css",
                           '@import url("/usr/share/argvus/taskbar/config/argvus-taskbar.css");')
         self.assertEqual(self.resolve(rel, True).read_text(), "/* complete packaged style */")
         self.assertTrue(Path(str(shim) + ".retired").is_file())

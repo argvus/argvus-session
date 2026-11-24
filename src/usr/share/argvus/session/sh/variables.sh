@@ -13,7 +13,7 @@ ENVIRONMENT_ROOT="${ENVIRONMENT_ROOT:-$ARGVUS_SYSTEM_CONFIG/session/sh}"
 
 # -- Cache directories --------------------------------------------------------
 HYPR_CACHE_DIR="${ARGVUS_CACHE_HOME}/hypr"
-WAYBAR_CACHE_DIR="${ARGVUS_CACHE_HOME}/waybar"
+TASKBAR_CACHE_DIR="${ARGVUS_CACHE_HOME}/taskbar"
 
 # -- Set variables global ------------------------------------------------------
 # Button Layout restored usage: appmenu:minimize,maximize,close
