@@ -69,3 +69,7 @@ the Argvus package server.
 The project does not create GitHub Releases for package distribution. The built
 `.pkg.tar.zst` and `.sig` are kept as GitHub Actions artifacts for one day only;
 the permanent package copies live in `argvus/packages`.
+
+Hypridle startup reads the saved `/power/keep_awake` request before consulting
+compatibility markers. This also covers session reload after an interrupted
+operation with a stale marker. A saved false value allows Hypridle to start.

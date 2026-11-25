@@ -807,10 +807,23 @@ run_component() {
       ;;
     hypridle)
       have hypridle || exit 0
-      KEEP_AWAKE_FILE="${ARGVUS_CONFIG_HOME}/argvus/data/power/.keep-awake"
-      if [ -f "$KEEP_AWAKE_FILE" ] && [ "$(sed -n '1p' "$KEEP_AWAKE_FILE")" = enabled ]; then
-        exit 0
-      fi
+      # Read the saved request even if an interrupted operation has not yet
+      # updated the projected marker. Older helpers still use the marker.
+      keep_awake_preference="$(ARGVUS_CONFIG_HOME="$CONFIG_HOME" argvus config get /power/keep_awake --raw)" || keep_awake_preference=
+      case "$keep_awake_preference" in
+        true) exit 0 ;;
+        false) ;;
+        *)
+          KEEP_AWAKE_FILE="$CONFIG_HOME/argvus/data/power/.keep-awake"
+          if [ -f "$KEEP_AWAKE_FILE" ] && [ "$(sed -n '1p' "$KEEP_AWAKE_FILE")" = enabled ]; then
+            exit 0
+          elif [ ! -e "$KEEP_AWAKE_FILE" ]; then
+            legacy_keep_awake="$CONFIG_HOME/argvus/data/.keep-awake"
+            if [ -f "$legacy_keep_awake" ] && [ "$(sed -n '1p' "$legacy_keep_awake")" = enabled ]; then
+              exit 0
+            fi
+          fi ;;
+      esac
       wait_graphical_runtime hypridle
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       export ARGVUS_MUTABLE_CONFIG=1
