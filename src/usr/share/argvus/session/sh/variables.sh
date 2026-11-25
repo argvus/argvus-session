@@ -21,6 +21,17 @@ BUTTON_LAYOUT=":"
 GTK_THEME="Adwaita-dark"
 GTK_CURSOR="Adwaita"
 
+# -- UI defaults --------------------------------------------------------------
+BAR_SIZE="8"
+
+# -- Active theme -------------------------------------------------------------
+ACTIVE_THEME="argvus-dark"
+
+# Status queries need the environment and cache paths only.
+if [ "${_argvus_skip_app_defaults:-}" = 1 ]; then
+  return 0
+fi
+
 # -- Application defaults -----------------------------------------------------
 # $BOOTSTRAP_DIR is set by bootstrap.sh before sourcing this file. When not
 # present (standalone use), fall back to the packaged location on PATH or
@@ -96,9 +107,3 @@ fi
 [ -n "$VIDEO_PLAYER" ] || VIDEO_PLAYER="mpv"
 [ -n "$AUDIO_PLAYER" ] || AUDIO_PLAYER="audacious"
 [ -n "$ARCHIVE_APP" ] || ARCHIVE_APP="xarchiver"
-
-# -- UI defaults --------------------------------------------------------------
-BAR_SIZE="8"
-
-# -- Active theme -------------------------------------------------------------
-ACTIVE_THEME="argvus-dark"
