@@ -835,15 +835,8 @@ run_component() {
       exec dunst -config "$(paths_config notifications/config/dunstrc)"
       ;;
     control-panel|shell|quickshell)
-      control_panel_state="$CONFIG_HOME/argvus/data/state/control-panel"
-      if [ -r "$control_panel_state" ] && [ "$(sed -n '1p' "$control_panel_state")" = disabled ]; then
-        exit 0
-      fi
-      have qs || exit 0
-      wait_graphical_runtime control-panel
-      . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
-      mkdir -p "$(paths_cache quickshell)"
-      exec qs -c argvus-control-panel
+      # Control Panel is embedded in the shared taskbar Quickshell process.
+      exit 0
       ;;
     clipboard-text|clipboard-image)
       _clipboard_enabled="$(clipboard_preference)" || exit 1
