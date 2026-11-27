@@ -96,6 +96,14 @@ def read_log(base):
 
 
 class SessionctlDelegationTests(unittest.TestCase):
+    def test_session_target_directly_owns_panels_host_lifecycle(self):
+        target = Path(__file__).resolve().parents[1] / (
+            "src/usr/share/argvus/session/config/systemd/user/argvus-session.target"
+        )
+        contents = target.read_text()
+        self.assertIn("Wants=argvus-panels.service", contents)
+        self.assertIn("Wants=argvus-taskbar.service", contents)
+
     def test_clipboard_preference_controls_both_watchers(self):
         with tempfile.TemporaryDirectory(dir="/tmp/argvus") as directory:
             base = Path(directory)
@@ -164,7 +172,7 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(marker.read_text(), "reload")
             self.assertIn("argvus config session-reload-config", read_log(base))
-            self.assertNotIn("--user restart argvus-taskbar.service", read_log(base))
+            self.assertNotIn("--user restart argvus-panels.service", read_log(base))
 
     def test_login_reload_delegates_without_reimporting_the_environment(self):
         with tempfile.TemporaryDirectory() as directory:

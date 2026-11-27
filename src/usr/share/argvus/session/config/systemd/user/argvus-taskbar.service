@@ -1,8 +1,8 @@
 [Unit]
 Description=ARGVUS taskbar panel
-Requires=argvus-bars.service
+Requires=argvus-panels.service
 PartOf=argvus-session.target graphical-session.target
-After=argvus-bars.service
+After=argvus-panels.service
 
 [Service]
 Type=oneshot

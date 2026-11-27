@@ -1,8 +1,8 @@
 [Unit]
 Description=ARGVUS window bar
-Requires=argvus-bars.service
+Requires=argvus-panels.service
 PartOf=argvus-session.target graphical-session.target
-After=argvus-bars.service argvus-windows.service
+After=argvus-panels.service argvus-windows.service
 
 [Service]
 Type=oneshot

@@ -75,6 +75,13 @@ class PathsTests(unittest.TestCase):
         self.assertEqual(self.resolve(rel, True).read_text(), "/* complete packaged style */")
         self.assertTrue(Path(str(shim) + ".retired").is_file())
 
+    def test_legacy_control_panel_qml_resolves_to_the_shared_module(self):
+        target = self.write(self.system / "panels/qml/control-panel/shell.qml")
+        self.assertEqual(
+            self.resolve("control-panel/config/quickshell/argvus-control-panel/shell.qml"),
+            target,
+        )
+
     def test_get_default_honors_separate_argvus_root(self):
         self.write(self.config / "argvus/data/control-center/defaults.json",
                   '{"terminal":"custom-terminal"}')

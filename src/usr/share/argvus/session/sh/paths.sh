@@ -34,7 +34,9 @@ paths_legacy_relative() {
       printf 'dunst/%s\n' "${1#*/config/}"
       ;;
     control-panel/config/quickshell/*)
-      printf 'quickshell/%s\n' "${1#control-panel/config/quickshell/}"
+      _control_panel_path="${1#control-panel/config/quickshell/}"
+      _control_panel_path="${_control_panel_path#argvus-control-panel/}"
+      printf 'panels/qml/control-panel/%s\n' "$_control_panel_path"
       ;;
     appearance/config/*)
       printf '%s\n' "${1#appearance/config/}"
@@ -66,7 +68,15 @@ paths_override_config() {
   _legacy_relative_path="$(paths_legacy_relative "$1")"
   echo "${ARGVUS_CONFIG_HOME}/${_legacy_relative_path}"
 }
-paths_system_config() { echo "${ARGVUS_SYSTEM_CONFIG}/${1}"; }
+paths_system_config() {
+  case "$1" in
+    control-panel/config/quickshell/*)
+      _legacy_relative_path="$(paths_legacy_relative "$1")"
+      echo "${ARGVUS_SYSTEM_CONFIG}/${_legacy_relative_path}"
+      ;;
+    *) echo "${ARGVUS_SYSTEM_CONFIG}/$1" ;;
+  esac
+}
 paths_generated_config() {
   _legacy_relative_path="$(paths_legacy_relative "$1")"
   echo "${ARGVUS_DATA_HOME}/generated/${_legacy_relative_path}"

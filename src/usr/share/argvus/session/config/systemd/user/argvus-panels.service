@@ -1,0 +1,14 @@
+[Unit]
+Description=ARGVUS Panels shared Quickshell host
+StopWhenUnneeded=yes
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session-prepare.service graphical-session.target
+
+[Service]
+Type=simple
+Environment=QT_QUICK_BACKEND=software
+RuntimeDirectory=argvus/bars
+RuntimeDirectoryPreserve=restart
+ExecStart=/usr/bin/argvus sessionctl run panels
+Restart=on-failure
+RestartSec=2s

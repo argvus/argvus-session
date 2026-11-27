@@ -10,7 +10,7 @@ description: グラフィカルログインフローを通じてARGVUSを開始�
 
 Hyprland の準備ができると、`argvus sessionctl` が `argvus-session.target` を起動します。このターゲットはタスクバー、コントロールパネル、通知、壁紙、アイドル処理、クリップボード、SSH エージェント、Secret Service プロバイダーおよび関連するサービスを起動します。ログイン引き渡しからこれらのサービスが起動し、壁紙とタスクバーが画面に表示されるまで、シングルのロードスピナーが画面に表示され続けます（最大でさらに 1.5 秒）。Hyprland を起動する前に、`argvus-start` は設定投影（`argvus-config.service`）をキューに入れ、これはコンポジタ起動中に実行され、グリータの DRM 引き渡しサーフェスにディスプレイを解放するよう依頼します（`/usr/lib/argvus/greeter/handoff --send release`）。そのサーフェスが動作しているとき、まず `loginctl activate` でセッションをアクティブにするため、Hyprland はバックグラウンドの VT 上で起動することはありません。その後、セッションスピナーはサーフェスに Hyprland の最初のフレームを隠していたオーバーレイを削除するよう指示します。
 
-タスクバーとテレメトリは、`argvus-bars.service` が管理する Quickshell プロセス内の独立したサーフェスです。各サーフェスは `argvus-taskbar.service` と `argvus-widget-telemetry.service` で制御します。
+タスクバーとテレメトリは、`argvus-panels.service` が管理する Quickshell プロセス内の独立したサーフェスです。各サーフェスは `argvus-taskbar.service` と `argvus-widget-telemetry.service` で制御します。
 
 デスクトップが準備完了すると、セッションはTTY、ARGVUS Greeterおよびその他のログインマネージャ向けに`argvus welcome --if-needed`を実行します。ユーザー別の進行状況記録`opened`、完了または閉じる操作がない場合、統合コントロールセンターのウェルカムページを開きます。最初の正常なレンダリングは`opened`を`${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`に保存し、後のログイン時に再度開くのを防ぎます。`/etc/skel`には依存しません。その記録がない既存アカウントにも自動的に一度開く操作が行われます。レンダリング前の失敗は、次回のログインで再試行の機会を提供します。手動の`argvus welcome`は引き続き利用可能です。
 
