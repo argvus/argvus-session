@@ -11,7 +11,7 @@ Phiên làm việc đảm bảo rằng biến môi trường shell `PATH` đư�
 
 Sau khi Hyprland sẵn sàng, `argvus sessionctl` bắt đầu `argvus-session.target`. Mục tiêu này khởi động thanh tác vụ, Bảng điều khiển, thông báo, hình nền, xử lý nhàn rỗi, clipboard, tác nhân SSH, nhà cung cấp Dịch vụ Bí mật và các dịch vụ liên quan. Một vòng quay tải đơn vẫn hiển thị trên màn hình từ khi chuyển giao đăng nhập cho đến khi các dịch vụ đó đã được khởi động và hình nền cũng như thanh tác vụ đã xuất hiện trên màn hình (tối đa thêm 1,5 giây). Trước khi khởi chạy Hyprland, `argvus-start` xếp hàng chiếu cấu hình (`argvus-config.service`), sau đó chạy trong quá trình khởi động trình kết xuất, và yêu cầu bề mặt giao tiếp DRM của greeter giải phóng màn hình (`/usr/lib/argvus/greeter/handoff --send release`); khi bề mặt đó đang chạy, nó trước tiên kích hoạt phiên với `loginctl activate`, vì vậy Hyprland không bao giờ khởi động trên một VT nền. Vòng quay phiên sau đó yêu cầu bề mặt loại bỏ lớp phủ đã che đi các khung hình đầu tiên của Hyprland.
 
-Thanh tác vụ và tiện ích đo từ xa là các bề mặt độc lập trong tiến trình Quickshell do `argvus-panels.service` quản lý. Dùng `argvus-taskbar.service` và `argvus-widget-telemetry.service` để điều khiển từng bề mặt.
+Thanh tác vụ và tiện ích đo từ xa là các bề mặt độc lập trong tiến trình Quickshell do `argvus-shell.service` quản lý. Dùng `argvus-taskbar.service` và `argvus-widget-telemetry.service` để điều khiển từng bề mặt.
 
 Sau khi máy tính để bàn sẵn sàng, phiên làm việc chạy `argvus welcome --if-needed` cho TTY, ARGVUS Greeter và các trình quản lý đăng nhập khác. Nó mở trang Chào mừng của Trung tâm Kiểm soát tích hợp trừ khi hồ sơ tiến trình của từng người dùng `opened`, hoàn thành hoặc từ chối. Lần hiển thị thành công đầu tiên lưu `opened` trong `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`, ngăn không cho mở lại trong các lần đăng nhập sau. Nó không phụ thuộc vào `/etc/skel`. Các tài khoản hiện có mà không có hồ sơ đó cũng nhận được một lần mở tự động. Thất bại trước khi hiển thị cho phép thực hiện lại vào lần đăng nhập tiếp theo. `argvus welcome` thủ công vẫn khả dụng.
 
@@ -25,6 +25,12 @@ Phiên làm việc cũng nhập các biến Wayland và môi trường máy tín
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+Để khởi động lại máy chủ Quickshell cùng các bề mặt Taskbar và Telemetry, sau đó tải lại Hyprland, hãy chạy:
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
  áp dụng thế hệ đã được cam kết. Nếu một lệnh như `reload`, `argvus config apply-theme`, `accent`/`set` hoặc thay đổi khối đo từ xa tiện ích chỉ dự kiến ​​thay đổi, thì việc tải lại sẽ khôi phục những người tiêu dùng bị ảnh hưởng từ bảng kê khai chiếu thay vì chiếu lại. Nó chỉ dự án khi không có kế hoạch đang chờ xử lý, ví dụ như khi khởi động phiên. Nếu không có phần nào liên quan đến thời gian chạy thay đổi thì nó sẽ thoát thành công mà không cần tải lại Hyprland hoặc khởi động lại dịch vụ. Khi có thay đổi, nó sẽ áp dụng lại quá trình tích hợp phiên và chỉ tải lại bộ tổng hợp và bề mặt máy tính để bàn bị ảnh hưởng. Phần giật gân chỉ bao gồm quá trình tải lại khi nó tạo lại một bề mặt: khởi động lại thanh Taskbar (thanh tác vụ hoặc Widget Telemetry) hoặc của Bảng điều khiển hoặc kế hoạch dự phòng `patch`. Các thay đổi về chủ đề, giọng, hiệu ứng, phông chữ, bố cục cửa sổ và hình nền được tải lại tại chỗ (`full` và `argvus config theme-runtime consumers`, Hyprland's `wallpaper`) mà không có nó và tải lại không có gì để làm sẽ không hiển thị gì cả. Các lần tải lại lặp đi lặp lại được tuần tự hóa và các phần không thay đổi sẽ không khởi động lại trình tiêu dùng của chúng. `/reload` `apply-config` là bí danh rõ ràng cho hoạt động này. Khi nó được hiển thị, phần giật gân tải lại mờ đục trong khi công việc đang được tiến hành, do đó màn hình trung gian không bị lộ. Nó không phải là sự thay thế cho việc đăng xuất khi phải khởi động lại bộ tổng hợp hoặc môi trường đăng nhập.

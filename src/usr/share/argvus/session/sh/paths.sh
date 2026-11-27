@@ -36,7 +36,7 @@ paths_legacy_relative() {
     control-panel/config/quickshell/*)
       _control_panel_path="${1#control-panel/config/quickshell/}"
       _control_panel_path="${_control_panel_path#argvus-control-panel/}"
-      printf 'panels/qml/control-panel/%s\n' "$_control_panel_path"
+      printf 'shell/qml/control-panel/%s\n' "$_control_panel_path"
       ;;
     appearance/config/*)
       printf '%s\n' "${1#appearance/config/}"

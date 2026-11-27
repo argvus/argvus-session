@@ -11,7 +11,7 @@ Oturum, giriş yöneticisi (örneğin greetd ile source_profile=false) bir değe
 
 Hyprland hazır olduktan sonra, `argvus sessionctl` `argvus-session.target`'u başlatır. Bu hedef, görev çubuğunu, Denetim Masası'nı, bildirimleri, duvar kağıdını, boşta çalışma yönetimini, panoyu, SSH ajanını, Gizli Servis sağlayıcısını ve ilgili servisleri başlatır. Tek bir yükleme simgesi, giriş devri tamamlanana kadar ekranda kalır ve bu servisler başlatıldıktan ve duvar kağıdı ile görev çubuğu ekranda görünene kadar (en fazla 1,5 saniye daha) devam eder. Hyprland'ı başlatmadan önce, `argvus-start` yapılandırma projeksiyonunu (`argvus-config.service`) sıraya alır; bu, kompozitör başlatılırken çalışır ve karşılayıcının DRM devri yüzeyinden ekranı serbest bırakmasını ister (`/usr/lib/argvus/greeter/handoff --send release`); o yüzey çalıştığında, öncelikle `loginctl activate` ile oturumu etkinleştirir, böylece Hyprland asla arka plandaki bir VT üzerinde başlamaz. Oturum simgesi daha sonra yüzeye Hyprland'ın ilk karelerini gizleyen katmanı kaldırmasını söyler.
 
-Görev çubuğu ve telemetri bileşeni, `argvus-panels.service` tarafından yönetilen Quickshell sürecindeki bağımsız yüzeylerdir. Her yüzeyi `argvus-taskbar.service` ve `argvus-widget-telemetry.service` ile denetleyin.
+Görev çubuğu ve telemetri bileşeni, `argvus-shell.service` tarafından yönetilen Quickshell sürecindeki bağımsız yüzeylerdir. Her yüzeyi `argvus-taskbar.service` ve `argvus-widget-telemetry.service` ile denetleyin.
 
 Masaüstü hazır olduktan sonra, oturum TTY için `argvus welcome --if-needed`, ARGVUS Greeter ve diğer oturum açma yöneticilerini çalıştırır. Kullanıcıya özel ilerleme kayıtları `opened`, tamamlama veya reddetme olmadıkça entegre Kontrol Merkezi Hoş Geldiniz sayfasını açar. İlk başarılı render `opened`'yi `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`'de kaydeder ve sonraki oturum açmalarda yeniden açılmasını engeller. `/etc/skel`'ya bağlı değildir. O kayıt olmayan mevcut hesaplar da bir otomatik açılış alır. Render öncesi hatalar, bir sonraki oturum açmada başka bir denemeye izin verir. Manuel `argvus welcome` kullanılmaya devam eder.
 
@@ -25,6 +25,12 @@ Oturum ayrıca Wayland ve masaüstü ortamı değişkenlerini systemd kullanıc�
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+Quickshell ana makinesini ve Taskbar ile Telemetry yüzeylerini yeniden başlatıp ardından Hyprland’i yeniden yüklemek için çalıştırın:
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
  zaten taahhüt edilmiş olan nesli uygular. `reload`, `argvus config apply-theme`, `accent`/`set` gibi bir komut veya bir widget telemetri bloğu değişikliği sadece değişikliği yansıttıysa, yeniden yükleme, etkilenen tüketicileri tekrar yansıtmak yerine projeksiyon bildiriminden geri yükler. Yalnızca, örneğin oturum başlangıcında, bekleyen bir plan bulunmadığında projelendirilir. Çalışma zamanı ile ilgili hiçbir bölüm değişmediyse, Hyprland yeniden yüklenmeden veya hizmetler yeniden başlatılmadan başarıyla çıkılır. Değişiklikler olduğunda oturum entegrasyonunu yeniden uygular ve yalnızca etkilenen derleyici ve masaüstü yüzeylerini yeniden yükler. Sıçrama, yalnızca bir yüzeyi yeniden oluşturduğunda yeniden yüklemeyi kapsar: Taskbar çubuğunun (görev çubuğu veya Widget Telemetrisi) veya Kontrol Panelinin veya geri dönüş `patch` planının yeniden başlatılması. Tema, vurgu, efektler, yazı tipleri, pencere düzeni ve duvar kağıdı değişiklikleri (`full` ve `argvus config theme-runtime consumers`, Hyprland'nin `wallpaper`) bu olmadan yerinde yeniden yüklenir ve yapacak hiçbir şey olmadan yeniden yükleme hiçbir şey göstermez. Tekrarlanan yeniden yüklemeler serileştirilir ve değiştirilmeyen bölümler tüketicilerini yeniden başlatmaz. `/reload` `apply-config` bu işlem için açık bir takma addır. Gösterildiğinde, çalışma devam ederken yeniden yükleme ekranı opaktır, dolayısıyla ara masaüstü açıkta kalmaz. Besteci veya oturum açma ortamının yeniden başlatılması gerektiğinde oturumu kapatmanın yerini almaz.

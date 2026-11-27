@@ -101,8 +101,21 @@ class SessionctlDelegationTests(unittest.TestCase):
             "src/usr/share/argvus/session/config/systemd/user/argvus-session.target"
         )
         contents = target.read_text()
-        self.assertIn("Wants=argvus-panels.service", contents)
+        self.assertIn("Wants=argvus-shell.service", contents)
         self.assertIn("Wants=argvus-taskbar.service", contents)
+
+    def test_shell_host_dispatch_is_not_shadowed_by_legacy_quickshell_alias(self):
+        root = Path(__file__).resolve().parents[1]
+        units = root / "src/usr/share/argvus/session/config/systemd/user"
+        shell_unit = (units / "argvus-shell.service").read_text()
+        panels_compat = (units / "argvus-panels.service").read_text()
+        sessionctl = (root / "src/usr/bin/argvus-sessionctl").read_text()
+
+        self.assertIn("ExecStart=/usr/bin/argvus sessionctl run shell", shell_unit)
+        self.assertIn("start argvus-shell.service", panels_compat)
+        self.assertIn("    shell)\n", sessionctl)
+        self.assertIn("control-panel|quickshell)", sessionctl)
+        self.assertNotIn("control-panel|shell|quickshell)", sessionctl)
 
     def test_clipboard_preference_controls_both_watchers(self):
         with tempfile.TemporaryDirectory(dir="/tmp/argvus") as directory:
@@ -172,7 +185,7 @@ class SessionctlDelegationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(marker.read_text(), "reload")
             self.assertIn("argvus config session-reload-config", read_log(base))
-            self.assertNotIn("--user restart argvus-panels.service", read_log(base))
+            self.assertNotIn("--user restart argvus-shell.service", read_log(base))
 
     def test_login_reload_delegates_without_reimporting_the_environment(self):
         with tempfile.TemporaryDirectory() as directory:

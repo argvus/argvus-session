@@ -10,7 +10,7 @@ La sesión asegura que la variable de entorno del shell `PATH` esté configurada
 
 Después de que Hyprland esté listo, `argvus sessionctl` inicia `argvus-session.target`. Este objetivo inicia la barra de tareas, el Panel de control, las notificaciones, el fondo de pantalla, la gestión de inactividad, el portapapeles, el agente SSH, el proveedor del Servicio Secreto y los servicios relacionados. Un solo indicador de carga permanece en pantalla desde la transferencia de inicio de sesión hasta que esos servicios se hayan iniciado y el fondo de pantalla y la barra de tareas estén en pantalla (como máximo 1.5 segundos más). Antes de lanzar Hyprland, `argvus-start` pone en cola la proyección de configuración (`argvus-config.service`), que luego se ejecuta durante el inicio del compositor, y solicita a la superficie de transferencia DRM del saludo que libere la pantalla (`/usr/lib/argvus/greeter/handoff --send release`); cuando esa superficie está activa, primero activa la sesión con `loginctl activate`, por lo que Hyprland nunca se inicia en un VT en segundo plano. El indicador de sesión luego indica a la superficie que elimine la superposición que ocultaba los primeros cuadros de Hyprland.
 
-La barra de tareas y la telemetría son superficies independientes del proceso Quickshell que administra `argvus-panels.service`. Usa `argvus-taskbar.service` y `argvus-widget-telemetry.service` para controlar cada superficie.
+La barra de tareas y la telemetría son superficies independientes del proceso Quickshell que administra `argvus-shell.service`. Usa `argvus-taskbar.service` y `argvus-widget-telemetry.service` para controlar cada superficie.
 
 Después de que el escritorio está listo, la sesión ejecuta `argvus welcome --if-needed` para TTY, ARGVUS Greeter y otros gestores de inicio de sesión. Abre la página de bienvenida del Centro de Control integrado a menos que los registros de progreso por usuario `opened` indiquen finalización o desestimación. La primera renderización exitosa guarda `opened` en `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`, evitando que se vuelva a abrir en inicios de sesión posteriores. No depende de `/etc/skel`. Las cuentas existentes sin ese registro también reciben una apertura automática. Los fallos antes de la renderización permiten otro intento en el próximo inicio de sesión. `argvus welcome` manual sigue estando disponible.
 
@@ -24,6 +24,12 @@ La sesión también importa sus variables de Wayland y del entorno de escritorio
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+Para reiniciar el host de Quickshell y las superficies Taskbar y Telemetry, y después recargar Hyprland, ejecuta:
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
 `reload` aplica la generación que ya fue comprometida. Si un comando como `argvus config apply-theme`, `accent`, `set`/`patch` o un bloque de widget-telemetría solo proyectó el cambio, la recarga restaura a los consumidores afectados desde el manifiesto de proyección en lugar de proyectar nuevamente. Solo proyecta cuando no existe un plan pendiente, por ejemplo, al iniciar la sesión. Si no se modificó ninguna sección relevante en tiempo de ejecución, sale exitosamente sin recargar Hyprland ni reiniciar servicios. Cuando existen cambios, reaplica la integración de sesión y recarga solo el compositor y las superficies de escritorio afectadas. La pantalla de inicio cubre una recarga solo cuando recrea una superficie: un reinicio de una barra Taskbar (barra de tareas o Widget Telemetry) o del Panel de Control, o el plan de respaldo `full`. Cambios en tema, acento, efectos, fuentes, diseño de ventanas y fondo de pantalla se recargan en el lugar (`argvus config theme-runtime consumers` y `wallpaper`, `/reload` de Hyprland) sin ella. y una recarga sin nada que hacer no muestra nada. Las recargas repetidas se serializan y las secciones sin cambios no reinician sus consumidores. `apply-config` es un alias explícito para esta operación. Cuando se muestra, la pantalla de recarga es opaca mientras el trabajo está en progreso, por lo que el escritorio intermedio no se expone. No es un reemplazo para cerrar sesión cuando es necesario reiniciar el compositor o el entorno de inicio de sesión.

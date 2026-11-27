@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh ARGVUS Shell surfaces and reload Hyprland
+PartOf=argvus-session.target graphical-session.target
+After=argvus-session.target graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/systemctl --user restart argvus-shell.service argvus-taskbar.service argvus-widget-telemetry.service
+ExecStart=/usr/bin/systemctl --user restart argvus-hyprland.service

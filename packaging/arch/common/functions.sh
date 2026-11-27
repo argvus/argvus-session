@@ -36,10 +36,11 @@ arch_check_payload() {
 	done
 	test -f "${source_root}/src/usr/share/argvus/session/config/wayland-sessions/argvus.desktop"
 	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-session.target"
-	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-panels.service"
+	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-shell.service"
 	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-bars.service"
 	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-session-reload.service"
 	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-hyprland.service"
+	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-refresh.service"
 	test -f "${source_root}/src/usr/share/argvus/session/config/systemd/user/argvus-config.service"
 }
 

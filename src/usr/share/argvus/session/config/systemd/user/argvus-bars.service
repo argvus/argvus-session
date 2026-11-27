@@ -1,10 +1,10 @@
 [Unit]
-Description=Compatibility unit for the ARGVUS Panels host
+Description=Compatibility unit for the ARGVUS Shell host
 PartOf=argvus-session.target graphical-session.target
 After=argvus-session-prepare.service graphical-session.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/systemctl --user start argvus-panels.service
-ExecStop=/usr/bin/systemctl --user stop argvus-panels.service
+ExecStart=/usr/bin/systemctl --user start argvus-shell.service
+ExecStop=/usr/bin/systemctl --user stop argvus-shell.service

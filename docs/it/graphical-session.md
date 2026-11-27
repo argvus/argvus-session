@@ -10,7 +10,7 @@ La sessione garantisce che la variabile d'ambiente shell `PATH` sia impostata su
 
 Dopo che Hyprland è pronto, `argvus sessionctl` avvia `argvus-session.target`. Questo obiettivo avvia la barra delle applicazioni, il Pannello di Controllo, le notifiche, lo sfondo, la gestione dell'inattività, gli appunti, l'agente SSH, il provider del Secret Service e i servizi correlati. Un singolo indicatore di caricamento rimane sullo schermo dal passaggio di login fino a quando quei servizi sono avviati e lo sfondo e la barra delle applicazioni sono sullo schermo (al massimo altri 1,5 secondi). Prima di lanciare Hyprland, `argvus-start` mette in coda la proiezione della configurazione (`argvus-config.service`), che poi viene eseguita durante l'avvio del compositore, e chiede alla superficie di passaggio DRM del greeter di rilasciare il display (`/usr/lib/argvus/greeter/handoff --send release`); quando quella superficie è in esecuzione, prima attiva la sessione con `loginctl activate`, quindi Hyprland non parte mai su una VT in background. L'indicatore della sessione poi dice alla superficie di rimuovere la sovrapposizione che nascondeva i primi frame di Hyprland.
 
-La barra delle applicazioni e la telemetria sono superfici indipendenti del processo Quickshell gestito da `argvus-panels.service`. Usa `argvus-taskbar.service` e `argvus-widget-telemetry.service` per controllare ogni superficie.
+La barra delle applicazioni e la telemetria sono superfici indipendenti del processo Quickshell gestito da `argvus-shell.service`. Usa `argvus-taskbar.service` e `argvus-widget-telemetry.service` per controllare ogni superficie.
 
 Dopo che il desktop è pronto, la sessione esegue `argvus welcome --if-needed` per TTY, ARGVUS Greeter e altri gestori di accesso. Apre la pagina di benvenuto del Centro di Controllo integrato a meno che i record di progresso per utente `opened` non indichino completamento o chiusura. Il primo rendering riuscito salva `opened` in `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`, impedendo la riapertura durante accessi successivi. Non dipende da `/etc/skel`. Gli account esistenti senza quel record ricevono comunque un'apertura automatica. I fallimenti prima del rendering consentono un altro tentativo al login successivo. La `argvus welcome` manuale rimane disponibile.
 
@@ -24,6 +24,12 @@ La sessione importa anche le sue variabili Wayland e dell'ambiente desktop nel g
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+Per riavviare l’host Quickshell e le superfici Taskbar e Telemetry, quindi ricaricare Hyprland, eseguire:
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
 `reload` applica la generazione che era già stata impegnata. Se un comando come `argvus config apply-theme`, `accent`, `set`/`patch` o una modifica del blocco widget-telemetria ha solo proiettato la modifica, il reload ripristina i consumatori interessati dal manifesto della proiezione invece di proiettare di nuovo. Proietta solo quando non esiste un piano in sospeso, ad esempio all'avvio della sessione. Se non è cambiata nessuna sezione rilevante per il runtime, esce con successo senza ricaricare Hyprland o riavviare servizi. Quando ci sono modifiche, riapplica l'integrazione della sessione e ricarica solo i compositori e le superfici del desktop interessate. Lo splash copre un reload solo quando ricrea una superficie: un riavvio di una barra di Taskbar (taskbar o Widget Telemetry) o del Pannello di Controllo, o del piano di fallback `full`. I cambiamenti di tema, accento, effetti, font, layout delle finestre e sfondo vengono ricaricati sul posto (`argvus config theme-runtime consumers` e `wallpaper`, `/reload` di Hyprland) senza di esso. e un ricaricamento senza nulla da fare non mostra nulla. I ricaricamenti ripetuti sono serializzati e le sezioni non modificate non riavviano i loro consumer. `apply-config` è un alias esplicito per questa operazione. Quando viene mostrato, lo splash del ricaricamento è opaco mentre il lavoro è in corso, quindi il desktop intermedio non è esposto. Non è un sostituto del logout quando il compositor o l'ambiente di login devono essere riavviati.

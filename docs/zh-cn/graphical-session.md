@@ -10,7 +10,7 @@ description: 通过图形登录流程启动 ARGVUS。
 
 在 Hyprland 准备好之后，`argvus sessionctl` 会启动 `argvus-session.target`。该目标会启动任务栏、控制面板、通知、壁纸、空闲处理、剪贴板、SSH 代理、Secret Service 提供程序及相关服务。从登录移交开始到这些服务启动并且壁纸和任务栏显示在屏幕上（最多再 1.5 秒）期间，屏幕上会保持一个加载旋转图标。在启动 Hyprland 之前，`argvus-start` 会排队配置投影（`argvus-config.service`），该配置在合成器启动期间运行，并要求迎宾程序的 DRM 移交表面释放显示器（`/usr/lib/argvus/greeter/handoff --send release`）；当该表面运行时，它会先使用 `loginctl activate` 激活会话，因此 Hyprland 从不在后台的 VT 上启动。然后会话旋转图标会告诉表面移除隐藏 Hyprland 第一帧的覆盖层。
 
-任务栏和遥测组件是由 `argvus-panels.service` 管理的 Quickshell 进程中的独立界面。使用 `argvus-taskbar.service` 和 `argvus-widget-telemetry.service` 分别控制它们。
+任务栏和遥测组件是由 `argvus-shell.service` 管理的 Quickshell 进程中的独立界面。使用 `argvus-taskbar.service` 和 `argvus-widget-telemetry.service` 分别控制它们。
 
 桌面准备就绪后，会话为 TTY、ARGVUS Greeter 和其他登录管理器运行 `argvus welcome --if-needed`。除非每用户的进度记录 `opened`、完成或关闭，否则它会打开集成控制中心欢迎页面。首次成功渲染会将 `opened` 保存在 `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json` 中，从而防止以后登录时再次打开。它不依赖于 `/etc/skel`。现有账户如果没有该记录，也会自动打开一次。在渲染之前的失败允许下次登录时再次尝试。手动 `argvus welcome` 仍然可用。
 
@@ -24,6 +24,12 @@ description: 通过图形登录流程启动 ARGVUS。
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+如需重启 Quickshell 主机及 Taskbar、Telemetry 界面，然后重新加载 Hyprland，请运行：
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
 `reload` 应用已提交的生成。如果像 `argvus config apply-theme`、`accent`、`set`/`patch` 这样的命令，或小部件遥测块更改只是投影了更改，则重新加载会从投影清单中恢复受影响的消费者，而不是再次投影。只有在没有待处理计划存在时才进行投影，例如在会话启动时。如果没有运行时相关的部分发生改变，它会成功退出，而不会重新加载 Hyprland 或重启服务。当存在更改时，它会重新应用会话集成，并仅重新加载受影响的合成器和桌面表面。启动画面只在重新创建表面时覆盖重新加载：例如重新启动 Taskbar 栏（任务栏或小部件遥测）或控制面板，或回退 `full` 计划。主题、强调色、效果、字体、窗口布局和壁纸的更改会就地重新加载（`argvus config theme-runtime consumers` 和 `wallpaper`，Hyprland 的 `/reload`），无需启动画面。 而且在没有要做的事情时重新加载不会显示任何内容。重复的重新加载是串行进行的，未更改的部分不会重新启动它们的消费者。`apply-config` 是此操作的显式别名。当它显示时，重新加载的启动画面在工作进行时是不透明的，因此不会暴露中间桌面。这并不能替代在必须重启合成器或登录环境时退出登录。

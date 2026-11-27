@@ -513,7 +513,7 @@ widget_telemetry_enabled() {
 }
 
 bars_config() {
-  printf '%s\n' "$SYSTEM_CONFIG/panels/qml/shell.qml"
+  printf '%s\n' "$SYSTEM_CONFIG/shell/qml/shell.qml"
 }
 
 bars_ipc() {
@@ -521,8 +521,8 @@ bars_ipc() {
 }
 
 apply_bars_presentation() {
-  "$SYSTEM_CONFIG/panels/sh/shared/bars-presentation.sh" || return 1
-  systemctl --user is-active --quiet argvus-panels.service || return 0
+  "$SYSTEM_CONFIG/shell/sh/shared/bars-presentation.sh" || return 1
+  systemctl --user is-active --quiet argvus-shell.service || return 0
   _presentation=$(cat "${XDG_RUNTIME_DIR:?}/argvus/bars/presentation.json") || return 1
   _attempt=0
   while [ "$_attempt" -lt 50 ]; do
@@ -552,7 +552,7 @@ wait_bar_surface() {
       if [ "$_actual" = "$_expected" ] && bar_layer_matches "$_expected"; then
         return 0
       fi
-    elif [ "$_expected" = false ] && ! systemctl --user is-active --quiet argvus-panels.service; then
+    elif [ "$_expected" = false ] && ! systemctl --user is-active --quiet argvus-shell.service; then
       return 0
     fi
     _attempt=$((_attempt + 1))
@@ -789,14 +789,17 @@ run_component() {
   component="${1:-}"
   case "$component" in
     bars)
-      exec systemctl --user start argvus-panels.service
+      exec systemctl --user start argvus-shell.service
       ;;
-    panels)
+    shell)
       wait_graphical_runtime bars
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       argvus widget-telemetry toggle migrate-master || log "Unable to migrate telemetry master switch"
-      "$SYSTEM_CONFIG/panels/sh/shared/bars-presentation.sh" || log "Unable to project bars presentation"
+      "$SYSTEM_CONFIG/shell/sh/shared/bars-presentation.sh" || log "Unable to project bars presentation"
       exec qs --no-duplicate -p "$(bars_config)"
+      ;;
+    panels)
+      exec "$0" run shell
       ;;
     taskbar)
       exec systemctl --user start argvus-taskbar.service
@@ -837,7 +840,7 @@ run_component() {
       . "$SYSTEM_CONFIG/session/sh/bootstrap.sh"
       exec dunst -config "$(paths_config notifications/config/dunstrc)"
       ;;
-    control-panel|shell|quickshell)
+    control-panel|quickshell)
       exec systemctl --user restart argvus-control-panel.service
       ;;
     clipboard-text|clipboard-image)

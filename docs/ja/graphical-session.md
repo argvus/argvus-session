@@ -10,7 +10,7 @@ description: グラフィカルログインフローを通じてARGVUSを開始�
 
 Hyprland の準備ができると、`argvus sessionctl` が `argvus-session.target` を起動します。このターゲットはタスクバー、コントロールパネル、通知、壁紙、アイドル処理、クリップボード、SSH エージェント、Secret Service プロバイダーおよび関連するサービスを起動します。ログイン引き渡しからこれらのサービスが起動し、壁紙とタスクバーが画面に表示されるまで、シングルのロードスピナーが画面に表示され続けます（最大でさらに 1.5 秒）。Hyprland を起動する前に、`argvus-start` は設定投影（`argvus-config.service`）をキューに入れ、これはコンポジタ起動中に実行され、グリータの DRM 引き渡しサーフェスにディスプレイを解放するよう依頼します（`/usr/lib/argvus/greeter/handoff --send release`）。そのサーフェスが動作しているとき、まず `loginctl activate` でセッションをアクティブにするため、Hyprland はバックグラウンドの VT 上で起動することはありません。その後、セッションスピナーはサーフェスに Hyprland の最初のフレームを隠していたオーバーレイを削除するよう指示します。
 
-タスクバーとテレメトリは、`argvus-panels.service` が管理する Quickshell プロセス内の独立したサーフェスです。各サーフェスは `argvus-taskbar.service` と `argvus-widget-telemetry.service` で制御します。
+タスクバーとテレメトリは、`argvus-shell.service` が管理する Quickshell プロセス内の独立したサーフェスです。各サーフェスは `argvus-taskbar.service` と `argvus-widget-telemetry.service` で制御します。
 
 デスクトップが準備完了すると、セッションはTTY、ARGVUS Greeterおよびその他のログインマネージャ向けに`argvus welcome --if-needed`を実行します。ユーザー別の進行状況記録`opened`、完了または閉じる操作がない場合、統合コントロールセンターのウェルカムページを開きます。最初の正常なレンダリングは`opened`を`${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`に保存し、後のログイン時に再度開くのを防ぎます。`/etc/skel`には依存しません。その記録がない既存アカウントにも自動的に一度開く操作が行われます。レンダリング前の失敗は、次回のログインで再試行の機会を提供します。手動の`argvus welcome`は引き続き利用可能です。
 
@@ -24,6 +24,12 @@ Hyprland の準備ができると、`argvus sessionctl` が `argvus-session.targ
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+Quickshell ホスト、Taskbar と Telemetry の各サーフェスを再起動し、続けて Hyprland を再読み込みするには、次を実行します:
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
 `reload` は、すでにコミットされた世代を適用します。`argvus config apply-theme`、`accent`、`set`/`patch` のようなコマンドやウィジェット・テレメトリブロックの変更が変更を単に予測した場合、リロードは再度投影するのではなく、投影マニフェストから影響を受けたコンシューマを復元します。これは保留中のプランが存在しない場合（例えばセッション開始時）にのみ投影します。ランタイムに関連するセクションが変更されていない場合、Hyprland のリロードやサービスの再起動なしで正常に終了します。変更が存在する場合、セッション統合を再適用し、影響を受けたコンポジタおよびデスクトップサーフェスのみをリロードします。スプラッシュは、サーフェスを再作成する場合にのみリロードをカバーします：Taskbar バー（タスクバーまたはウィジェット・テレメトリ）の再起動、コントロールパネルの再起動、またはフォールバック `full` プランです。テーマ、アクセント、効果、フォント、ウィンドウレイアウト、壁紙の変更は、`argvus config theme-runtime consumers` および `wallpaper`、Hyprland の `/reload` のように、スプラッシュなしでその場でリロードされます。 何もすることがない状態でのリロードは何も表示しません。繰り返しのリロードは直列化され、変更のない部分はそのコンシューマを再起動しません。`apply-config`はこの操作の明示的なエイリアスです。表示されると、リロードのスプラッシュは作業中は不透明であり、中間のデスクトップは表示されません。コンポジターやログイン環境を再起動する必要がある場合のログアウトの代替手段ではありません。

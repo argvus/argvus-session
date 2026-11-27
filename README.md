@@ -55,7 +55,7 @@ argvus-session.target
         |
         |-- argvus-session-prepare.service
         |-- argvus-wallpaper.service
-        |-- argvus-panels.service (required by each panel surface)
+        |-- argvus-shell.service (required by each panel surface)
         |-- argvus-taskbar.service
         |-- argvus-widget-telemetry.service (optional)
         |-- argvus-window-bar.service
@@ -84,11 +84,17 @@ user config override, and packaged fallback behavior. The Hyprland Lua
 `argvus-widget-telemetry.service` is intentionally opt-in. It is started by the
 shell/sysinfo toggle only after the user enables it, and future logins start it
 again only while that saved state remains enabled. This avoids a second polling
-telemetry surface during login. `argvus-panels.service` hosts the Taskbar,
+telemetry surface during login. `argvus-shell.service` hosts the Taskbar,
 Telemetry, Floating Window Bar, and Control Panel surfaces in one Quickshell
 process. The former `argvus-bars.service` name remains as a compatibility unit
-that starts the shared host; surface units depend on `argvus-panels.service`
+that starts the shared host; surface units depend on `argvus-shell.service`
 directly.
+
+For an on-demand refresh, `argvus-refresh.service` restarts the shared Shell
+host, Taskbar and Widget Telemetry, then runs `argvus-hyprland.service` to reload
+the compositor configuration. Trigger it with
+`systemctl --user restart argvus-refresh.service`. It is not part of the session
+target and does not run automatically at login.
 
 When `argvus start` detects a virtual machine, it exports `ARGVUS_LOW_POWER=1`
 and software-rendering compatibility variables. The packaged Hyprland config
@@ -210,7 +216,7 @@ Services are not enabled globally; logging into ARGVUS starts
 
 ```sh
 journalctl --user -u argvus-session.target -u 'argvus-*.service'
-journalctl --user -u argvus-panels.service
+journalctl --user -u argvus-shell.service
 journalctl --user -u argvus-taskbar.service
 ```
 

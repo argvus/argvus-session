@@ -11,7 +11,7 @@ A sessão garante que a variável de ambiente `PATH` do shell esteja definida pa
 
 Depois que o Hyprland está pronto, `argvus sessionctl` inicia `argvus-session.target`. Esse target inicia taskbar, Control Panel, notificações, wallpaper, idle, clipboard, o agente SSH, o provedor Secret Service e serviços relacionados. Um único spinner de carregamento fica na tela desde a troca do login até esses serviços iniciarem e o wallpaper e a barra de tarefas aparecerem na tela (no máximo 1,5 segundo a mais). Antes de iniciar o Hyprland, o `argvus-start` enfileira a projeção da configuração (`argvus-config.service`), que então corre durante a inicialização do compositor, e pede à superfície DRM do handoff do greeter que libere a tela (`/usr/lib/argvus/greeter/handoff --send release`); quando essa superfície está rodando, ele antes ativa a sessão com `loginctl activate`, para que o Hyprland nunca inicie numa VT em segundo plano. Depois, o spinner da sessão avisa a superfície para remover o overlay que escondia os primeiros quadros do Hyprland.
 
-A taskbar e o widget de telemetria são superfícies independentes no processo Quickshell gerenciado por `argvus-panels.service`. Use `argvus-taskbar.service` e `argvus-widget-telemetry.service` para controlar cada superfície.
+A taskbar e o widget de telemetria são superfícies independentes no processo Quickshell gerenciado por `argvus-shell.service`. Use `argvus-taskbar.service` e `argvus-widget-telemetry.service` para controlar cada superfície.
 
 Depois que o desktop está pronto, a sessão executa `argvus welcome --if-needed`, seja o login por TTY, ARGVUS Greeter ou outro gerenciador. O comando abre a página Welcome integrada na Central de Controle quando o estado por usuário ainda não registra `opened`, conclusão ou dispensa. A primeira renderização bem-sucedida grava `opened` em `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`; os próximos logins não reabrem a tela. Não depende de `/etc/skel`. Contas existentes sem esse registro também recebem uma abertura automática. Falhas anteriores à renderização permitem tentar novamente no próximo login. A abertura manual com `argvus welcome` continua disponível.
 
@@ -25,6 +25,12 @@ A sessão também importa as variáveis Wayland e do ambiente desktop para o ger
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+Para reiniciar o host Quickshell e as superfícies Taskbar e Telemetry, e depois recarregar o Hyprland, execute:
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
 `reload` aplica a generation que já foi commitada. Se um comando como `argvus config apply-theme`, `accent`, `set`/`patch` ou uma mudança de bloco de widget-telemetry acabou de projetar a mudança, o reload restaura os consumidores afetados a partir do manifesto de projeção em vez de projetar de novo. Ele só projeta quando não existe plano pendente, por exemplo no startup da sessão. Se nenhuma seção relevante para o runtime mudou, ele termina com sucesso sem recarregar o Hyprland nem reiniciar serviços. Quando existem mudanças, reaplica a integração da sessão e recarrega somente o compositor e as superfícies afetadas. O splash só cobre um reload quando ele recria uma superfície: um reinício de uma barra da Taskbar (taskbar ou Widget Telemetry) ou do Control Panel, ou o plano `full` de fallback. Mudanças de tema, destaque, efeitos, fontes, layout das janelas e wallpaper recarregam no lugar (`argvus config theme-runtime consumers` e `wallpaper`, o `/reload` do Hyprland) sem ele, e um reload sem nada a fazer não mostra nada. Reloads repetidos são serializados e seções sem alteração não reiniciam seus consumidores. `apply-config` é um alias explícito dessa operação. Quando aparece, o splash do reload é opaco enquanto o trabalho acontece, para que a área de trabalho intermediária não fique visível. Ele não substitui o logout quando é necessário reiniciar o compositor ou o ambiente de login.

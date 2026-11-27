@@ -11,7 +11,7 @@ Sesi memastikan bahwa variabel lingkungan shell `PATH` diatur ke nilai default y
 
 Setelah Hyprland siap, `argvus sessionctl` memulai `argvus-session.target`. Target ini memulai taskbar, Panel Kontrol, notifikasi, wallpaper, penanganan idle, clipboard, agen SSH, penyedia Layanan Rahasia dan layanan terkait. Sebuah spinner pemuatan tunggal tetap di layar dari serah terima login sampai layanan tersebut telah dimulai dan wallpaper serta taskbar muncul di layar (paling lama 1,5 detik lagi). Sebelum meluncurkan Hyprland, `argvus-start` mengantri proyeksi konfigurasi (`argvus-config.service`), yang kemudian dijalankan selama startup compositor, dan meminta permukaan serah terima DRM greeter untuk melepaskan tampilan (`/usr/lib/argvus/greeter/handoff --send release`); ketika permukaan itu berjalan, pertama-tama mengaktifkan sesi dengan `loginctl activate`, sehingga Hyprland tidak pernah memulai di VT di latar belakang. Spinner sesi kemudian memberi tahu permukaan untuk menghapus lapisan yang menyembunyikan frame pertama Hyprland.
 
-Bilah tugas dan widget telemetri adalah permukaan independen dalam proses Quickshell yang dikelola `argvus-panels.service`. Gunakan `argvus-taskbar.service` dan `argvus-widget-telemetry.service` untuk mengontrol masing-masing permukaan.
+Bilah tugas dan widget telemetri adalah permukaan independen dalam proses Quickshell yang dikelola `argvus-shell.service`. Gunakan `argvus-taskbar.service` dan `argvus-widget-telemetry.service` untuk mengontrol masing-masing permukaan.
 
 Setelah desktop siap, sesi menjalankan `argvus welcome --if-needed` untuk TTY, ARGVUS Greeter, dan pengelola login lainnya. Ini membuka halaman Selamat Datang Pusat Kontrol terintegrasi kecuali catatan kemajuan per pengguna `opened`, penyelesaian, atau penutupan. Render pertama yang berhasil menyimpan `opened` di `${XDG_STATE_HOME:-$HOME/.local/state}/argvus/welcome/progress.json`, mencegah pembukaan kembali pada login berikutnya. Ini tidak bergantung pada `/etc/skel`. Akun yang ada tanpa catatan itu juga akan menerima pembukaan otomatis. Kegagalan sebelum render memungkinkan percobaan lain pada login berikutnya. `argvus welcome` manual tetap tersedia.
 
@@ -19,6 +19,12 @@ Setelah desktop siap, sesi menjalankan `argvus welcome --if-needed` untuk TTY, A
 argvus sessionctl status
 argvus sessionctl logs
 argvus sessionctl reload
+```
+
+Untuk memulai ulang host Quickshell serta permukaan Taskbar dan Telemetry, lalu memuat ulang Hyprland, jalankan:
+
+```sh
+systemctl --user restart argvus-refresh.service
 ```
 
 juga mendapatkan sesi argvus dan argvus dimulai di depan ketika direktori tersebut ada, sehingga alat yang dipasang di sana dapat dilihat oleh kompositor dan layanan. ~/.local/state/argvus/session.log dan /run/argvus-greeter/session.log diatur ke editor terminal default dari aplikasi default Pusat Kontrol (session.log), dan diekspor ke manajer pengguna systemd, aktivasi D-Bus dan Hyprland, sehingga terminal dan layanan yang diluncurkan dari sesi mewarisinya. Agen SSH (`PATH`, dari `~/.local/bin`) mendengarkan `~/.cargo/bin` dan memublikasikan `EDITOR` ke manajer pengguna. Saat agen ARGVUS dimulai, agen tersebut menggantikan `VISUAL` di manajer pengguna. Jika agen lain seperti gnome-keyring atau gcr harus memiliki soket, nonaktifkan unit ARGVUS dengan `TERMINAL_EDITOR` `argvus-ssh-agent.service` `openssh` `$XDG_RUNTIME_DIR/ssh-agent.socket` `SSH_AUTH_SOCK` `SSH_AUTH_SOCK` `systemctl --user mask argvus-ssh-agent.service` openssh argvus-ssh-agent.service . Ini dihentikan ketika Hyprland keluar, sehingga permukaan ini tidak tetap menjadi proses tanpa induk setelah logout.
